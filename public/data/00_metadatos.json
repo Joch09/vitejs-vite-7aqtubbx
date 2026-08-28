@@ -1,0 +1,49 @@
+{
+  "proyecto": "Vigilancia epidemiológica de accidentes y lesiones",
+  "version_json": "2026-08-28_JSON_BASE_FIX3",
+  "periodo": {
+    "inicio": "2026-01-01",
+    "fin": "2026-06-30"
+  },
+  "fuente_casos_fecha": "FechaAtencion",
+  "fuente_defunciones_fecha": "FECHAREGISTRO",
+  "tasa_base": 10000,
+  "poblacion_nacional": 55276355,
+  "entidades_sin_denominador": [
+    "GUANAJUATO",
+    "YUCATAN"
+  ],
+  "reglas": [
+    "Guanajuato y Yucatán conservan numeradores; sus tasas estatales son null.",
+    "El numerador nacional incluye todas las entidades, incluyendo Guanajuato y Yucatán.",
+    "Las tasas nacionales usan población 55,276,355.",
+    "No se realizan sumas ni cálculos de tasas en JSX.",
+    "Los niveles total, evento, tipo y categoría están precomputados.",
+    "Se incluyen valores diarios y acumulados a la fecha."
+  ],
+  "cierre_descriptivo": {
+    "estado": "CERRADO",
+    "calidad": [
+      {
+        "concepto": "Elementos totales",
+        "n": 566
+      },
+      {
+        "concepto": "Réplica exacta",
+        "n": 540
+      },
+      {
+        "concepto": "Errores/diferencias históricas documentadas",
+        "n": 23
+      },
+      {
+        "concepto": "Selecciones históricas manuales no reproducibles",
+        "n": 3
+      },
+      {
+        "concepto": "Pendientes metodológicos reales",
+        "n": 0
+      }
+    ]
+  }
+}
