@@ -4,6 +4,10 @@
 //
 // Capa única de acceso a los JSON de producción.
 // NO contiene cálculos epidemiológicos.
+//
+// Compatibilidad:
+// Los JSON compactos generados por R pueden serializar algunos arreglos
+// como objetos con claves numéricas. asArray() normaliza ambas formas.
 // =============================================================================
 
 const DATA_ROOT = `${import.meta.env.BASE_URL}data`.replace(/\/+$/, '');
@@ -48,8 +52,30 @@ async function fetchJson(relativePath) {
   }
 }
 
+function asArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (
+    value &&
+    typeof value === 'object'
+  ) {
+    return Object.values(value);
+  }
+
+  return [];
+}
+
 function buildLookup(values) {
-  return new Map(values.map((value, index) => [String(value), index]));
+  return new Map(
+    asArray(values).map(
+      (value, index) => [
+        String(value),
+        index,
+      ]
+    )
+  );
 }
 
 function getCompactIndexes(data) {
@@ -77,7 +103,7 @@ function getRecordLookup(data, keys) {
 
   const map = new Map();
 
-  for (const record of data?.data ?? []) {
+  for (const record of asArray(data?.data)) {
     const key = keys.map((k) => record[k]).join('|');
     map.set(key, record);
   }
@@ -113,7 +139,7 @@ export async function resolveType(typeOrId) {
 
   const wanted = String(typeOrId ?? '').trim().toLowerCase();
 
-  const match = (manifest.tipos ?? []).find((item) => {
+  const match = asArray(manifest?.tipos).find((item) => {
     return (
       String(item.tipo_id).toLowerCase() === wanted ||
       String(item.tipo).toLowerCase() === wanted
@@ -186,7 +212,9 @@ function getMapStructures(mapData) {
   const entities = buildLookup(mapData?.indexes?.entities ?? []);
 
   const comboBySignature = new Map();
-  (mapData?.indexes?.combos ?? []).forEach((combo, index) => {
+  asArray(
+    mapData?.indexes?.combos
+  ).forEach((combo, index) => {
     const signature = [
       combo.evento,
       combo.tipo,
@@ -198,7 +226,7 @@ function getMapStructures(mapData) {
 
   const recordByEntityCombo = new Map();
 
-  for (const record of mapData?.data ?? []) {
+  for (const record of asArray(mapData?.data)) {
     recordByEntityCombo.set(`${record.e}|${record.k}`, record);
   }
 
@@ -274,7 +302,9 @@ export function getMapEntityValues({
   mode = 'acumulado',
   includeNational = false,
 }) {
-  const entities = mapData?.indexes?.entities ?? [];
+  const entities = asArray(
+    mapData?.indexes?.entities
+  );
 
   return entities
     .filter((entity) => includeNational || entity !== 'NACIONAL')
@@ -309,7 +339,10 @@ function getBulletStructures(data) {
   const entities = buildLookup(data?.indexes?.entities ?? []);
   const categories = buildLookup(data?.indexes?.categories ?? []);
 
-  const indicators = data?.indexes?.indicators ?? [];
+  const indicators = asArray(
+    data?.indexes?.indicators
+  );
+
   const indicatorsByIndex = indicators.map((item, index) => ({
     ...item,
     index,
@@ -317,7 +350,7 @@ function getBulletStructures(data) {
 
   const records = new Map();
 
-  for (const record of data?.data ?? []) {
+  for (const record of asArray(data?.data)) {
     records.set(`${record.e}|${record.c}|${record.i}`, record);
   }
 
@@ -413,7 +446,7 @@ function getProfileStructures(profileData, profileId) {
 
   const records = new Map();
 
-  for (const record of profile?.data ?? []) {
+  for (const record of asArray(profile?.data)) {
     const [e, c, s] = record;
     records.set(`${e}|${c}|${s}`, record);
   }
@@ -464,7 +497,9 @@ export function getProfileSeries({
     return [];
   }
 
-  return (profile.series ?? []).map((series, seriesIdx) => {
+  return asArray(
+    profile?.series
+  ).map((series, seriesIdx) => {
     const record = records.get(`${entityIdx}|${categoryIdx}|${seriesIdx}`);
 
     if (!record) {
