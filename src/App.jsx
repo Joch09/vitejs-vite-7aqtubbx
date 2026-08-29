@@ -1544,6 +1544,91 @@ function App() {
     categoria,
   ]);
 
+  const distribucionesComplementarias = useMemo(() => {
+    if (
+      tipo === 'TODOS' ||
+      !profileData ||
+      !fecha
+    ) {
+      return [];
+    }
+
+    try {
+      const series =
+        getProfileSeries({
+          profileData,
+          profileId: 'distribuciones',
+          date: fecha,
+          entity: entidad,
+          category: categoria,
+          mode: 'acumulado',
+        });
+
+      if (!Array.isArray(series)) {
+        return [];
+      }
+
+      const grupos = new Map();
+
+      series.forEach((item) => {
+        const distribucion = String(
+          item?.distribucion ??
+            'Distribución complementaria'
+        ).trim();
+
+        const etiqueta = String(
+          item?.etiqueta ??
+            item?.id ??
+            ''
+        ).trim();
+
+        const value =
+          Number(item?.value);
+
+        if (
+          !etiqueta ||
+          !Number.isFinite(value)
+        ) {
+          return;
+        }
+
+        if (!grupos.has(distribucion)) {
+          grupos.set(distribucion, []);
+        }
+
+        grupos.get(distribucion).push({
+          id:
+            item?.id ??
+            `${distribucion}-${etiqueta}`,
+          etiqueta,
+          value,
+        });
+      });
+
+      return Array.from(
+        grupos.entries()
+      ).map(
+        ([titulo, items]) => ({
+          titulo,
+          items,
+        })
+      );
+    } catch (error) {
+      console.error(
+        'Error al interpretar distribuciones complementarias:',
+        error
+      );
+
+      return [];
+    }
+  }, [
+    profileData,
+    tipo,
+    fecha,
+    entidad,
+    categoria,
+  ]);
+
   // ===========================================================================
   // CAMBIOS DE FILTROS
   // ===========================================================================
@@ -2441,6 +2526,160 @@ function App() {
                             )}%`,
                           }}
                         />
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={styles.panel}>
+            <div
+              style={
+                styles.profileHeader
+              }
+            >
+              <div>
+                <h2
+                  style={
+                    styles.sectionTitle
+                  }
+                >
+                  Distribuciones complementarias
+                </h2>
+
+                <div style={styles.note}>
+                  Perfiles adicionales
+                  acumulados para la
+                  selección actual.
+                </div>
+              </div>
+            </div>
+
+            {tipo === 'TODOS' ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Selecciona un tipo para
+                consultar sus
+                distribuciones
+                complementarias.
+              </div>
+            ) : loadingBullets ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Cargando perfiles...
+              </div>
+            ) : distribucionesComplementarias.length ===
+              0 ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                No hay distribuciones
+                complementarias para la
+                selección actual.
+              </div>
+            ) : (
+              <div
+                style={
+                  styles.distributionStack
+                }
+              >
+                {distribucionesComplementarias.map(
+                  (grupo) => (
+                    <div
+                      key={
+                        grupo.titulo
+                      }
+                      style={
+                        styles.distributionBlock
+                      }
+                    >
+                      <h3
+                        style={
+                          styles.distributionTitle
+                        }
+                      >
+                        {grupo.titulo}
+                      </h3>
+
+                      <div
+                        style={
+                          styles.distributionList
+                        }
+                      >
+                        {grupo.items.map(
+                          (item) => (
+                            <div
+                              key={
+                                item.id
+                              }
+                              style={
+                                styles.distributionRow
+                              }
+                            >
+                              <div
+                                style={
+                                  styles.distributionTop
+                                }
+                              >
+                                <span
+                                  style={
+                                    styles.distributionLabel
+                                  }
+                                >
+                                  {item.etiqueta}
+                                </span>
+
+                                <strong
+                                  style={
+                                    styles.distributionValue
+                                  }
+                                >
+                                  {new Intl.NumberFormat(
+                                    'es-MX',
+                                    {
+                                      minimumFractionDigits:
+                                        0,
+                                      maximumFractionDigits:
+                                        1,
+                                    }
+                                  ).format(
+                                    item.value
+                                  )}
+                                  %
+                                </strong>
+                              </div>
+
+                              <div
+                                style={
+                                  styles.distributionTrack
+                                }
+                              >
+                                <div
+                                  style={{
+                                    ...styles.distributionBar,
+                                    width: `${Math.max(
+                                      0,
+                                      Math.min(
+                                        100,
+                                        item.value
+                                      )
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   )
@@ -3367,6 +3606,76 @@ const styles = {
   },
 
   consequenceBar: {
+    height: '100%',
+    background: '#9b4a60',
+    borderRadius: '999px',
+    minWidth: '1px',
+  },
+
+  distributionStack: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '18px',
+  },
+
+  distributionBlock: {
+    border:
+      '1px solid #e1e7ef',
+    borderRadius: '10px',
+    padding: '15px',
+    background: '#fbfcfd',
+  },
+
+  distributionTitle: {
+    margin: '0 0 14px 0',
+    fontSize: '13px',
+    color: '#344054',
+    fontWeight: 700,
+  },
+
+  distributionList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+
+  distributionRow: {
+    width: '100%',
+  },
+
+  distributionTop: {
+    display: 'flex',
+    justifyContent:
+      'space-between',
+    alignItems: 'baseline',
+    gap: '16px',
+    marginBottom: '6px',
+  },
+
+  distributionLabel: {
+    fontSize: '12px',
+    lineHeight: 1.35,
+    color: '#344054',
+    fontWeight: 600,
+  },
+
+  distributionValue: {
+    fontSize: '12px',
+    color: '#6f263d',
+    whiteSpace: 'nowrap',
+    fontVariantNumeric:
+      'tabular-nums',
+  },
+
+  distributionTrack: {
+    width: '100%',
+    height: '10px',
+    background: '#f2f4f7',
+    borderRadius: '999px',
+    overflow: 'hidden',
+  },
+
+  distributionBar: {
     height: '100%',
     background: '#9b4a60',
     borderRadius: '999px',
