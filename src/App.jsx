@@ -1483,6 +1483,67 @@ function App() {
     categoria,
   ]);
 
+  const perfilConsecuencia = useMemo(() => {
+    if (
+      tipo === 'TODOS' ||
+      !profileData ||
+      !fecha
+    ) {
+      return [];
+    }
+
+    try {
+      const series =
+        getProfileSeries({
+          profileData,
+          profileId: 'consecuencia',
+          date: fecha,
+          entity: entidad,
+          category: categoria,
+          mode: 'acumulado',
+        });
+
+      if (!Array.isArray(series)) {
+        return [];
+      }
+
+      return series
+        .map((item) => ({
+          id:
+            item?.id ??
+            item?.etiqueta,
+          etiqueta:
+            String(
+              item?.etiqueta ??
+                item?.id ??
+                ''
+            ).trim(),
+          value:
+            Number(item?.value),
+        }))
+        .filter(
+          (item) =>
+            item.etiqueta &&
+            Number.isFinite(
+              item.value
+            )
+        );
+    } catch (error) {
+      console.error(
+        'Error al interpretar perfil de consecuencia:',
+        error
+      );
+
+      return [];
+    }
+  }, [
+    profileData,
+    tipo,
+    fecha,
+    entidad,
+    categoria,
+  ]);
+
   // ===========================================================================
   // CAMBIOS DE FILTROS
   // ===========================================================================
@@ -2265,6 +2326,124 @@ function App() {
                       </div>
                     );
                   }
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={styles.panel}>
+            <div
+              style={
+                styles.profileHeader
+              }
+            >
+              <div>
+                <h2
+                  style={
+                    styles.sectionTitle
+                  }
+                >
+                  Consecuencia
+                </h2>
+
+                <div style={styles.note}>
+                  Distribución porcentual
+                  acumulada para la
+                  selección actual.
+                </div>
+              </div>
+            </div>
+
+            {tipo === 'TODOS' ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Selecciona un tipo para
+                consultar el perfil de
+                consecuencia.
+              </div>
+            ) : loadingBullets ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Cargando perfil...
+              </div>
+            ) : perfilConsecuencia.length ===
+              0 ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                No hay información de
+                consecuencia para la
+                selección actual.
+              </div>
+            ) : (
+              <div
+                style={
+                  styles.consequenceGrid
+                }
+              >
+                {perfilConsecuencia.map(
+                  (item) => (
+                    <div
+                      key={item.id}
+                      style={
+                        styles.consequenceCard
+                      }
+                    >
+                      <div
+                        style={
+                          styles.consequenceValue
+                        }
+                      >
+                        {new Intl.NumberFormat(
+                          'es-MX',
+                          {
+                            minimumFractionDigits:
+                              0,
+                            maximumFractionDigits:
+                              1,
+                          }
+                        ).format(
+                          item.value
+                        )}
+                        %
+                      </div>
+
+                      <div
+                        style={
+                          styles.consequenceLabel
+                        }
+                      >
+                        {item.etiqueta}
+                      </div>
+
+                      <div
+                        style={
+                          styles.consequenceTrack
+                        }
+                      >
+                        <div
+                          style={{
+                            ...styles.consequenceBar,
+                            width: `${Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                item.value
+                              )
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
             )}
@@ -3137,6 +3316,57 @@ const styles = {
   },
 
   areaBar: {
+    height: '100%',
+    background: '#9b4a60',
+    borderRadius: '999px',
+    minWidth: '1px',
+  },
+
+  consequenceGrid: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '12px',
+  },
+
+  consequenceCard: {
+    border:
+      '1px solid #e1e7ef',
+    borderRadius: '10px',
+    padding: '15px',
+    background: '#fbfcfd',
+    minHeight: '112px',
+    boxSizing: 'border-box',
+  },
+
+  consequenceValue: {
+    fontSize: '26px',
+    fontWeight: 700,
+    color: '#6f263d',
+    lineHeight: 1,
+    marginBottom: '8px',
+    fontVariantNumeric:
+      'tabular-nums',
+  },
+
+  consequenceLabel: {
+    fontSize: '12px',
+    lineHeight: 1.35,
+    fontWeight: 700,
+    color: '#344054',
+    minHeight: '32px',
+  },
+
+  consequenceTrack: {
+    width: '100%',
+    height: '8px',
+    marginTop: '12px',
+    background: '#f2f4f7',
+    borderRadius: '999px',
+    overflow: 'hidden',
+  },
+
+  consequenceBar: {
     height: '100%',
     background: '#9b4a60',
     borderRadius: '999px',
