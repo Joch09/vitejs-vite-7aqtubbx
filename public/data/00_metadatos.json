@@ -1,0 +1,22 @@
+{
+  "version": "2026-08-28_JSON_BASE_TAXONOMIA28_FIX1",
+  "proyecto": "Vigilancia epidemiológica de accidentes y lesiones",
+  "periodo": {
+    "inicio": "2026-01-01",
+    "fin": "2026-06-30"
+  },
+  "fecha_casos": "FechaAtencion",
+  "fecha_defunciones": "FECHAREGISTRO",
+  "poblacion_nacional": 55276355,
+  "reglas": {
+    "tasas_por": 10000,
+    "entidades_sin_denominador": ["GUANAJUATO", "YUCATAN"],
+    "categorias": 28,
+    "tipos": 9,
+    "eventos": 2
+  },
+  "cierres": {
+    "casos": 252809,
+    "defunciones": 1314
+  }
+}
