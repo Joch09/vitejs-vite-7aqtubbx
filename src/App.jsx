@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDashboardData } from './hooks/useDashboardData';
 
 import {
+  getBulletValues,
   getMapEntityValues,
   getMapValue,
+  loadBullets,
   loadCategoryMap,
 } from './data/dashboardData';
 
@@ -283,6 +285,79 @@ function getColorIndex(
       index
     )
   );
+}
+
+function formatBulletValue(value) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(Number(value))
+  ) {
+    return '—';
+  }
+
+  return `${new Intl.NumberFormat(
+    'es-MX',
+    {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }
+  ).format(Number(value))}%`;
+}
+
+function formatBulletLabel(indicator) {
+  const labels = {
+    'Atención <=24 h':
+      'Atención dentro de las primeras 24 horas',
+    Hospitalización:
+      'Requirió hospitalización',
+    'Atención prehospitalaria':
+      'Recibió atención prehospitalaria',
+    'Discapacidad preexistente':
+      'Discapacidad preexistente',
+    Vivienda:
+      'Ocurrió en el hogar',
+    Trabajo:
+      'Ocurrió en sitio laboral',
+    'Vía pública':
+      'Ocurrió en vía pública',
+    'No uso de casco':
+      'No utilizó casco',
+    'No uso de cinturón':
+      'No utilizó cinturón de seguridad',
+    'Alcohol paciente':
+      'Sospecha de consumo de alcohol en la persona lesionada',
+    'Alcohol agresor':
+      'Sospecha de consumo de alcohol en la persona agresora',
+    'Agresor hombre':
+      'Persona agresora de sexo masculino',
+    'Agresor desconocido':
+      'Persona agresora desconocida',
+    'Atención psicológica':
+      'Recibió atención psicológica',
+    'Atención psiquiátrica':
+      'Recibió atención psiquiátrica',
+    'Profilaxis VIH':
+      'Recibió profilaxis para VIH',
+    'Anticoncepción de emergencia':
+      'Recibió anticoncepción de emergencia',
+    'Agresión repetida':
+      'Evento de agresión repetida',
+    'Cabeza y cuello':
+      'Afectación principal en cabeza y cuello',
+    'Embarazo/puerperio':
+      'Ocurrió durante embarazo o puerperio',
+    'Ahorcamiento':
+      'Relacionado con ahorcamiento',
+    'Consumo de drogas':
+      'Sospecha de consumo de drogas',
+    'Ahogamiento relacionado con fuentes de agua':
+      'Ahogamiento relacionado con fuentes de agua',
+    'Envenenamiento relacionado con plaguicidas':
+      'Envenenamiento relacionado con plaguicidas',
+  };
+
+  return labels[indicator] ?? indicator;
 }
 
 function MexicoChoropleth({
@@ -696,6 +771,21 @@ function App() {
     setCategoryError,
   ] = useState(null);
 
+  const [
+    bulletData,
+    setBulletData,
+  ] = useState(null);
+
+  const [
+    loadingBullets,
+    setLoadingBullets,
+  ] = useState(false);
+
+  const [
+    bulletError,
+    setBulletError,
+  ] = useState(null);
+
   const [geoData, setGeoData] =
     useState(null);
   const [geoLoading, setGeoLoading] =
@@ -919,6 +1009,55 @@ function App() {
     }
 
     cargar();
+
+    return () => {
+      active = false;
+    };
+  }, [tipo]);
+
+  // ===========================================================================
+  // CARGAR BULLETS CUANDO EXISTE UN TIPO SELECCIONADO
+  // ===========================================================================
+
+  useEffect(() => {
+    let active = true;
+
+    async function cargarBullets() {
+      if (tipo === 'TODOS') {
+        setBulletData(null);
+        setBulletError(null);
+        setLoadingBullets(false);
+        return;
+      }
+
+      try {
+        setLoadingBullets(true);
+        setBulletError(null);
+        setBulletData(null);
+
+        const data =
+          await loadBullets(tipo);
+
+        if (!active) {
+          return;
+        }
+
+        setBulletData(data);
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+
+        setBulletData(null);
+        setBulletError(err);
+      } finally {
+        if (active) {
+          setLoadingBullets(false);
+        }
+      }
+    }
+
+    cargarBullets();
 
     return () => {
       active = false;
@@ -1158,25 +1297,32 @@ function App() {
     ]);
 
   // ===========================================================================
-  // TOP PROVISIONAL PARA VALIDACIÓN
+  // BULLETS / INDICADORES DESCRIPTIVOS
   // ===========================================================================
 
-  const topEntidades =
-    useMemo(() => {
-      return [...valoresMapa]
-        .filter(
-          (x) =>
-            x.value !== null &&
-            x.value !==
-              undefined
-        )
-        .sort(
-          (a, b) =>
-            Number(b.value) -
-            Number(a.value)
-        )
-        .slice(0, 10);
-    }, [valoresMapa]);
+  const bullets = useMemo(() => {
+    if (
+      tipo === 'TODOS' ||
+      !bulletData ||
+      !fecha
+    ) {
+      return [];
+    }
+
+    return getBulletValues({
+      bulletData,
+      date: fecha,
+      entity: entidad,
+      category: categoria,
+      mode: 'acumulado',
+    });
+  }, [
+    bulletData,
+    tipo,
+    fecha,
+    entidad,
+    categoria,
+  ]);
 
   // ===========================================================================
   // CAMBIOS DE FILTROS
@@ -1187,6 +1333,8 @@ function App() {
     setTipo('TODOS');
     setCategoria('TODAS');
     setCategoryMap(null);
+    setBulletData(null);
+    setBulletError(null);
   }
 
   function cambiarTipo(value) {
@@ -1461,74 +1609,139 @@ function App() {
           </div>
 
           <div style={styles.panel}>
-            <h2
-              style={
-                styles.sectionTitle
-              }
-            >
-              Verificación
-              provisional por entidad
-            </h2>
-
             <div
               style={
-                styles.tableWrapper
+                styles.bulletHeader
               }
             >
-              <table
-                style={styles.table}
-              >
-                <thead>
-                  <tr>
-                    <th
-                      style={styles.th}
-                    >
-                      Entidad
-                    </th>
+              <div>
+                <h2
+                  style={
+                    styles.sectionTitle
+                  }
+                >
+                  Indicadores
+                  descriptivos
+                </h2>
 
-                    <th
+                <div
+                  style={styles.note}
+                >
+                  Valores acumulados
+                  para la selección
+                  actual.
+                </div>
+              </div>
+
+              {tipo !== 'TODOS' && (
+                <div
+                  style={
+                    styles.bulletCount
+                  }
+                >
+                  {bullets.length}{' '}
+                  indicadores
+                </div>
+              )}
+            </div>
+
+            {tipo === 'TODOS' ? (
+              <div
+                style={
+                  styles.bulletEmpty
+                }
+              >
+                Selecciona un tipo de
+                accidente o lesión para
+                consultar sus indicadores
+                descriptivos.
+              </div>
+            ) : loadingBullets ? (
+              <div
+                style={
+                  styles.bulletEmpty
+                }
+              >
+                Cargando indicadores...
+              </div>
+            ) : bulletError ? (
+              <div
+                style={
+                  styles.bulletError
+                }
+              >
+                <strong>
+                  No fue posible cargar
+                  los indicadores.
+                </strong>
+
+                <div
+                  style={styles.note}
+                >
+                  {bulletError.message}
+                </div>
+              </div>
+            ) : bullets.length === 0 ? (
+              <div
+                style={
+                  styles.bulletEmpty
+                }
+              >
+                No hay indicadores
+                disponibles para la
+                selección actual.
+              </div>
+            ) : (
+              <div
+                style={
+                  styles.bulletGrid
+                }
+              >
+                {bullets.map(
+                  (item) => (
+                    <div
+                      key={
+                        item.indicador_id ??
+                        item.indicador
+                      }
                       style={
-                        styles.thRight
+                        styles.bulletCard
                       }
                     >
-                      Tasa acumulada
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {topEntidades.map(
-                    (item) => (
-                      <tr
-                        key={
-                          item.entity
+                      <div
+                        style={
+                          styles.bulletValue
                         }
                       >
-                        <td
-                          style={
-                            styles.td
-                          }
-                        >
-                          {
-                            item.entity
-                          }
-                        </td>
+                        {formatBulletValue(
+                          item.value
+                        )}
+                      </div>
 
-                        <td
-                          style={
-                            styles.tdRight
-                          }
-                        >
-                          {Number(
-                            item.value
-                          ).toFixed(2)}
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      <div
+                        style={
+                          styles.bulletLabel
+                        }
+                      >
+                        {formatBulletLabel(
+                          item.indicador
+                        )}
+                      </div>
+
+                      <div
+                        style={
+                          styles.bulletContext
+                        }
+                      >
+                        {entidad}
+                        {' · '}
+                        {categoria}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -2082,6 +2295,108 @@ const styles = {
     padding: '8px 0',
     borderBottom:
       '1px solid #eef2f6',
+  },
+
+  bulletHeader: {
+    display: 'flex',
+    justifyContent:
+      'space-between',
+    alignItems: 'flex-start',
+    gap: '15px',
+    marginBottom: '16px',
+  },
+
+  bulletCount: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#667085',
+    border:
+      '1px solid #d8dee6',
+    borderRadius: '999px',
+    padding: '5px 9px',
+    whiteSpace: 'nowrap',
+  },
+
+  bulletGrid: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(auto-fit, minmax(190px, 1fr))',
+    gap: '12px',
+  },
+
+  bulletCard: {
+    minHeight: '120px',
+    border:
+      '1px solid #e1e7ef',
+    borderRadius: '10px',
+    padding: '16px',
+    background: '#fbfcfd',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent:
+      'center',
+    boxSizing: 'border-box',
+  },
+
+  bulletValue: {
+    fontSize: '30px',
+    lineHeight: 1,
+    fontWeight: 700,
+    color: '#6f263d',
+    marginBottom: '10px',
+    fontVariantNumeric:
+      'tabular-nums',
+  },
+
+  bulletLabel: {
+    fontSize: '13px',
+    lineHeight: 1.35,
+    fontWeight: 700,
+    color: '#344054',
+  },
+
+  bulletContext: {
+    marginTop: '9px',
+    paddingTop: '8px',
+    borderTop:
+      '1px solid #eef2f6',
+    fontSize: '10px',
+    lineHeight: 1.3,
+    color: '#98a2b3',
+  },
+
+  bulletEmpty: {
+    minHeight: '150px',
+    border:
+      '1px dashed #cbd5e1',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    padding: '24px',
+    color: '#667085',
+    fontSize: '13px',
+    lineHeight: 1.5,
+    boxSizing: 'border-box',
+  },
+
+  bulletError: {
+    minHeight: '150px',
+    border:
+      '1px solid #fecdca',
+    background: '#fffbfa',
+    borderRadius: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    textAlign: 'center',
+    padding: '24px',
+    color: '#b42318',
+    fontSize: '13px',
+    boxSizing: 'border-box',
   },
 
   tableWrapper: {
