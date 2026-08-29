@@ -6,6 +6,7 @@ import {
   getBulletValues,
   getMapEntityValues,
   getMapValue,
+  getProfileSeries,
   loadCategoryMap,
   loadTypeBundle,
 } from './data/dashboardData';
@@ -729,6 +730,11 @@ function App() {
     setBulletError,
   ] = useState(null);
 
+  const [
+    profileData,
+    setProfileData,
+  ] = useState(null);
+
   const [geoData, setGeoData] =
     useState(null);
   const [geoLoading, setGeoLoading] =
@@ -971,6 +977,7 @@ function App() {
     async function cargarBullets() {
       if (tipo === 'TODOS') {
         setBulletData(null);
+        setProfileData(null);
         setBulletError(null);
         setLoadingBullets(false);
         return;
@@ -980,6 +987,7 @@ function App() {
         setLoadingBullets(true);
         setBulletError(null);
         setBulletData(null);
+        setProfileData(null);
 
         const bundle =
           await loadTypeBundle(tipo);
@@ -991,12 +999,17 @@ function App() {
         setBulletData(
           bundle?.bullets ?? null
         );
+
+        setProfileData(
+          bundle?.profiles ?? null
+        );
       } catch (err) {
         if (!active) {
           return;
         }
 
         setBulletData(null);
+        setProfileData(null);
         setBulletError(err);
       } finally {
         if (active) {
@@ -1286,6 +1299,129 @@ function App() {
     categoria,
   ]);
 
+  const perfilEdadSexo = useMemo(() => {
+    if (
+      tipo === 'TODOS' ||
+      !profileData ||
+      !fecha
+    ) {
+      return [];
+    }
+
+    try {
+      const series =
+        getProfileSeries({
+          profileData,
+          profileId: 'edad_sexo',
+          date: fecha,
+          entity: entidad,
+          category: categoria,
+          mode: 'acumulado',
+        });
+
+      if (!Array.isArray(series)) {
+        return [];
+      }
+
+      const grupos = new Map();
+
+      series.forEach((item) => {
+        const etiqueta = String(
+          item?.etiqueta ?? ''
+        ).trim();
+
+        const id = String(
+          item?.id ?? ''
+        ).toLowerCase();
+
+        let sexo = null;
+
+        if (
+          id.endsWith('_hombre') ||
+          / HOMBRE$/i.test(etiqueta)
+        ) {
+          sexo = 'HOMBRE';
+        } else if (
+          id.endsWith('_mujer') ||
+          / MUJER$/i.test(etiqueta)
+        ) {
+          sexo = 'MUJER';
+        }
+
+        if (!sexo) {
+          return;
+        }
+
+        const grupo = etiqueta
+          .replace(
+            /\s+(HOMBRE|MUJER)$/i,
+            ''
+          )
+          .trim();
+
+        if (!grupo) {
+          return;
+        }
+
+        if (!grupos.has(grupo)) {
+          grupos.set(grupo, {
+            grupo,
+            hombres: 0,
+            mujeres: 0,
+          });
+        }
+
+        const fila =
+          grupos.get(grupo);
+
+        const value =
+          Number(item?.value);
+
+        const conteo =
+          Number.isFinite(value)
+            ? value
+            : 0;
+
+        if (sexo === 'HOMBRE') {
+          fila.hombres = conteo;
+        } else {
+          fila.mujeres = conteo;
+        }
+      });
+
+      return Array.from(
+        grupos.values()
+      );
+    } catch (error) {
+      console.error(
+        'Error al interpretar perfil edad-sexo:',
+        error
+      );
+
+      return [];
+    }
+  }, [
+    profileData,
+    tipo,
+    fecha,
+    entidad,
+    categoria,
+  ]);
+
+  const maxEdadSexo = useMemo(() => {
+    const valores =
+      perfilEdadSexo.flatMap(
+        (fila) => [
+          Number(fila.hombres) || 0,
+          Number(fila.mujeres) || 0,
+        ]
+      );
+
+    return valores.length > 0
+      ? Math.max(...valores, 1)
+      : 1;
+  }, [perfilEdadSexo]);
+
   // ===========================================================================
   // CAMBIOS DE FILTROS
   // ===========================================================================
@@ -1296,6 +1432,7 @@ function App() {
     setCategoria('TODAS');
     setCategoryMap(null);
     setBulletData(null);
+    setProfileData(null);
     setBulletError(null);
   }
 
@@ -1694,6 +1831,250 @@ function App() {
                       </div>
                     </div>
                   )
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={styles.panel}>
+            <div
+              style={
+                styles.profileHeader
+              }
+            >
+              <div>
+                <h2
+                  style={
+                    styles.sectionTitle
+                  }
+                >
+                  Perfil por edad y sexo
+                </h2>
+
+                <div style={styles.note}>
+                  Casos acumulados para
+                  la selección actual.
+                </div>
+              </div>
+
+              {tipo !== 'TODOS' &&
+                !loadingBullets &&
+                perfilEdadSexo.length >
+                  0 && (
+                  <div
+                    style={
+                      styles.profileLegend
+                    }
+                  >
+                    <span
+                      style={
+                        styles.profileLegendItem
+                      }
+                    >
+                      <span
+                        style={{
+                          ...styles.profileLegendDot,
+                          background:
+                            '#667085',
+                        }}
+                      />
+                      Hombres
+                    </span>
+
+                    <span
+                      style={
+                        styles.profileLegendItem
+                      }
+                    >
+                      <span
+                        style={{
+                          ...styles.profileLegendDot,
+                          background:
+                            '#9b4a60',
+                        }}
+                      />
+                      Mujeres
+                    </span>
+                  </div>
+                )}
+            </div>
+
+            {tipo === 'TODOS' ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Selecciona un tipo para
+                consultar el perfil por
+                edad y sexo.
+              </div>
+            ) : loadingBullets ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Cargando perfil...
+              </div>
+            ) : perfilEdadSexo.length ===
+              0 ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                No hay información de
+                edad y sexo para la
+                selección actual.
+              </div>
+            ) : (
+              <div
+                style={
+                  styles.pyramidWrap
+                }
+              >
+                <div
+                  style={
+                    styles.pyramidHeader
+                  }
+                >
+                  <div
+                    style={
+                      styles.pyramidSideHeaderLeft
+                    }
+                  >
+                    Hombres
+                  </div>
+
+                  <div
+                    style={
+                      styles.pyramidAgeHeader
+                    }
+                  >
+                    Edad
+                  </div>
+
+                  <div
+                    style={
+                      styles.pyramidSideHeaderRight
+                    }
+                  >
+                    Mujeres
+                  </div>
+                </div>
+
+                {perfilEdadSexo.map(
+                  (fila) => {
+                    const anchoHombres =
+                      `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          (Number(
+                            fila.hombres
+                          ) /
+                            maxEdadSexo) *
+                            100
+                        )
+                      )}%`;
+
+                    const anchoMujeres =
+                      `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          (Number(
+                            fila.mujeres
+                          ) /
+                            maxEdadSexo) *
+                            100
+                        )
+                      )}%`;
+
+                    return (
+                      <div
+                        key={
+                          fila.grupo
+                        }
+                        style={
+                          styles.pyramidRow
+                        }
+                      >
+                        <div
+                          style={
+                            styles.pyramidLeft
+                          }
+                        >
+                          <span
+                            style={
+                              styles.pyramidValueLeft
+                            }
+                          >
+                            {Number(
+                              fila.hombres
+                            ).toLocaleString(
+                              'es-MX'
+                            )}
+                          </span>
+
+                          <div
+                            style={
+                              styles.pyramidTrackLeft
+                            }
+                          >
+                            <div
+                              style={{
+                                ...styles.pyramidBarLeft,
+                                width:
+                                  anchoHombres,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div
+                          style={
+                            styles.pyramidAge
+                          }
+                        >
+                          {fila.grupo}
+                        </div>
+
+                        <div
+                          style={
+                            styles.pyramidRight
+                          }
+                        >
+                          <div
+                            style={
+                              styles.pyramidTrackRight
+                            }
+                          >
+                            <div
+                              style={{
+                                ...styles.pyramidBarRight,
+                                width:
+                                  anchoMujeres,
+                              }}
+                            />
+                          </div>
+
+                          <span
+                            style={
+                              styles.pyramidValueRight
+                            }
+                          >
+                            {Number(
+                              fila.mujeres
+                            ).toLocaleString(
+                              'es-MX'
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
                 )}
               </div>
             )}
@@ -2352,6 +2733,175 @@ const styles = {
     color: '#b42318',
     fontSize: '13px',
     boxSizing: 'border-box',
+  },
+
+  profileHeader: {
+    display: 'flex',
+    justifyContent:
+      'space-between',
+    alignItems: 'flex-start',
+    gap: '16px',
+    marginBottom: '16px',
+  },
+
+  profileLegend: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
+
+  profileLegendItem: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    fontSize: '11px',
+    color: '#667085',
+    whiteSpace: 'nowrap',
+  },
+
+  profileLegendDot: {
+    width: '9px',
+    height: '9px',
+    borderRadius: '50%',
+    display: 'inline-block',
+  },
+
+  profileEmpty: {
+    minHeight: '145px',
+    border:
+      '1px dashed #cbd5e1',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    padding: '24px',
+    color: '#667085',
+    fontSize: '13px',
+    lineHeight: 1.5,
+    boxSizing: 'border-box',
+  },
+
+  pyramidWrap: {
+    width: '100%',
+    overflowX: 'auto',
+  },
+
+  pyramidHeader: {
+    display: 'grid',
+    gridTemplateColumns:
+      'minmax(170px, 1fr) 64px minmax(170px, 1fr)',
+    gap: '8px',
+    alignItems: 'center',
+    marginBottom: '8px',
+    paddingBottom: '8px',
+    borderBottom:
+      '1px solid #eef2f6',
+  },
+
+  pyramidSideHeaderLeft: {
+    textAlign: 'right',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#667085',
+  },
+
+  pyramidSideHeaderRight: {
+    textAlign: 'left',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#667085',
+  },
+
+  pyramidAgeHeader: {
+    textAlign: 'center',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#667085',
+  },
+
+  pyramidRow: {
+    display: 'grid',
+    gridTemplateColumns:
+      'minmax(170px, 1fr) 64px minmax(170px, 1fr)',
+    gap: '8px',
+    alignItems: 'center',
+    minHeight: '24px',
+    marginBottom: '3px',
+  },
+
+  pyramidLeft: {
+    display: 'grid',
+    gridTemplateColumns:
+      '54px minmax(100px, 1fr)',
+    gap: '7px',
+    alignItems: 'center',
+  },
+
+  pyramidRight: {
+    display: 'grid',
+    gridTemplateColumns:
+      'minmax(100px, 1fr) 54px',
+    gap: '7px',
+    alignItems: 'center',
+  },
+
+  pyramidTrackLeft: {
+    height: '16px',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'stretch',
+    background: '#f2f4f7',
+    borderRadius: '3px 0 0 3px',
+    overflow: 'hidden',
+  },
+
+  pyramidTrackRight: {
+    height: '16px',
+    display: 'flex',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    background: '#f2f4f7',
+    borderRadius: '0 3px 3px 0',
+    overflow: 'hidden',
+  },
+
+  pyramidBarLeft: {
+    height: '100%',
+    background: '#667085',
+    borderRadius: '3px 0 0 3px',
+  },
+
+  pyramidBarRight: {
+    height: '100%',
+    background: '#9b4a60',
+    borderRadius: '0 3px 3px 0',
+  },
+
+  pyramidAge: {
+    textAlign: 'center',
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#344054',
+    whiteSpace: 'nowrap',
+  },
+
+  pyramidValueLeft: {
+    textAlign: 'right',
+    fontSize: '10px',
+    color: '#667085',
+    fontVariantNumeric:
+      'tabular-nums',
+  },
+
+  pyramidValueRight: {
+    textAlign: 'left',
+    fontSize: '10px',
+    color: '#667085',
+    fontVariantNumeric:
+      'tabular-nums',
   },
 
   tableWrapper: {
