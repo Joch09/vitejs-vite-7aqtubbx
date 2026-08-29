@@ -1,0 +1,316 @@
+{
+  "version": "2026-08-28_JSON_PRODUCCION_TAXONOMIA28_D_V1",
+  "eventos": ["Accidentes", "Lesiones"],
+  "tipos": [
+    {
+      "orden": 1,
+      "tipo": "Accidentes de transporte",
+      "evento": "Accidentes",
+      "tipo_etiqueta": "Transporte"
+    },
+    {
+      "orden": 2,
+      "tipo": "Caídas",
+      "evento": "Accidentes",
+      "tipo_etiqueta": "Caída"
+    },
+    {
+      "orden": 3,
+      "tipo": "Fuerzas mecánicas y objetos",
+      "evento": "Accidentes",
+      "tipo_etiqueta": "Exposición a fuerzas mecánicas y objetos"
+    },
+    {
+      "orden": 4,
+      "tipo": "Exposición a sustancias y energías",
+      "evento": "Accidentes",
+      "tipo_etiqueta": "Exposición a sustancias y energías"
+    },
+    {
+      "orden": 5,
+      "tipo": "Armas de fuego y punzocortantes",
+      "evento": "Lesiones",
+      "tipo_etiqueta": "Armas de fuego y objetos punzocortantes"
+    },
+    {
+      "orden": 6,
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "evento": "Lesiones",
+      "tipo_etiqueta": "Fuerza o contundentes (maltrato o negligencia)"
+    },
+    {
+      "orden": 7,
+      "tipo": "Violencia sexual",
+      "evento": "Lesiones",
+      "tipo_etiqueta": "Agresión sexual"
+    },
+    {
+      "orden": 8,
+      "tipo": "Otros mecanismos específicos",
+      "evento": "Lesiones",
+      "tipo_etiqueta": "Otros mecanismos específicos"
+    },
+    {
+      "orden": 9,
+      "tipo": "Lesiones autoinfligidas",
+      "evento": "Lesiones",
+      "tipo_etiqueta": "Autoinfligidas"
+    }
+  ],
+  "categorias": [
+    {
+      "tipo": "Accidentes de transporte",
+      "categoria": "Vehículos de motor",
+      "orden_tipo": 1,
+      "orden_categoria": 1,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Vehículos de motor",
+      "tipo_etiqueta": "Transporte"
+    },
+    {
+      "tipo": "Accidentes de transporte",
+      "categoria": "Motocicletas",
+      "orden_tipo": 1,
+      "orden_categoria": 2,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Motocicletas",
+      "tipo_etiqueta": "Transporte"
+    },
+    {
+      "tipo": "Accidentes de transporte",
+      "categoria": "Peatones",
+      "orden_tipo": 1,
+      "orden_categoria": 3,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Peatones",
+      "tipo_etiqueta": "Transporte"
+    },
+    {
+      "tipo": "Accidentes de transporte",
+      "categoria": "Bicicletas",
+      "orden_tipo": 1,
+      "orden_categoria": 4,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Bicicletas",
+      "tipo_etiqueta": "Transporte"
+    },
+    {
+      "tipo": "Accidentes de transporte",
+      "categoria": "Otros tipos de vehículos",
+      "orden_tipo": 1,
+      "orden_categoria": 5,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Otros tipos de vehículos",
+      "tipo_etiqueta": "Transporte"
+    },
+    {
+      "tipo": "Caídas",
+      "categoria": "Desde mismo nivel",
+      "orden_tipo": 2,
+      "orden_categoria": 1,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Desde mismo nivel",
+      "tipo_etiqueta": "Caída"
+    },
+    {
+      "tipo": "Caídas",
+      "categoria": "De bajo nivel",
+      "orden_tipo": 2,
+      "orden_categoria": 2,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "De bajo nivel",
+      "tipo_etiqueta": "Caída"
+    },
+    {
+      "tipo": "Caídas",
+      "categoria": "Desde o en escaleras y rampas",
+      "orden_tipo": 2,
+      "orden_categoria": 3,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Desde o en escaleras y rampas",
+      "tipo_etiqueta": "Caída"
+    },
+    {
+      "tipo": "Caídas",
+      "categoria": "Desde alturas",
+      "orden_tipo": 2,
+      "orden_categoria": 4,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Desde alturas",
+      "tipo_etiqueta": "Caída"
+    },
+    {
+      "tipo": "Fuerzas mecánicas y objetos",
+      "categoria": "Armas de fuego",
+      "orden_tipo": 3,
+      "orden_categoria": 1,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Armas de fuego",
+      "tipo_etiqueta": "Exposición a fuerzas mecánicas y objetos"
+    },
+    {
+      "tipo": "Fuerzas mecánicas y objetos",
+      "categoria": "Por herramientas manuales y objetos cortantes",
+      "orden_tipo": 3,
+      "orden_categoria": 2,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Por herramientas manuales y objetos cortantes",
+      "tipo_etiqueta": "Exposición a fuerzas mecánicas y objetos"
+    },
+    {
+      "tipo": "Fuerzas mecánicas y objetos",
+      "categoria": "Por objetos proyectados, lanzados o que caen",
+      "orden_tipo": 3,
+      "orden_categoria": 3,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Por objetos proyectados, lanzados o que caen",
+      "tipo_etiqueta": "Exposición a fuerzas mecánicas y objetos"
+    },
+    {
+      "tipo": "Fuerzas mecánicas y objetos",
+      "categoria": "Atrapamiento o aplastamiento",
+      "orden_tipo": 3,
+      "orden_categoria": 4,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Atrapamiento o aplastamiento",
+      "tipo_etiqueta": "Exposición a fuerzas mecánicas y objetos"
+    },
+    {
+      "tipo": "Exposición a sustancias y energías",
+      "categoria": "Contacto con calor y sustancias calientes",
+      "orden_tipo": 4,
+      "orden_categoria": 1,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Contacto con calor y sustancias calientes",
+      "tipo_etiqueta": "Exposición a sustancias y energías"
+    },
+    {
+      "tipo": "Exposición a sustancias y energías",
+      "categoria": "Envenenamiento",
+      "orden_tipo": 4,
+      "orden_categoria": 2,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Envenenamiento",
+      "tipo_etiqueta": "Exposición a sustancias y energías"
+    },
+    {
+      "tipo": "Exposición a sustancias y energías",
+      "categoria": "Ahogamiento, sofocación y asfixia",
+      "orden_tipo": 4,
+      "orden_categoria": 3,
+      "evento": "Accidentes",
+      "categoria_etiqueta": "Ahogamiento, sofocación y asfixia",
+      "tipo_etiqueta": "Exposición a sustancias y energías"
+    },
+    {
+      "tipo": "Armas de fuego y punzocortantes",
+      "categoria": "Armas de fuego",
+      "orden_tipo": 5,
+      "orden_categoria": 1,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Armas de fuego",
+      "tipo_etiqueta": "Armas de fuego y objetos punzocortantes"
+    },
+    {
+      "tipo": "Armas de fuego y punzocortantes",
+      "categoria": "Objetos Punzocortantes",
+      "orden_tipo": 5,
+      "orden_categoria": 2,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Objetos Punzocortantes",
+      "tipo_etiqueta": "Armas de fuego y objetos punzocortantes"
+    },
+    {
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "categoria": "Agresiones de fuerza corporal",
+      "orden_tipo": 6,
+      "orden_categoria": 1,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Agresiones de fuerza corporal",
+      "tipo_etiqueta": "Fuerza o contundentes (maltrato o negligencia)"
+    },
+    {
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "categoria": "Negligencia y otros tipos de maltrato",
+      "orden_tipo": 6,
+      "orden_categoria": 2,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Negligencia y otros tipos de maltrato",
+      "tipo_etiqueta": "Fuerza o contundentes (maltrato o negligencia)"
+    },
+    {
+      "tipo": "Violencia sexual",
+      "categoria": "Agresión sexual",
+      "orden_tipo": 7,
+      "orden_categoria": 1,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Agresión Sexual",
+      "tipo_etiqueta": "Agresión sexual"
+    },
+    {
+      "tipo": "Otros mecanismos específicos",
+      "categoria": "Sustancias (drogas, químicos, corrosivos, pesticidas y gases)",
+      "orden_tipo": 8,
+      "orden_categoria": 1,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Sustancias (drogas, químicos, corrosivos, pesticidas y gases)",
+      "tipo_etiqueta": "Otros mecanismos específicos"
+    },
+    {
+      "tipo": "Otros mecanismos específicos",
+      "categoria": "Energías (explosivos, humo, fuego, vapor y objetos calientes)",
+      "orden_tipo": 8,
+      "orden_categoria": 2,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Energías (explosivos, humo, fuego, vapor y objetos calientes)",
+      "tipo_etiqueta": "Otros mecanismos específicos"
+    },
+    {
+      "tipo": "Lesiones autoinfligidas",
+      "categoria": "Intoxicación",
+      "orden_tipo": 9,
+      "orden_categoria": 1,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Intoxicación",
+      "tipo_etiqueta": "Autoinfligidas"
+    },
+    {
+      "tipo": "Lesiones autoinfligidas",
+      "categoria": "Ahorcamiento o sofocación",
+      "orden_tipo": 9,
+      "orden_categoria": 2,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Ahorcamiento o sofocación",
+      "tipo_etiqueta": "Autoinfligidas"
+    },
+    {
+      "tipo": "Lesiones autoinfligidas",
+      "categoria": "Por arma de fuego",
+      "orden_tipo": 9,
+      "orden_categoria": 3,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Por arma de fuego",
+      "tipo_etiqueta": "Autoinfligidas"
+    },
+    {
+      "tipo": "Lesiones autoinfligidas",
+      "categoria": "Por colisión",
+      "orden_tipo": 9,
+      "orden_categoria": 4,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Por colisión",
+      "tipo_etiqueta": "Autoinfligidas"
+    },
+    {
+      "tipo": "Lesiones autoinfligidas",
+      "categoria": "Otros y los no especificados",
+      "orden_tipo": 9,
+      "orden_categoria": 5,
+      "evento": "Lesiones",
+      "categoria_etiqueta": "Otros y los no especificados",
+      "tipo_etiqueta": "Autoinfligidas"
+    }
+  ],
+  "entidades": ["NACIONAL", "BAJA CALIFORNIA", "BAJA CALIFORNIA SUR", "CAMPECHE", "CHIAPAS", "CIUDAD DE MEXICO", "COLIMA", "GUANAJUATO", "GUERRERO", "HIDALGO", "MEXICO", "MICHOACAN DE OCAMPO", "MORELOS", "NAYARIT", "OAXACA", "PUEBLA", "QUINTANA ROO", "SAN LUIS POTOSI", "SINALOA", "SONORA", "TABASCO", "TAMAULIPAS", "TLAXCALA", "VERACRUZ", "YUCATAN", "ZACATECAS"],
+  "medidas": ["Incidencia", "Mortalidad"]
+}

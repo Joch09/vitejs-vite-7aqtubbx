@@ -1,0 +1,303 @@
+{
+  "version": "2026-08-28_JSON_PERFILES_TAXONOMIA28_D_V1",
+  "periodo": {
+    "inicio": "2026-01-01",
+    "fin": "2026-06-30"
+  },
+  "formato": {
+    "compacto": true,
+    "schema_registro": [
+      "entidad_idx",
+      "categoria_idx",
+      "serie_idx",
+      "dia",
+      "acumulado"
+    ],
+    "nota": "Los arrays dia/acumulado siguen el índice dates. Los valores ya están calculados en R."
+  },
+  "tipos": [
+    {
+      "orden": 1,
+      "tipo": "Accidentes de transporte",
+      "tipo_id": "transporte",
+      "archivo": "01_transporte.json",
+      "categorias": [
+        "Vehículos de motor",
+        "Motocicletas",
+        "Peatones",
+        "Bicicletas",
+        "Otros tipos de vehículos"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "n_series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 7
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 7
+        }
+      ]
+    },
+    {
+      "orden": 2,
+      "tipo": "Caídas",
+      "tipo_id": "caidas",
+      "archivo": "02_caidas.json",
+      "categorias": [
+        "Desde mismo nivel",
+        "De bajo nivel",
+        "Desde o en escaleras y rampas",
+        "Desde alturas"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "n_series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 7
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 3
+        }
+      ]
+    },
+    {
+      "orden": 3,
+      "tipo": "Fuerzas mecánicas y objetos",
+      "tipo_id": "fuerzas_mecanicas",
+      "archivo": "03_fuerzas_mecanicas.json",
+      "categorias": [
+        "Armas de fuego",
+        "Por herramientas manuales y objetos cortantes",
+        "Por objetos proyectados, lanzados o que caen",
+        "Atrapamiento o aplastamiento"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "n_series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 3
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 4
+        }
+      ]
+    },
+    {
+      "orden": 4,
+      "tipo": "Exposición a sustancias y energías",
+      "tipo_id": "sustancias_energias",
+      "archivo": "04_sustancias_energias.json",
+      "categorias": [
+        "Contacto con calor y sustancias calientes",
+        "Envenenamiento",
+        "Ahogamiento, sofocación y asfixia"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "n_series": 8
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 3
+        }
+      ]
+    },
+    {
+      "orden": 5,
+      "tipo": "Armas de fuego y punzocortantes",
+      "tipo_id": "armas_punzocortantes",
+      "archivo": "05_armas_punzocortantes.json",
+      "categorias": [
+        "Armas de fuego",
+        "Objetos Punzocortantes"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "n_series": 8
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 5
+        }
+      ]
+    },
+    {
+      "orden": 6,
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "tipo_id": "maltrato_negligencia",
+      "archivo": "06_maltrato_negligencia.json",
+      "categorias": [
+        "Agresiones de fuerza corporal",
+        "Negligencia y otros tipos de maltrato"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 7
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 8
+        }
+      ]
+    },
+    {
+      "orden": 7,
+      "tipo": "Violencia sexual",
+      "tipo_id": "violencia_sexual",
+      "archivo": "07_violencia_sexual.json",
+      "categorias": [
+        "Agresión sexual"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 5
+        }
+      ]
+    },
+    {
+      "orden": 8,
+      "tipo": "Otros mecanismos específicos",
+      "tipo_id": "otros_mecanismos",
+      "archivo": "08_otros_mecanismos.json",
+      "categorias": [
+        "Sustancias (drogas, químicos, corrosivos, pesticidas y gases)",
+        "Energías (explosivos, humo, fuego, vapor y objetos calientes)"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "n_series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 7
+        }
+      ]
+    },
+    {
+      "orden": 9,
+      "tipo": "Lesiones autoinfligidas",
+      "tipo_id": "autoinfligidas",
+      "archivo": "09_autoinfligidas.json",
+      "categorias": [
+        "Intoxicación",
+        "Ahorcamiento o sofocación",
+        "Por arma de fuego",
+        "Por colisión",
+        "Otros y los no especificados"
+      ],
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "n_series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "n_series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "n_series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "n_series": 6
+        }
+      ]
+    }
+  ]
+}

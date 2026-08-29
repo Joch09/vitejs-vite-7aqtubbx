@@ -1,0 +1,117 @@
+{
+  "version": "2026-08-28_JSON_PRODUCCION_TAXONOMIA28_D_V1",
+  "proyecto": "Vigilancia epidemiológica de accidentes y lesiones",
+  "etiquetas": {
+    "tipo": "tipo_etiqueta",
+    "categoria": "categoria_etiqueta",
+    "nota": "Los nombres internos se conservan para consultas. React debe mostrar las etiquetas homologadas."
+  },
+  "periodo": {
+    "inicio": "2026-01-01",
+    "fin": "2026-06-30"
+  },
+  "estrategia_carga": {
+    "inicial": [
+      "00_metadatos.json",
+      "01_catalogos.json",
+      "mapa/00_core.json"
+    ],
+    "al_seleccionar_tipo": [
+      "bullets/{tipo}.json",
+      "perfiles/{tipo}.json"
+    ],
+    "al_seleccionar_categoria": [
+      "mapa/{tipo}.json"
+    ],
+    "nota": "El mapa core resuelve Total/Evento/Tipo. Los archivos por tipo se cargan bajo demanda."
+  },
+  "archivos": {
+    "metadatos": "00_metadatos.json",
+    "catalogos": "01_catalogos.json",
+    "mapa_core": "mapa/00_core.json",
+    "perfiles_manifest": "perfiles/00_manifest.json"
+  },
+  "tipos": [
+    {
+      "orden": 1,
+      "tipo": "Accidentes de transporte",
+      "tipo_id": "transporte",
+      "tipo_etiqueta": "Transporte",
+      "mapa_categoria": "mapa/01_transporte.json",
+      "bullets": "bullets/01_transporte.json",
+      "perfiles": "perfiles/01_transporte.json"
+    },
+    {
+      "orden": 2,
+      "tipo": "Caídas",
+      "tipo_id": "caidas",
+      "tipo_etiqueta": "Caída",
+      "mapa_categoria": "mapa/02_caidas.json",
+      "bullets": "bullets/02_caidas.json",
+      "perfiles": "perfiles/02_caidas.json"
+    },
+    {
+      "orden": 3,
+      "tipo": "Fuerzas mecánicas y objetos",
+      "tipo_id": "fuerzas_mecanicas",
+      "tipo_etiqueta": "Exposición a fuerzas mecánicas y objetos",
+      "mapa_categoria": "mapa/03_fuerzas_mecanicas.json",
+      "bullets": "bullets/03_fuerzas_mecanicas.json",
+      "perfiles": "perfiles/03_fuerzas_mecanicas.json"
+    },
+    {
+      "orden": 4,
+      "tipo": "Exposición a sustancias y energías",
+      "tipo_id": "sustancias_energias",
+      "tipo_etiqueta": "Exposición a sustancias y energías",
+      "mapa_categoria": "mapa/04_sustancias_energias.json",
+      "bullets": "bullets/04_sustancias_energias.json",
+      "perfiles": "perfiles/04_sustancias_energias.json"
+    },
+    {
+      "orden": 5,
+      "tipo": "Armas de fuego y punzocortantes",
+      "tipo_id": "armas_punzocortantes",
+      "tipo_etiqueta": "Armas de fuego y objetos punzocortantes",
+      "mapa_categoria": "mapa/05_armas_punzocortantes.json",
+      "bullets": "bullets/05_armas_punzocortantes.json",
+      "perfiles": "perfiles/05_armas_punzocortantes.json"
+    },
+    {
+      "orden": 6,
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "tipo_id": "maltrato_negligencia",
+      "tipo_etiqueta": "Fuerza o contundentes (maltrato o negligencia)",
+      "mapa_categoria": "mapa/06_maltrato_negligencia.json",
+      "bullets": "bullets/06_maltrato_negligencia.json",
+      "perfiles": "perfiles/06_maltrato_negligencia.json"
+    },
+    {
+      "orden": 7,
+      "tipo": "Violencia sexual",
+      "tipo_id": "violencia_sexual",
+      "tipo_etiqueta": "Agresión sexual",
+      "mapa_categoria": "mapa/07_violencia_sexual.json",
+      "bullets": "bullets/07_violencia_sexual.json",
+      "perfiles": "perfiles/07_violencia_sexual.json"
+    },
+    {
+      "orden": 8,
+      "tipo": "Otros mecanismos específicos",
+      "tipo_id": "otros_mecanismos",
+      "tipo_etiqueta": "Otros mecanismos específicos",
+      "mapa_categoria": "mapa/08_otros_mecanismos.json",
+      "bullets": "bullets/08_otros_mecanismos.json",
+      "perfiles": "perfiles/08_otros_mecanismos.json"
+    },
+    {
+      "orden": 9,
+      "tipo": "Lesiones autoinfligidas",
+      "tipo_id": "autoinfligidas",
+      "tipo_etiqueta": "Autoinfligidas",
+      "mapa_categoria": "mapa/09_autoinfligidas.json",
+      "bullets": "bullets/09_autoinfligidas.json",
+      "perfiles": "perfiles/09_autoinfligidas.json"
+    }
+  ]
+}
