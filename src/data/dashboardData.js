@@ -152,11 +152,6 @@ export async function loadCategoryMap(typeOrId) {
   return fetchJson(type.mapa_categoria);
 }
 
-export async function loadBullets(typeOrId) {
-  const type = await resolveType(typeOrId);
-  return fetchJson(type.bullets);
-}
-
 // -----------------------------------------------------------------------------
 // MAPA
 // -----------------------------------------------------------------------------

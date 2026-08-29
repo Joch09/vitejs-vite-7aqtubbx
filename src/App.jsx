@@ -6,8 +6,8 @@ import {
   getBulletValues,
   getMapEntityValues,
   getMapValue,
-  loadBullets,
   loadCategoryMap,
+  loadTypeBundle,
 } from './data/dashboardData';
 
 // =============================================================================
@@ -288,11 +288,9 @@ function getColorIndex(
 }
 
 function formatBulletValue(value) {
-  if (
-    value === null ||
-    value === undefined ||
-    !Number.isFinite(Number(value))
-  ) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
     return '—';
   }
 
@@ -302,62 +300,7 @@ function formatBulletValue(value) {
       minimumFractionDigits: 0,
       maximumFractionDigits: 1,
     }
-  ).format(Number(value))}%`;
-}
-
-function formatBulletLabel(indicator) {
-  const labels = {
-    'Atención <=24 h':
-      'Atención dentro de las primeras 24 horas',
-    Hospitalización:
-      'Requirió hospitalización',
-    'Atención prehospitalaria':
-      'Recibió atención prehospitalaria',
-    'Discapacidad preexistente':
-      'Discapacidad preexistente',
-    Vivienda:
-      'Ocurrió en el hogar',
-    Trabajo:
-      'Ocurrió en sitio laboral',
-    'Vía pública':
-      'Ocurrió en vía pública',
-    'No uso de casco':
-      'No utilizó casco',
-    'No uso de cinturón':
-      'No utilizó cinturón de seguridad',
-    'Alcohol paciente':
-      'Sospecha de consumo de alcohol en la persona lesionada',
-    'Alcohol agresor':
-      'Sospecha de consumo de alcohol en la persona agresora',
-    'Agresor hombre':
-      'Persona agresora de sexo masculino',
-    'Agresor desconocido':
-      'Persona agresora desconocida',
-    'Atención psicológica':
-      'Recibió atención psicológica',
-    'Atención psiquiátrica':
-      'Recibió atención psiquiátrica',
-    'Profilaxis VIH':
-      'Recibió profilaxis para VIH',
-    'Anticoncepción de emergencia':
-      'Recibió anticoncepción de emergencia',
-    'Agresión repetida':
-      'Evento de agresión repetida',
-    'Cabeza y cuello':
-      'Afectación principal en cabeza y cuello',
-    'Embarazo/puerperio':
-      'Ocurrió durante embarazo o puerperio',
-    'Ahorcamiento':
-      'Relacionado con ahorcamiento',
-    'Consumo de drogas':
-      'Sospecha de consumo de drogas',
-    'Ahogamiento relacionado con fuentes de agua':
-      'Ahogamiento relacionado con fuentes de agua',
-    'Envenenamiento relacionado con plaguicidas':
-      'Envenenamiento relacionado con plaguicidas',
-  };
-
-  return labels[indicator] ?? indicator;
+  ).format(number)}%`;
 }
 
 function MexicoChoropleth({
@@ -1016,8 +959,11 @@ function App() {
   }, [tipo]);
 
   // ===========================================================================
-  // CARGAR BULLETS CUANDO EXISTE UN TIPO SELECCIONADO
+  // BULLETS DEL TIPO SELECCIONADO
   // ===========================================================================
+  //
+  // Se usa loadTypeBundle(), que ya existe en dashboardData.js.
+  // Así este App.jsx NO necesita ningún cambio adicional en la capa de datos.
 
   useEffect(() => {
     let active = true;
@@ -1035,14 +981,16 @@ function App() {
         setBulletError(null);
         setBulletData(null);
 
-        const data =
-          await loadBullets(tipo);
+        const bundle =
+          await loadTypeBundle(tipo);
 
         if (!active) {
           return;
         }
 
-        setBulletData(data);
+        setBulletData(
+          bundle?.bullets ?? null
+        );
       } catch (err) {
         if (!active) {
           return;
@@ -1297,7 +1245,7 @@ function App() {
     ]);
 
   // ===========================================================================
-  // BULLETS / INDICADORES DESCRIPTIVOS
+  // INDICADORES DESCRIPTIVOS
   // ===========================================================================
 
   const bullets = useMemo(() => {
@@ -1309,13 +1257,27 @@ function App() {
       return [];
     }
 
-    return getBulletValues({
-      bulletData,
-      date: fecha,
-      entity: entidad,
-      category: categoria,
-      mode: 'acumulado',
-    });
+    try {
+      const values =
+        getBulletValues({
+          bulletData,
+          date: fecha,
+          entity: entidad,
+          category: categoria,
+          mode: 'acumulado',
+        });
+
+      return Array.isArray(values)
+        ? values
+        : [];
+    } catch (error) {
+      console.error(
+        'Error al interpretar bullets:',
+        error
+      );
+
+      return [];
+    }
   }, [
     bulletData,
     tipo,
@@ -1620,29 +1582,26 @@ function App() {
                     styles.sectionTitle
                   }
                 >
-                  Indicadores
-                  descriptivos
+                  Indicadores descriptivos
                 </h2>
 
-                <div
-                  style={styles.note}
-                >
-                  Valores acumulados
-                  para la selección
-                  actual.
+                <div style={styles.note}>
+                  Valores acumulados para
+                  la selección actual.
                 </div>
               </div>
 
-              {tipo !== 'TODOS' && (
-                <div
-                  style={
-                    styles.bulletCount
-                  }
-                >
-                  {bullets.length}{' '}
-                  indicadores
-                </div>
-              )}
+              {tipo !== 'TODOS' &&
+                !loadingBullets && (
+                  <div
+                    style={
+                      styles.bulletCount
+                    }
+                  >
+                    {bullets.length}{' '}
+                    indicadores
+                  </div>
+                )}
             </div>
 
             {tipo === 'TODOS' ? (
@@ -1651,8 +1610,7 @@ function App() {
                   styles.bulletEmpty
                 }
               >
-                Selecciona un tipo de
-                accidente o lesión para
+                Selecciona un tipo para
                 consultar sus indicadores
                 descriptivos.
               </div>
@@ -1675,9 +1633,7 @@ function App() {
                   los indicadores.
                 </strong>
 
-                <div
-                  style={styles.note}
-                >
+                <div style={styles.note}>
                   {bulletError.message}
                 </div>
               </div>
@@ -1687,9 +1643,8 @@ function App() {
                   styles.bulletEmpty
                 }
               >
-                No hay indicadores
-                disponibles para la
-                selección actual.
+                No hay indicadores para
+                la selección actual.
               </div>
             ) : (
               <div
@@ -1698,11 +1653,12 @@ function App() {
                 }
               >
                 {bullets.map(
-                  (item) => (
+                  (item, index) => (
                     <div
                       key={
                         item.indicador_id ??
-                        item.indicador
+                        item.indicador ??
+                        index
                       }
                       style={
                         styles.bulletCard
@@ -1723,9 +1679,8 @@ function App() {
                           styles.bulletLabel
                         }
                       >
-                        {formatBulletLabel(
-                          item.indicador
-                        )}
+                        {item.indicador ??
+                          'Indicador'}
                       </div>
 
                       <div
@@ -2325,7 +2280,7 @@ const styles = {
   },
 
   bulletCard: {
-    minHeight: '120px',
+    minHeight: '116px',
     border:
       '1px solid #e1e7ef',
     borderRadius: '10px',
@@ -2366,7 +2321,7 @@ const styles = {
   },
 
   bulletEmpty: {
-    minHeight: '150px',
+    minHeight: '145px',
     border:
       '1px dashed #cbd5e1',
     borderRadius: '10px',
@@ -2382,7 +2337,7 @@ const styles = {
   },
 
   bulletError: {
-    minHeight: '150px',
+    minHeight: '145px',
     border:
       '1px solid #fecdca',
     background: '#fffbfa',
