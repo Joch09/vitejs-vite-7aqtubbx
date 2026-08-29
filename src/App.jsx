@@ -1688,208 +1688,257 @@ function App() {
 
   return (
     <div style={styles.page}>
-      <header style={styles.header}>
-        <div>
-          <div
-            style={
-              styles.supraTitle
-            }
-          >
-            Vigilancia
-            epidemiológica
+      {/* ============================================================= */}
+      {/* ENCABEZADO INSTITUCIONAL */}
+      {/* ============================================================= */}
+
+      <header style={styles.institutionalHeader}>
+        <div style={styles.brandLeft}>
+          <div style={styles.brandSymbol}>
+            IMSS
           </div>
 
-          <h1 style={styles.title}>
-            Accidentes y lesiones
-          </h1>
+          <div>
+            <div style={styles.brandName}>
+              IMSS BIENESTAR
+            </div>
+
+            <div style={styles.brandSub}>
+              SERVICIOS PÚBLICOS DE SALUD
+            </div>
+          </div>
         </div>
 
-        <div
-          style={
-            styles.headerInfo
-          }
-        >
+        <div style={styles.brandRight}>
+          <div style={styles.coordinationBrand}>
+            <div style={styles.coordinationIcon}>
+              ◉
+            </div>
+
+            <div>
+              <div style={styles.coordinationText}>
+                COORDINACIÓN DE
+              </div>
+
+              <div style={styles.coordinationText}>
+                EPIDEMIOLOGÍA
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.verticalDivider} />
+
+          <div style={styles.surveillanceBrand}>
+            <div style={styles.surveillanceShield}>
+              VE
+            </div>
+
+            <div style={styles.surveillanceText}>
+              VIGILANCIA
+              <br />
+              EPIDEMIOLÓGICA
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div style={styles.titleStrip}>
+        <h1 style={styles.dashboardTitle}>
+          Vigilancia epidemiológica de accidentes y lesiones
+        </h1>
+
+        <div style={styles.titleDate}>
           Datos acumulados al{' '}
           <strong>
             {fecha || '—'}
           </strong>
         </div>
-      </header>
+      </div>
 
-      <main style={styles.main}>
+      <main style={styles.dashboardBody}>
         {/* ============================================================= */}
-        {/* FILTROS */}
+        {/* PRIMERA VISTA: FILTROS + MAPA + KPI */}
         {/* ============================================================= */}
 
-        <aside style={styles.sidebar}>
-          <h2
-            style={
-              styles.sectionTitle
-            }
-          >
-            Filtros
-          </h2>
+        <section style={styles.heroGrid}>
+          {/* ----------------------------------------------------------- */}
+          {/* COLUMNA IZQUIERDA */}
+          {/* ----------------------------------------------------------- */}
 
-          <label style={styles.label}>
-            Evento
-          </label>
+          <aside style={styles.filterCard}>
+            <label style={styles.filterLabel}>
+              Evento
+            </label>
 
-          <select
-            value={evento}
-            onChange={(e) =>
-              cambiarEvento(
-                e.target.value
-              )
-            }
-            style={styles.select}
-          >
-            {eventos.map((x) => (
-              <option
-                key={x}
-                value={x}
-              >
-                {x}
-              </option>
-            ))}
-          </select>
-
-          <label style={styles.label}>
-            Tipo
-          </label>
-
-          <select
-            value={tipo}
-            disabled={
-              evento === 'TODOS'
-            }
-            onChange={(e) =>
-              cambiarTipo(
-                e.target.value
-              )
-            }
-            style={styles.select}
-          >
-            {tipos.map((x) => (
-              <option
-                key={x}
-                value={x}
-              >
-                {x}
-              </option>
-            ))}
-          </select>
-
-          <label style={styles.label}>
-            Categoría
-          </label>
-
-          <select
-            value={categoria}
-            disabled={
-              tipo === 'TODOS' ||
-              loadingCategoryMap
-            }
-            onChange={(e) =>
-              setCategoria(
-                e.target.value
-              )
-            }
-            style={styles.select}
-          >
-            {categorias.map(
-              (x) => (
+            <select
+              value={evento}
+              onChange={(e) =>
+                cambiarEvento(
+                  e.target.value
+                )
+              }
+              style={styles.filterSelect}
+            >
+              {eventos.map((x) => (
                 <option
                   key={x}
                   value={x}
                 >
                   {x}
                 </option>
-              )
+              ))}
+            </select>
+
+            <label style={styles.filterLabel}>
+              Tipo
+            </label>
+
+            <select
+              value={tipo}
+              disabled={
+                evento === 'TODOS'
+              }
+              onChange={(e) =>
+                cambiarTipo(
+                  e.target.value
+                )
+              }
+              style={styles.filterSelect}
+            >
+              {tipos.map((x) => (
+                <option
+                  key={x}
+                  value={x}
+                >
+                  {x}
+                </option>
+              ))}
+            </select>
+
+            <label style={styles.filterLabel}>
+              Categoría
+            </label>
+
+            <select
+              value={categoria}
+              disabled={
+                tipo === 'TODOS' ||
+                loadingCategoryMap
+              }
+              onChange={(e) =>
+                setCategoria(
+                  e.target.value
+                )
+              }
+              style={styles.filterSelect}
+            >
+              {categorias.map(
+                (x) => (
+                  <option
+                    key={x}
+                    value={x}
+                  >
+                    {x}
+                  </option>
+                )
+              )}
+            </select>
+
+            {loadingCategoryMap && (
+              <div style={styles.statusNote}>
+                Cargando categorías...
+              </div>
             )}
-          </select>
 
-          {loadingCategoryMap && (
-            <div style={styles.note}>
-              Cargando
-              categorías...
-            </div>
-          )}
-
-          {categoryError && (
-            <div
-              style={
-                styles.errorText
-              }
-            >
-              {
-                categoryError.message
-              }
-            </div>
-          )}
-
-          <label style={styles.label}>
-            Entidad
-          </label>
-
-          <select
-            value={entidad}
-            onChange={(e) =>
-              setEntidad(
-                e.target.value
-              )
-            }
-            style={styles.select}
-          >
-            {entidades.map((x) => (
-              <option
-                key={x}
-                value={x}
-              >
-                {x}
-              </option>
-            ))}
-          </select>
-        </aside>
-
-        {/* ============================================================= */}
-        {/* CENTRO */}
-        {/* ============================================================= */}
-
-        <section style={styles.center}>
-          <div style={styles.panel}>
-            <div
-              style={
-                styles.panelHeader
-              }
-            >
-              <div>
-                <h2
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Mapa de México
-                </h2>
-
-                <div
-                  style={styles.note}
-                >
-                  Distribución de la
-                  tasa acumulada por
-                  entidad.
-                </div>
+            {categoryError && (
+              <div style={styles.errorText}>
+                {categoryError.message}
               </div>
+            )}
 
-              <div
-                style={styles.badge}
-              >
-                {medida ===
-                'incidencia'
-                  ? 'Incidencia'
-                  : 'Mortalidad'}
-              </div>
+            <label style={styles.filterLabel}>
+              Entidad
+            </label>
+
+            <select
+              value={entidad}
+              onChange={(e) =>
+                setEntidad(
+                  e.target.value
+                )
+              }
+              style={styles.filterSelect}
+            >
+              {entidades.map((x) => (
+                <option
+                  key={x}
+                  value={x}
+                >
+                  {x}
+                </option>
+              ))}
+            </select>
+
+            <div style={styles.filterDivider} />
+
+            <div style={styles.miniSectionTitle}>
+              Indicadores descriptivos
             </div>
 
+            {tipo === 'TODOS' ? (
+              <div style={styles.sidebarEmpty}>
+                Selecciona un tipo para consultar sus indicadores.
+              </div>
+            ) : loadingBullets ? (
+              <div style={styles.sidebarEmpty}>
+                Cargando indicadores...
+              </div>
+            ) : bulletError ? (
+              <div style={styles.sidebarError}>
+                {bulletError.message}
+              </div>
+            ) : bullets.length === 0 ? (
+              <div style={styles.sidebarEmpty}>
+                No hay indicadores para la selección actual.
+              </div>
+            ) : (
+              <div style={styles.sidebarBulletGrid}>
+                {bullets.map(
+                  (item, index) => (
+                    <div
+                      key={
+                        item.indicador_id ??
+                        item.indicador ??
+                        index
+                      }
+                      style={styles.sidebarBulletCard}
+                    >
+                      <div style={styles.sidebarBulletLabel}>
+                        {item.indicador ??
+                          'Indicador'}
+                      </div>
+
+                      <div style={styles.sidebarBulletValue}>
+                        {formatBulletValue(
+                          item.value
+                        )}
+                      </div>
+
+                      <div style={styles.sidebarBulletCaption}>
+                        de los registros seleccionados
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </aside>
+
+          {/* ----------------------------------------------------------- */}
+          {/* MAPA */}
+          {/* ----------------------------------------------------------- */}
+
+          <section style={styles.mapStage}>
             <MexicoChoropleth
               geoData={geoData}
               geoLoading={
@@ -1912,806 +1961,18 @@ function App() {
               measure={medida}
               date={fecha}
             />
-          </div>
+          </section>
 
-          <div style={styles.panel}>
-            <div
-              style={
-                styles.bulletHeader
-              }
-            >
-              <div>
-                <h2
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Indicadores descriptivos
-                </h2>
+          {/* ----------------------------------------------------------- */}
+          {/* COLUMNA DERECHA */}
+          {/* ----------------------------------------------------------- */}
 
-                <div style={styles.note}>
-                  Valores acumulados para
-                  la selección actual.
-                </div>
-              </div>
-
-              {tipo !== 'TODOS' &&
-                !loadingBullets && (
-                  <div
-                    style={
-                      styles.bulletCount
-                    }
-                  >
-                    {bullets.length}{' '}
-                    indicadores
-                  </div>
-                )}
-            </div>
-
-            {tipo === 'TODOS' ? (
-              <div
-                style={
-                  styles.bulletEmpty
-                }
-              >
-                Selecciona un tipo para
-                consultar sus indicadores
-                descriptivos.
-              </div>
-            ) : loadingBullets ? (
-              <div
-                style={
-                  styles.bulletEmpty
-                }
-              >
-                Cargando indicadores...
-              </div>
-            ) : bulletError ? (
-              <div
-                style={
-                  styles.bulletError
-                }
-              >
-                <strong>
-                  No fue posible cargar
-                  los indicadores.
-                </strong>
-
-                <div style={styles.note}>
-                  {bulletError.message}
-                </div>
-              </div>
-            ) : bullets.length === 0 ? (
-              <div
-                style={
-                  styles.bulletEmpty
-                }
-              >
-                No hay indicadores para
-                la selección actual.
-              </div>
-            ) : (
-              <div
-                style={
-                  styles.bulletGrid
-                }
-              >
-                {bullets.map(
-                  (item, index) => (
-                    <div
-                      key={
-                        item.indicador_id ??
-                        item.indicador ??
-                        index
-                      }
-                      style={
-                        styles.bulletCard
-                      }
-                    >
-                      <div
-                        style={
-                          styles.bulletValue
-                        }
-                      >
-                        {formatBulletValue(
-                          item.value
-                        )}
-                      </div>
-
-                      <div
-                        style={
-                          styles.bulletLabel
-                        }
-                      >
-                        {item.indicador ??
-                          'Indicador'}
-                      </div>
-
-                      <div
-                        style={
-                          styles.bulletContext
-                        }
-                      >
-                        {entidad}
-                        {' · '}
-                        {categoria}
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-
-          <div style={styles.panel}>
-            <div
-              style={
-                styles.profileHeader
-              }
-            >
-              <div>
-                <h2
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Perfil por edad y sexo
-                </h2>
-
-                <div style={styles.note}>
-                  Casos acumulados para
-                  la selección actual.
-                </div>
-              </div>
-
-              {tipo !== 'TODOS' &&
-                !loadingBullets &&
-                perfilEdadSexo.length >
-                  0 && (
-                  <div
-                    style={
-                      styles.profileLegend
-                    }
-                  >
-                    <span
-                      style={
-                        styles.profileLegendItem
-                      }
-                    >
-                      <span
-                        style={{
-                          ...styles.profileLegendDot,
-                          background:
-                            '#667085',
-                        }}
-                      />
-                      Hombres
-                    </span>
-
-                    <span
-                      style={
-                        styles.profileLegendItem
-                      }
-                    >
-                      <span
-                        style={{
-                          ...styles.profileLegendDot,
-                          background:
-                            '#9b4a60',
-                        }}
-                      />
-                      Mujeres
-                    </span>
-                  </div>
-                )}
-            </div>
-
-            {tipo === 'TODOS' ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Selecciona un tipo para
-                consultar el perfil por
-                edad y sexo.
-              </div>
-            ) : loadingBullets ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Cargando perfil...
-              </div>
-            ) : perfilEdadSexo.length ===
-              0 ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                No hay información de
-                edad y sexo para la
-                selección actual.
-              </div>
-            ) : (
-              <div
-                style={
-                  styles.pyramidWrap
-                }
-              >
-                <div
-                  style={
-                    styles.pyramidHeader
-                  }
-                >
-                  <div
-                    style={
-                      styles.pyramidSideHeaderLeft
-                    }
-                  >
-                    Hombres
-                  </div>
-
-                  <div
-                    style={
-                      styles.pyramidAgeHeader
-                    }
-                  >
-                    Edad
-                  </div>
-
-                  <div
-                    style={
-                      styles.pyramidSideHeaderRight
-                    }
-                  >
-                    Mujeres
-                  </div>
-                </div>
-
-                {perfilEdadSexo.map(
-                  (fila) => {
-                    const anchoHombres =
-                      `${Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          (Number(
-                            fila.hombres
-                          ) /
-                            maxEdadSexo) *
-                            100
-                        )
-                      )}%`;
-
-                    const anchoMujeres =
-                      `${Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          (Number(
-                            fila.mujeres
-                          ) /
-                            maxEdadSexo) *
-                            100
-                        )
-                      )}%`;
-
-                    return (
-                      <div
-                        key={
-                          fila.grupo
-                        }
-                        style={
-                          styles.pyramidRow
-                        }
-                      >
-                        <div
-                          style={
-                            styles.pyramidLeft
-                          }
-                        >
-                          <span
-                            style={
-                              styles.pyramidValueLeft
-                            }
-                          >
-                            {Number(
-                              fila.hombres
-                            ).toLocaleString(
-                              'es-MX'
-                            )}
-                          </span>
-
-                          <div
-                            style={
-                              styles.pyramidTrackLeft
-                            }
-                          >
-                            <div
-                              style={{
-                                ...styles.pyramidBarLeft,
-                                width:
-                                  anchoHombres,
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        <div
-                          style={
-                            styles.pyramidAge
-                          }
-                        >
-                          {fila.grupo}
-                        </div>
-
-                        <div
-                          style={
-                            styles.pyramidRight
-                          }
-                        >
-                          <div
-                            style={
-                              styles.pyramidTrackRight
-                            }
-                          >
-                            <div
-                              style={{
-                                ...styles.pyramidBarRight,
-                                width:
-                                  anchoMujeres,
-                              }}
-                            />
-                          </div>
-
-                          <span
-                            style={
-                              styles.pyramidValueRight
-                            }
-                          >
-                            {Number(
-                              fila.mujeres
-                            ).toLocaleString(
-                              'es-MX'
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            )}
-          </div>
-
-          <div style={styles.panel}>
-            <div
-              style={
-                styles.profileHeader
-              }
-            >
-              <div>
-                <h2
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Área anatómica
-                </h2>
-
-                <div style={styles.note}>
-                  Distribución porcentual
-                  acumulada para la
-                  selección actual.
-                </div>
-              </div>
-            </div>
-
-            {tipo === 'TODOS' ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Selecciona un tipo para
-                consultar el perfil por
-                área anatómica.
-              </div>
-            ) : loadingBullets ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Cargando perfil...
-              </div>
-            ) : perfilAreaAnatomica.length ===
-              0 ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                No hay información de
-                área anatómica para la
-                selección actual.
-              </div>
-            ) : (
-              <div
-                style={
-                  styles.areaList
-                }
-              >
-                {perfilAreaAnatomica.map(
-                  (item) => {
-                    const ancho =
-                      `${Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          item.value
-                        )
-                      )}%`;
-
-                    return (
-                      <div
-                        key={item.id}
-                        style={
-                          styles.areaRow
-                        }
-                      >
-                        <div
-                          style={
-                            styles.areaTop
-                          }
-                        >
-                          <span
-                            style={
-                              styles.areaLabel
-                            }
-                          >
-                            {item.etiqueta}
-                          </span>
-
-                          <strong
-                            style={
-                              styles.areaValue
-                            }
-                          >
-                            {new Intl.NumberFormat(
-                              'es-MX',
-                              {
-                                minimumFractionDigits:
-                                  0,
-                                maximumFractionDigits:
-                                  1,
-                              }
-                            ).format(
-                              item.value
-                            )}
-                            %
-                          </strong>
-                        </div>
-
-                        <div
-                          style={
-                            styles.areaTrack
-                          }
-                        >
-                          <div
-                            style={{
-                              ...styles.areaBar,
-                              width: ancho,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            )}
-          </div>
-
-          <div style={styles.panel}>
-            <div
-              style={
-                styles.profileHeader
-              }
-            >
-              <div>
-                <h2
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Consecuencia
-                </h2>
-
-                <div style={styles.note}>
-                  Distribución porcentual
-                  acumulada para la
-                  selección actual.
-                </div>
-              </div>
-            </div>
-
-            {tipo === 'TODOS' ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Selecciona un tipo para
-                consultar el perfil de
-                consecuencia.
-              </div>
-            ) : loadingBullets ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Cargando perfil...
-              </div>
-            ) : perfilConsecuencia.length ===
-              0 ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                No hay información de
-                consecuencia para la
-                selección actual.
-              </div>
-            ) : (
-              <div
-                style={
-                  styles.consequenceGrid
-                }
-              >
-                {perfilConsecuencia.map(
-                  (item) => (
-                    <div
-                      key={item.id}
-                      style={
-                        styles.consequenceCard
-                      }
-                    >
-                      <div
-                        style={
-                          styles.consequenceValue
-                        }
-                      >
-                        {new Intl.NumberFormat(
-                          'es-MX',
-                          {
-                            minimumFractionDigits:
-                              0,
-                            maximumFractionDigits:
-                              1,
-                          }
-                        ).format(
-                          item.value
-                        )}
-                        %
-                      </div>
-
-                      <div
-                        style={
-                          styles.consequenceLabel
-                        }
-                      >
-                        {item.etiqueta}
-                      </div>
-
-                      <div
-                        style={
-                          styles.consequenceTrack
-                        }
-                      >
-                        <div
-                          style={{
-                            ...styles.consequenceBar,
-                            width: `${Math.max(
-                              0,
-                              Math.min(
-                                100,
-                                item.value
-                              )
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-
-          <div style={styles.panel}>
-            <div
-              style={
-                styles.profileHeader
-              }
-            >
-              <div>
-                <h2
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Distribuciones complementarias
-                </h2>
-
-                <div style={styles.note}>
-                  Perfiles adicionales
-                  acumulados para la
-                  selección actual.
-                </div>
-              </div>
-            </div>
-
-            {tipo === 'TODOS' ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Selecciona un tipo para
-                consultar sus
-                distribuciones
-                complementarias.
-              </div>
-            ) : loadingBullets ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                Cargando perfiles...
-              </div>
-            ) : distribucionesComplementarias.length ===
-              0 ? (
-              <div
-                style={
-                  styles.profileEmpty
-                }
-              >
-                No hay distribuciones
-                complementarias para la
-                selección actual.
-              </div>
-            ) : (
-              <div
-                style={
-                  styles.distributionStack
-                }
-              >
-                {distribucionesComplementarias.map(
-                  (grupo) => (
-                    <div
-                      key={
-                        grupo.titulo
-                      }
-                      style={
-                        styles.distributionBlock
-                      }
-                    >
-                      <h3
-                        style={
-                          styles.distributionTitle
-                        }
-                      >
-                        {grupo.titulo}
-                      </h3>
-
-                      <div
-                        style={
-                          styles.distributionList
-                        }
-                      >
-                        {grupo.items.map(
-                          (item) => (
-                            <div
-                              key={
-                                item.id
-                              }
-                              style={
-                                styles.distributionRow
-                              }
-                            >
-                              <div
-                                style={
-                                  styles.distributionTop
-                                }
-                              >
-                                <span
-                                  style={
-                                    styles.distributionLabel
-                                  }
-                                >
-                                  {item.etiqueta}
-                                </span>
-
-                                <strong
-                                  style={
-                                    styles.distributionValue
-                                  }
-                                >
-                                  {new Intl.NumberFormat(
-                                    'es-MX',
-                                    {
-                                      minimumFractionDigits:
-                                        0,
-                                      maximumFractionDigits:
-                                        1,
-                                    }
-                                  ).format(
-                                    item.value
-                                  )}
-                                  %
-                                </strong>
-                              </div>
-
-                              <div
-                                style={
-                                  styles.distributionTrack
-                                }
-                              >
-                                <div
-                                  style={{
-                                    ...styles.distributionBar,
-                                    width: `${Math.max(
-                                      0,
-                                      Math.min(
-                                        100,
-                                        item.value
-                                      )
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ============================================================= */}
-        {/* PANEL DERECHO */}
-        {/* ============================================================= */}
-
-        <aside
-          style={
-            styles.rightPanel
-          }
-        >
-          <div style={styles.panel}>
-            <h2
-              style={
-                styles.sectionTitle
-              }
-            >
+          <aside style={styles.metricRail}>
+            <div style={styles.metricLabel}>
               Medida
-            </h2>
+            </div>
 
-            <div
-              style={
-                styles.measureButtons
-              }
-            >
+            <div style={styles.measureSelector}>
               <button
                 type="button"
                 onClick={() =>
@@ -2720,10 +1981,9 @@ function App() {
                   )
                 }
                 style={
-                  medida ===
-                  'incidencia'
-                    ? styles.buttonActive
-                    : styles.button
+                  medida === 'incidencia'
+                    ? styles.measureOptionActive
+                    : styles.measureOption
                 }
               >
                 Incidencia
@@ -2737,619 +1997,1046 @@ function App() {
                   )
                 }
                 style={
-                  medida ===
-                  'mortalidad'
-                    ? styles.buttonActive
-                    : styles.button
+                  medida === 'mortalidad'
+                    ? styles.measureOptionActive
+                    : styles.measureOption
                 }
               >
                 Mortalidad
               </button>
             </div>
-          </div>
 
-          <div style={styles.kpi}>
-            <div
-              style={
-                styles.kpiLabel
-              }
-            >
-              {medida ===
-              'incidencia'
-                ? 'Casos'
-                : 'Defunciones'}
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiLabel}>
+                {medida === 'incidencia'
+                  ? 'Casos'
+                  : 'Defunciones'}
+              </div>
+
+              <div style={styles.kpiValue}>
+                {valorConteo === null
+                  ? '—'
+                  : Number(
+                      valorConteo
+                    ).toLocaleString(
+                      'es-MX'
+                    )}
+              </div>
+
+              <div style={styles.kpiRate}>
+                Tasa:{' '}
+                {valorTasa === null
+                  ? 'No disponible'
+                  : Number(
+                      valorTasa
+                    ).toFixed(2)}
+              </div>
+
+              <div style={styles.kpiEntity}>
+                {entidad}
+              </div>
             </div>
 
-            <div
-              style={
-                styles.kpiValue
-              }
-            >
-              {valorConteo === null
-                ? '—'
-                : Number(
-                    valorConteo
-                  ).toLocaleString(
-                    'es-MX'
+            <div style={styles.metricLabel}>
+              Fecha de corte
+            </div>
+
+            <div style={styles.dateCard}>
+              <input
+                type="date"
+                value={fecha}
+                min={
+                  fechas.length > 0
+                    ? fechas[0]
+                    : undefined
+                }
+                max={
+                  fechas.length > 0
+                    ? fechas[
+                        fechas.length -
+                          1
+                      ]
+                    : undefined
+                }
+                onChange={(e) =>
+                  setFecha(
+                    e.target.value
+                  )
+                }
+                style={styles.dateInput}
+              />
+
+              <div style={styles.dateRange}>
+                Periodo disponible:
+                <br />
+                {fechas.length > 0
+                  ? `${fechas[0]} a ${
+                      fechas[
+                        fechas.length -
+                          1
+                      ]
+                    }`
+                  : '—'}
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        {/* ============================================================= */}
+        {/* PERFILES DESCRIPTIVOS */}
+        {/* ============================================================= */}
+
+        <section style={styles.profileSection}>
+          <div style={styles.profileSectionHeader}>
+            <div>
+              <h2 style={styles.profileSectionTitle}>
+                Perfil descriptivo
+              </h2>
+
+              <div style={styles.profileSectionSubtitle}>
+                Información acumulada para la selección actual.
+              </div>
+            </div>
+
+            <div style={styles.selectionPill}>
+              {entidad} · {categoria}
+            </div>
+          </div>
+
+          <div style={styles.profileGrid}>
+            {/* --------------------------------------------------------- */}
+            {/* EDAD Y SEXO */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanelWide}>
+              <div style={styles.profilePanelHeader}>
+                <div>
+                  <h3 style={styles.profilePanelTitle}>
+                    Perfil por edad y sexo
+                  </h3>
+
+                  <div style={styles.profilePanelNote}>
+                    Casos acumulados.
+                  </div>
+                </div>
+
+                {tipo !== 'TODOS' &&
+                  !loadingBullets &&
+                  perfilEdadSexo.length >
+                    0 && (
+                    <div style={styles.profileLegend}>
+                      <span style={styles.profileLegendItem}>
+                        <span
+                          style={{
+                            ...styles.profileLegendDot,
+                            background:
+                              '#667085',
+                          }}
+                        />
+                        Hombres
+                      </span>
+
+                      <span style={styles.profileLegendItem}>
+                        <span
+                          style={{
+                            ...styles.profileLegendDot,
+                            background:
+                              '#9b4a60',
+                          }}
+                        />
+                        Mujeres
+                      </span>
+                    </div>
                   )}
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar el perfil por edad y sexo.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfil...
+                </div>
+              ) : perfilEdadSexo.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay información de edad y sexo para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.pyramidWrap}>
+                  <div style={styles.pyramidHeader}>
+                    <div style={styles.pyramidSideHeaderLeft}>
+                      Hombres
+                    </div>
+
+                    <div style={styles.pyramidAgeHeader}>
+                      Edad
+                    </div>
+
+                    <div style={styles.pyramidSideHeaderRight}>
+                      Mujeres
+                    </div>
+                  </div>
+
+                  {perfilEdadSexo.map(
+                    (fila) => {
+                      const anchoHombres =
+                        `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            (Number(
+                              fila.hombres
+                            ) /
+                              maxEdadSexo) *
+                              100
+                          )
+                        )}%`;
+
+                      const anchoMujeres =
+                        `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            (Number(
+                              fila.mujeres
+                            ) /
+                              maxEdadSexo) *
+                              100
+                          )
+                        )}%`;
+
+                      return (
+                        <div
+                          key={fila.grupo}
+                          style={styles.pyramidRow}
+                        >
+                          <div style={styles.pyramidLeft}>
+                            <span style={styles.pyramidValueLeft}>
+                              {Number(
+                                fila.hombres
+                              ).toLocaleString(
+                                'es-MX'
+                              )}
+                            </span>
+
+                            <div style={styles.pyramidTrackLeft}>
+                              <div
+                                style={{
+                                  ...styles.pyramidBarLeft,
+                                  width:
+                                    anchoHombres,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div style={styles.pyramidAge}>
+                            {fila.grupo}
+                          </div>
+
+                          <div style={styles.pyramidRight}>
+                            <div style={styles.pyramidTrackRight}>
+                              <div
+                                style={{
+                                  ...styles.pyramidBarRight,
+                                  width:
+                                    anchoMujeres,
+                                }}
+                              />
+                            </div>
+
+                            <span style={styles.pyramidValueRight}>
+                              {Number(
+                                fila.mujeres
+                              ).toLocaleString(
+                                'es-MX'
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              )}
             </div>
 
-            <div
-              style={
-                styles.kpiRate
-              }
-            >
-              Tasa:{' '}
-              {valorTasa === null
-                ? 'No disponible'
-                : Number(
-                    valorTasa
-                  ).toFixed(2)}
+            {/* --------------------------------------------------------- */}
+            {/* ÁREA ANATÓMICA */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanel}>
+              <h3 style={styles.profilePanelTitle}>
+                Área anatómica
+              </h3>
+
+              <div style={styles.profilePanelNote}>
+                Distribución porcentual acumulada.
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar el perfil por área anatómica.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfil...
+                </div>
+              ) : perfilAreaAnatomica.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay información de área anatómica para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.areaList}>
+                  {perfilAreaAnatomica.map(
+                    (item) => {
+                      const ancho =
+                        `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            item.value
+                          )
+                        )}%`;
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={styles.areaRow}
+                        >
+                          <div style={styles.areaTop}>
+                            <span style={styles.areaLabel}>
+                              {item.etiqueta}
+                            </span>
+
+                            <strong style={styles.areaValue}>
+                              {new Intl.NumberFormat(
+                                'es-MX',
+                                {
+                                  minimumFractionDigits:
+                                    0,
+                                  maximumFractionDigits:
+                                    1,
+                                }
+                              ).format(
+                                item.value
+                              )}
+                              %
+                            </strong>
+                          </div>
+
+                          <div style={styles.areaTrack}>
+                            <div
+                              style={{
+                                ...styles.areaBar,
+                                width: ancho,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              )}
             </div>
 
-            <div
-              style={
-                styles.kpiEntity
-              }
-            >
-              {entidad}
+            {/* --------------------------------------------------------- */}
+            {/* CONSECUENCIA */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanel}>
+              <h3 style={styles.profilePanelTitle}>
+                Consecuencia
+              </h3>
+
+              <div style={styles.profilePanelNote}>
+                Distribución porcentual acumulada.
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar el perfil de consecuencia.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfil...
+                </div>
+              ) : perfilConsecuencia.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay información de consecuencia para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.consequenceGrid}>
+                  {perfilConsecuencia.map(
+                    (item) => (
+                      <div
+                        key={item.id}
+                        style={styles.consequenceCard}
+                      >
+                        <div style={styles.consequenceValue}>
+                          {new Intl.NumberFormat(
+                            'es-MX',
+                            {
+                              minimumFractionDigits:
+                                0,
+                              maximumFractionDigits:
+                                1,
+                            }
+                          ).format(
+                            item.value
+                          )}
+                          %
+                        </div>
+
+                        <div style={styles.consequenceLabel}>
+                          {item.etiqueta}
+                        </div>
+
+                        <div style={styles.consequenceTrack}>
+                          <div
+                            style={{
+                              ...styles.consequenceBar,
+                              width: `${Math.max(
+                                0,
+                                Math.min(
+                                  100,
+                                  item.value
+                                )
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* --------------------------------------------------------- */}
+            {/* DISTRIBUCIONES COMPLEMENTARIAS */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanelWide}>
+              <h3 style={styles.profilePanelTitle}>
+                Distribuciones complementarias
+              </h3>
+
+              <div style={styles.profilePanelNote}>
+                Perfiles adicionales acumulados.
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar sus distribuciones complementarias.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfiles...
+                </div>
+              ) : distribucionesComplementarias.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay distribuciones complementarias para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.distributionGrid}>
+                  {distribucionesComplementarias.map(
+                    (grupo) => (
+                      <div
+                        key={grupo.titulo}
+                        style={styles.distributionBlock}
+                      >
+                        <h4 style={styles.distributionTitle}>
+                          {grupo.titulo}
+                        </h4>
+
+                        <div style={styles.distributionList}>
+                          {grupo.items.map(
+                            (item) => (
+                              <div
+                                key={item.id}
+                                style={styles.distributionRow}
+                              >
+                                <div style={styles.distributionTop}>
+                                  <span style={styles.distributionLabel}>
+                                    {item.etiqueta}
+                                  </span>
+
+                                  <strong style={styles.distributionValue}>
+                                    {new Intl.NumberFormat(
+                                      'es-MX',
+                                      {
+                                        minimumFractionDigits:
+                                          0,
+                                        maximumFractionDigits:
+                                          1,
+                                      }
+                                    ).format(
+                                      item.value
+                                    )}
+                                    %
+                                  </strong>
+                                </div>
+
+                                <div style={styles.distributionTrack}>
+                                  <div
+                                    style={{
+                                      ...styles.distributionBar,
+                                      width: `${Math.max(
+                                        0,
+                                        Math.min(
+                                          100,
+                                          item.value
+                                        )
+                                      )}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
             </div>
           </div>
-
-          <div style={styles.panel}>
-            <h2
-              style={
-                styles.sectionTitle
-              }
-            >
-              Fecha
-            </h2>
-
-            <input
-              type="date"
-              value={fecha}
-              min={
-                fechas.length > 0
-                  ? fechas[0]
-                  : undefined
-              }
-              max={
-                fechas.length > 0
-                  ? fechas[
-                      fechas.length -
-                        1
-                    ]
-                  : undefined
-              }
-              onChange={(e) =>
-                setFecha(
-                  e.target.value
-                )
-              }
-              style={
-                styles.dateInput
-              }
-            />
-
-            <div
-              style={styles.note}
-            >
-              Periodo disponible:
-              <br />
-
-              {fechas.length > 0
-                ? `${fechas[0]} a ${
-                    fechas[
-                      fechas.length -
-                        1
-                    ]
-                  }`
-                : '—'}
-            </div>
-          </div>
-
-          <div style={styles.panel}>
-            <h2
-              style={
-                styles.sectionTitle
-              }
-            >
-              Selección actual
-            </h2>
-
-            <div
-              style={
-                styles.selectionRow
-              }
-            >
-              <strong>
-                Evento:
-              </strong>
-              <span>{evento}</span>
-            </div>
-
-            <div
-              style={
-                styles.selectionRow
-              }
-            >
-              <strong>
-                Tipo:
-              </strong>
-              <span>{tipo}</span>
-            </div>
-
-            <div
-              style={
-                styles.selectionRow
-              }
-            >
-              <strong>
-                Categoría:
-              </strong>
-              <span>
-                {categoria}
-              </span>
-            </div>
-
-            <div
-              style={
-                styles.selectionRow
-              }
-            >
-              <strong>
-                Entidad:
-              </strong>
-              <span>{entidad}</span>
-            </div>
-          </div>
-        </aside>
+        </section>
       </main>
+
+      <footer style={styles.sources}>
+        <div style={styles.sourcesTitle}>
+          Fuentes:
+        </div>
+
+        <div>
+          Secretaría de Salud. Dirección General de Información en Salud (DGIS).
+          Cubos dinámicos de Accidentes y Lesiones (información preliminar).
+          Casos acumulados del 01 de enero al 30 de junio de 2026.
+        </div>
+
+        <div>
+          Secretaría de Salud. Subsistema Epidemiológico y Estadístico de
+          Defunciones (SEED).
+        </div>
+      </footer>
     </div>
   );
 }
 
 // =============================================================================
-// ESTILOS
+// ESTILOS - PROPUESTA VISUAL INSTITUCIONAL
 // =============================================================================
 
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#f4f6f8',
-    color: '#1f2937',
+    background: '#f1f1f1',
+    color: '#003c36',
     fontFamily:
-      'Arial, Helvetica, sans-serif',
+      '"Noto Sans", Arial, Helvetica, sans-serif',
   },
 
-  header: {
-    background: '#ffffff',
-    borderBottom:
-      '1px solid #d8dee6',
-    padding: '18px 28px',
+  institutionalHeader: {
+    minHeight: '96px',
+    background: '#003b35',
+    color: '#ffffff',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '28px',
+    padding: '12px 54px',
+    boxSizing: 'border-box',
+  },
+
+  brandLeft: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent:
-      'space-between',
+    gap: '13px',
+  },
+
+  brandSymbol: {
+    width: '44px',
+    height: '44px',
+    border: '2px solid #ffffff',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '11px',
+    fontWeight: 800,
+    letterSpacing: '0.03em',
+  },
+
+  brandName: {
+    fontSize: '21px',
+    lineHeight: 1,
+    fontWeight: 800,
+    letterSpacing: '0.01em',
+    whiteSpace: 'nowrap',
+  },
+
+  brandSub: {
+    marginTop: '7px',
+    color: '#d1a04f',
+    fontSize: '12px',
+    fontWeight: 800,
+    letterSpacing: '0.04em',
+    whiteSpace: 'nowrap',
+  },
+
+  brandRight: {
+    display: 'flex',
+    alignItems: 'center',
     gap: '20px',
   },
 
-  supraTitle: {
-    fontSize: '13px',
-    textTransform:
-      'uppercase',
-    letterSpacing: '0.08em',
-    color: '#667085',
-    marginBottom: '4px',
+  coordinationBrand: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '11px',
+    color: '#d1a04f',
   },
 
-  title: {
-    margin: 0,
-    fontSize: '28px',
+  coordinationIcon: {
+    width: '47px',
+    height: '47px',
+    border: '2px solid #d1a04f',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '25px',
     fontWeight: 700,
   },
 
-  headerInfo: {
-    fontSize: '14px',
-    color: '#475467',
+  coordinationText: {
+    fontFamily: 'Georgia, serif',
+    fontSize: '18px',
+    lineHeight: 1.05,
+    fontWeight: 700,
+    letterSpacing: '0.01em',
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
   },
 
-  main: {
-    display: 'grid',
-    gridTemplateColumns:
-      '250px minmax(0, 1fr) 280px',
-    gap: '18px',
-    padding: '18px',
-    maxWidth: '1600px',
+  verticalDivider: {
+    width: '1px',
+    alignSelf: 'stretch',
+    minHeight: '62px',
+    background: 'rgba(255,255,255,0.32)',
+  },
+
+  surveillanceBrand: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    minWidth: '96px',
+  },
+
+  surveillanceShield: {
+    width: '38px',
+    height: '38px',
+    border: '2px solid #ffffff',
+    borderRadius: '18px 18px 11px 11px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '10px',
+    fontWeight: 800,
+  },
+
+  surveillanceText: {
+    marginTop: '3px',
+    fontSize: '9px',
+    lineHeight: 1.05,
+    fontWeight: 800,
+    textAlign: 'center',
+    letterSpacing: '0.02em',
+  },
+
+  titleStrip: {
+    minHeight: '50px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '20px',
+    padding: '7px 18px 5px',
+    boxSizing: 'border-box',
+  },
+
+  dashboardTitle: {
+    margin: 0,
+    fontSize: '22px',
+    lineHeight: 1.1,
+    fontWeight: 800,
+    color: '#003b35',
+  },
+
+  titleDate: {
+    fontSize: '11px',
+    color: '#667085',
+    whiteSpace: 'nowrap',
+  },
+
+  dashboardBody: {
+    padding: '10px 28px 20px',
+    maxWidth: '1500px',
     margin: '0 auto',
     boxSizing: 'border-box',
   },
 
-  sidebar: {
+  heroGrid: {
+    display: 'grid',
+    gridTemplateColumns:
+      'minmax(315px, 355px) minmax(520px, 1fr) 190px',
+    gap: '16px',
+    alignItems: 'start',
+    minWidth: '1060px',
+  },
+
+  filterCard: {
     background: '#ffffff',
-    border:
-      '1px solid #d8dee6',
-    borderRadius: '10px',
-    padding: '18px',
-    alignSelf: 'start',
-  },
-
-  rightPanel: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
-  },
-
-  center: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
-    minWidth: 0,
-  },
-
-  panel: {
-    background: '#ffffff',
-    border:
-      '1px solid #d8dee6',
-    borderRadius: '10px',
-    padding: '18px',
-  },
-
-  panelHeader: {
-    display: 'flex',
-    justifyContent:
-      'space-between',
-    alignItems: 'flex-start',
-    gap: '15px',
-  },
-
-  sectionTitle: {
-    fontSize: '17px',
-    margin: '0 0 14px 0',
-  },
-
-  label: {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: 700,
-    marginTop: '16px',
-    marginBottom: '6px',
-  },
-
-  select: {
-    width: '100%',
-    minHeight: '40px',
-    padding: '8px 10px',
-    border:
-      '1px solid #cbd5e1',
-    borderRadius: '7px',
-    background: '#ffffff',
-    color: '#1f2937',
+    border: '1px solid #d7d7d7',
+    borderRadius: '15px',
+    padding: '12px',
     boxSizing: 'border-box',
   },
 
-  note: {
+  filterLabel: {
+    display: 'block',
+    margin: '0 7px 6px',
+    fontSize: '13px',
+    fontWeight: 800,
+    color: '#808080',
+  },
+
+  filterSelect: {
+    width: '100%',
+    minHeight: '41px',
+    padding: '7px 12px',
+    marginBottom: '11px',
+    border: '1px solid #8d8d8d',
+    borderRadius: '7px',
+    background: '#ffffff',
+    color: '#003b35',
+    fontSize: '15px',
+    fontWeight: 700,
+    boxSizing: 'border-box',
+    outline: 'none',
+  },
+
+  filterDivider: {
+    height: '1px',
+    background: '#9d9d9d',
+    margin: '5px 0 14px',
+  },
+
+  miniSectionTitle: {
+    margin: '0 4px 10px',
+    color: '#003b35',
     fontSize: '12px',
+    fontWeight: 800,
+  },
+
+  statusNote: {
+    margin: '-7px 4px 8px',
+    fontSize: '10px',
     color: '#667085',
-    lineHeight: 1.45,
   },
 
   errorText: {
-    marginTop: '8px',
-    fontSize: '12px',
+    margin: '-7px 4px 8px',
+    fontSize: '10px',
     color: '#b42318',
   },
 
-  badge: {
-    fontSize: '12px',
-    fontWeight: 700,
-    border:
-      '1px solid #cbd5e1',
-    borderRadius: '999px',
-    padding: '6px 10px',
-    whiteSpace: 'nowrap',
+  sidebarBulletGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '10px',
   },
 
-  mapBlock: {
-    marginTop: '10px',
-  },
-
-  svgWrapper: {
-    position: 'relative',
-    width: '100%',
-    minHeight: '390px',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    background:
-      'linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%)',
-    borderRadius: '9px',
-  },
-
-  mapSvg: {
-    width: '100%',
-    height: 'auto',
-    display: 'block',
-    maxHeight: '500px',
-  },
-
-  mapStatus: {
-    minHeight: '390px',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    textAlign: 'center',
-    color: '#667085',
-    fontSize: '13px',
-  },
-
-  mapStatusError: {
-    minHeight: '390px',
+  sidebarBulletCard: {
+    minHeight: '92px',
+    border: '1px solid #8d8d8d',
+    borderRadius: '15px',
+    padding: '11px 13px',
+    background: '#ffffff',
+    boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '8px',
-    textAlign: 'center',
-    color: '#b42318',
-    padding: '20px',
+    justifyContent: 'space-between',
   },
 
-  tooltip: {
-    position: 'absolute',
-    zIndex: 10,
-    minWidth: '180px',
-    maxWidth: '240px',
-    background:
-      'rgba(17, 24, 39, 0.96)',
-    color: '#ffffff',
-    padding: '10px 12px',
-    borderRadius: '8px',
-    pointerEvents: 'none',
-    boxShadow:
-      '0 8px 22px rgba(15, 23, 42, 0.18)',
-    fontSize: '12px',
-  },
-
-  tooltipTitle: {
-    fontWeight: 700,
-    marginBottom: '7px',
-  },
-
-  tooltipRow: {
-    display: 'flex',
-    justifyContent:
-      'space-between',
-    gap: '15px',
-    marginTop: '4px',
-  },
-
-  mapFooter: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent:
-      'space-between',
-    alignItems: 'center',
-    gap: '10px 18px',
-    paddingTop: '10px',
-    borderTop:
-      '1px solid #eef2f6',
-  },
-
-  legend: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    flexWrap: 'wrap',
-  },
-
-  legendSwatch: {
-    width: '19px',
-    height: '10px',
-    borderRadius: '2px',
-    display: 'inline-block',
-    border:
-      '1px solid rgba(0, 0, 0, 0.05)',
-  },
-
-  legendText: {
+  sidebarBulletLabel: {
     fontSize: '11px',
-    color: '#667085',
-    margin: '0 3px',
+    lineHeight: 1.2,
+    fontWeight: 800,
+    color: '#003b35',
   },
 
-  measureButtons: {
-    display: 'grid',
-    gridTemplateColumns:
-      '1fr 1fr',
-    gap: '8px',
+  sidebarBulletValue: {
+    marginTop: '7px',
+    fontSize: '23px',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#7b1e3a',
+    fontVariantNumeric: 'tabular-nums',
   },
 
-  button: {
-    minHeight: '38px',
-    border:
-      '1px solid #cbd5e1',
-    background: '#ffffff',
-    borderRadius: '7px',
-    cursor: 'pointer',
+  sidebarBulletCaption: {
+    marginTop: '3px',
+    fontSize: '9px',
+    lineHeight: 1.15,
+    color: '#777777',
   },
 
-  buttonActive: {
-    minHeight: '38px',
-    border:
-      '1px solid #344054',
-    background: '#344054',
-    color: '#ffffff',
-    borderRadius: '7px',
-    cursor: 'pointer',
-  },
-
-  kpi: {
-    background: '#ffffff',
-    border:
-      '1px solid #d8dee6',
-    borderRadius: '10px',
-    padding: '20px',
+  sidebarEmpty: {
+    minHeight: '80px',
+    border: '1px dashed #c7c7c7',
+    borderRadius: '11px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     textAlign: 'center',
+    padding: '14px',
+    boxSizing: 'border-box',
+    color: '#777777',
+    fontSize: '11px',
+    lineHeight: 1.4,
+  },
+
+  sidebarError: {
+    minHeight: '80px',
+    border: '1px solid #fecdca',
+    background: '#fffbfa',
+    borderRadius: '11px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    padding: '14px',
+    boxSizing: 'border-box',
+    color: '#b42318',
+    fontSize: '11px',
+  },
+
+  mapStage: {
+    minHeight: '430px',
+    background: '#ffffff',
+    borderRadius: '5px',
+    padding: '0',
+    overflow: 'hidden',
+  },
+
+  metricRail: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    paddingTop: '8px',
+  },
+
+  metricLabel: {
+    margin: '0 5px',
+    fontSize: '13px',
+    fontWeight: 800,
+    color: '#808080',
+  },
+
+  measureSelector: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+
+  measureOption: {
+    minHeight: '41px',
+    border: '1px solid #8d8d8d',
+    borderRadius: '7px',
+    background: '#ffffff',
+    color: '#003b35',
+    fontSize: '14px',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+
+  measureOptionActive: {
+    minHeight: '41px',
+    border: '1px solid #003b35',
+    borderRadius: '7px',
+    background: '#003b35',
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+
+  kpiCard: {
+    marginTop: '8px',
+    background: '#ffffff',
+    border: '1px solid #e1e1e1',
+    borderRadius: '16px',
+    padding: '14px 12px',
+    textAlign: 'left',
+    boxSizing: 'border-box',
   },
 
   kpiLabel: {
-    fontSize: '13px',
-    fontWeight: 700,
-    color: '#667085',
-    textTransform:
-      'uppercase',
-    letterSpacing: '0.05em',
+    fontSize: '11px',
+    color: '#687386',
+    fontWeight: 800,
   },
 
   kpiValue: {
-    fontSize: '38px',
-    fontWeight: 700,
-    margin: '8px 0 5px',
+    marginTop: '5px',
+    fontSize: '25px',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#7b1e3a',
+    fontVariantNumeric: 'tabular-nums',
   },
 
   kpiRate: {
-    fontSize: '15px',
-    fontWeight: 700,
+    marginTop: '7px',
+    fontSize: '11px',
+    fontWeight: 800,
+    color: '#003b35',
   },
 
   kpiEntity: {
-    fontSize: '12px',
-    color: '#667085',
-    marginTop: '8px',
+    marginTop: '7px',
+    fontSize: '9px',
+    color: '#7d8590',
+    textTransform: 'uppercase',
+  },
+
+  dateCard: {
+    background: '#ffffff',
+    padding: '0',
   },
 
   dateInput: {
     width: '100%',
-    minHeight: '40px',
-    padding: '8px 10px',
-    border:
-      '1px solid #cbd5e1',
+    minHeight: '41px',
+    padding: '7px 10px',
+    border: '1px solid #8d8d8d',
     borderRadius: '7px',
     boxSizing: 'border-box',
-    marginBottom: '10px',
-  },
-
-  selectionRow: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '3px',
+    background: '#ffffff',
+    color: '#003b35',
     fontSize: '12px',
-    padding: '8px 0',
-    borderBottom:
-      '1px solid #eef2f6',
-  },
-
-  bulletHeader: {
-    display: 'flex',
-    justifyContent:
-      'space-between',
-    alignItems: 'flex-start',
-    gap: '15px',
-    marginBottom: '16px',
-  },
-
-  bulletCount: {
-    fontSize: '11px',
     fontWeight: 700,
-    color: '#667085',
-    border:
-      '1px solid #d8dee6',
+  },
+
+  dateRange: {
+    marginTop: '7px',
+    fontSize: '9px',
+    lineHeight: 1.35,
+    color: '#777777',
+  },
+
+  profileSection: {
+    marginTop: '22px',
+  },
+
+  profileSectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: '18px',
+    marginBottom: '10px',
+    padding: '0 4px',
+  },
+
+  profileSectionTitle: {
+    margin: 0,
+    fontSize: '19px',
+    fontWeight: 800,
+    color: '#003b35',
+  },
+
+  profileSectionSubtitle: {
+    marginTop: '2px',
+    fontSize: '10px',
+    color: '#777777',
+  },
+
+  selectionPill: {
+    border: '1px solid #c6c6c6',
     borderRadius: '999px',
-    padding: '5px 9px',
+    background: '#ffffff',
+    padding: '6px 10px',
+    fontSize: '9px',
+    color: '#667085',
+    maxWidth: '340px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
 
-  bulletGrid: {
+  profileGrid: {
     display: 'grid',
-    gridTemplateColumns:
-      'repeat(auto-fit, minmax(190px, 1fr))',
-    gap: '12px',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '14px',
+    alignItems: 'start',
   },
 
-  bulletCard: {
-    minHeight: '116px',
-    border:
-      '1px solid #e1e7ef',
-    borderRadius: '10px',
+  profilePanel: {
+    background: '#ffffff',
+    border: '1px solid #d7d7d7',
+    borderRadius: '14px',
     padding: '16px',
-    background: '#fbfcfd',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent:
-      'center',
     boxSizing: 'border-box',
   },
 
-  bulletValue: {
-    fontSize: '30px',
-    lineHeight: 1,
-    fontWeight: 700,
-    color: '#6f263d',
-    marginBottom: '10px',
-    fontVariantNumeric:
-      'tabular-nums',
-  },
-
-  bulletLabel: {
-    fontSize: '13px',
-    lineHeight: 1.35,
-    fontWeight: 700,
-    color: '#344054',
-  },
-
-  bulletContext: {
-    marginTop: '9px',
-    paddingTop: '8px',
-    borderTop:
-      '1px solid #eef2f6',
-    fontSize: '10px',
-    lineHeight: 1.3,
-    color: '#98a2b3',
-  },
-
-  bulletEmpty: {
-    minHeight: '145px',
-    border:
-      '1px dashed #cbd5e1',
-    borderRadius: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    padding: '24px',
-    color: '#667085',
-    fontSize: '13px',
-    lineHeight: 1.5,
+  profilePanelWide: {
+    gridColumn: '1 / -1',
+    background: '#ffffff',
+    border: '1px solid #d7d7d7',
+    borderRadius: '14px',
+    padding: '16px',
     boxSizing: 'border-box',
   },
 
-  bulletError: {
-    minHeight: '145px',
-    border:
-      '1px solid #fecdca',
-    background: '#fffbfa',
-    borderRadius: '10px',
+  profilePanelHeader: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    textAlign: 'center',
-    padding: '24px',
-    color: '#b42318',
-    fontSize: '13px',
-    boxSizing: 'border-box',
-  },
-
-  profileHeader: {
-    display: 'flex',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: '16px',
-    marginBottom: '16px',
+    gap: '14px',
+    marginBottom: '12px',
+  },
+
+  profilePanelTitle: {
+    margin: '0 0 5px',
+    fontSize: '14px',
+    fontWeight: 800,
+    color: '#003b35',
+  },
+
+  profilePanelNote: {
+    marginBottom: '12px',
+    fontSize: '10px',
+    color: '#667085',
+  },
+
+  profileEmpty: {
+    minHeight: '110px',
+    border: '1px dashed #d0d5dd',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    padding: '18px',
+    color: '#667085',
+    fontSize: '11px',
+    lineHeight: 1.45,
+    boxSizing: 'border-box',
   },
 
   profileLegend: {
@@ -3364,68 +3051,52 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '5px',
-    fontSize: '11px',
+    fontSize: '10px',
     color: '#667085',
     whiteSpace: 'nowrap',
   },
 
   profileLegendDot: {
-    width: '9px',
-    height: '9px',
+    width: '8px',
+    height: '8px',
     borderRadius: '50%',
     display: 'inline-block',
   },
 
-  profileEmpty: {
-    minHeight: '145px',
-    border:
-      '1px dashed #cbd5e1',
-    borderRadius: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    padding: '24px',
-    color: '#667085',
-    fontSize: '13px',
-    lineHeight: 1.5,
-    boxSizing: 'border-box',
-  },
-
   pyramidWrap: {
     width: '100%',
-    overflowX: 'auto',
+    maxWidth: '760px',
+    margin: '0 auto',
   },
 
   pyramidHeader: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(170px, 1fr) 64px minmax(170px, 1fr)',
-    gap: '8px',
+      'minmax(170px, 1fr) 58px minmax(170px, 1fr)',
+    gap: '7px',
     alignItems: 'center',
-    marginBottom: '8px',
-    paddingBottom: '8px',
-    borderBottom:
-      '1px solid #eef2f6',
+    marginBottom: '6px',
+    paddingBottom: '7px',
+    borderBottom: '1px solid #eeeeee',
   },
 
   pyramidSideHeaderLeft: {
     textAlign: 'right',
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 700,
     color: '#667085',
   },
 
   pyramidSideHeaderRight: {
     textAlign: 'left',
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 700,
     color: '#667085',
   },
 
   pyramidAgeHeader: {
     textAlign: 'center',
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 700,
     color: '#667085',
   },
@@ -3433,45 +3104,43 @@ const styles = {
   pyramidRow: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(170px, 1fr) 64px minmax(170px, 1fr)',
-    gap: '8px',
+      'minmax(170px, 1fr) 58px minmax(170px, 1fr)',
+    gap: '7px',
     alignItems: 'center',
-    minHeight: '24px',
-    marginBottom: '3px',
+    minHeight: '22px',
+    marginBottom: '2px',
   },
 
   pyramidLeft: {
     display: 'grid',
     gridTemplateColumns:
-      '54px minmax(100px, 1fr)',
-    gap: '7px',
+      '52px minmax(90px, 1fr)',
+    gap: '6px',
     alignItems: 'center',
   },
 
   pyramidRight: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(100px, 1fr) 54px',
-    gap: '7px',
+      'minmax(90px, 1fr) 52px',
+    gap: '6px',
     alignItems: 'center',
   },
 
   pyramidTrackLeft: {
-    height: '16px',
+    height: '14px',
     display: 'flex',
     justifyContent: 'flex-end',
-    alignItems: 'stretch',
-    background: '#f2f4f7',
+    background: '#f0f1f3',
     borderRadius: '3px 0 0 3px',
     overflow: 'hidden',
   },
 
   pyramidTrackRight: {
-    height: '16px',
+    height: '14px',
     display: 'flex',
     justifyContent: 'flex-start',
-    alignItems: 'stretch',
-    background: '#f2f4f7',
+    background: '#f0f1f3',
     borderRadius: '0 3px 3px 0',
     overflow: 'hidden',
   },
@@ -3490,32 +3159,30 @@ const styles = {
 
   pyramidAge: {
     textAlign: 'center',
-    fontSize: '11px',
-    fontWeight: 700,
-    color: '#344054',
+    fontSize: '10px',
+    fontWeight: 800,
+    color: '#003b35',
     whiteSpace: 'nowrap',
   },
 
   pyramidValueLeft: {
     textAlign: 'right',
-    fontSize: '10px',
+    fontSize: '9px',
     color: '#667085',
-    fontVariantNumeric:
-      'tabular-nums',
+    fontVariantNumeric: 'tabular-nums',
   },
 
   pyramidValueRight: {
     textAlign: 'left',
-    fontSize: '10px',
+    fontSize: '9px',
     color: '#667085',
-    fontVariantNumeric:
-      'tabular-nums',
+    fontVariantNumeric: 'tabular-nums',
   },
 
   areaList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
+    gap: '11px',
   },
 
   areaRow: {
@@ -3525,38 +3192,36 @@ const styles = {
   areaTop: {
     display: 'flex',
     alignItems: 'baseline',
-    justifyContent:
-      'space-between',
-    gap: '16px',
-    marginBottom: '6px',
+    justifyContent: 'space-between',
+    gap: '14px',
+    marginBottom: '5px',
   },
 
   areaLabel: {
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: 700,
-    color: '#344054',
-    lineHeight: 1.35,
+    color: '#003b35',
+    lineHeight: 1.3,
   },
 
   areaValue: {
-    fontSize: '12px',
-    color: '#6f263d',
-    fontVariantNumeric:
-      'tabular-nums',
+    fontSize: '10px',
+    color: '#7b1e3a',
+    fontVariantNumeric: 'tabular-nums',
     whiteSpace: 'nowrap',
   },
 
   areaTrack: {
     width: '100%',
-    height: '12px',
-    background: '#f2f4f7',
+    height: '10px',
+    background: '#f0f1f3',
     borderRadius: '999px',
     overflow: 'hidden',
   },
 
   areaBar: {
     height: '100%',
-    background: '#9b4a60',
+    background: '#a54861',
     borderRadius: '999px',
     minWidth: '1px',
   },
@@ -3564,79 +3229,78 @@ const styles = {
   consequenceGrid: {
     display: 'grid',
     gridTemplateColumns:
-      'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '12px',
+      'repeat(auto-fit, minmax(155px, 1fr))',
+    gap: '9px',
   },
 
   consequenceCard: {
-    border:
-      '1px solid #e1e7ef',
+    border: '1px solid #dedede',
     borderRadius: '10px',
-    padding: '15px',
-    background: '#fbfcfd',
-    minHeight: '112px',
+    padding: '12px',
+    background: '#ffffff',
+    minHeight: '96px',
     boxSizing: 'border-box',
   },
 
   consequenceValue: {
-    fontSize: '26px',
-    fontWeight: 700,
-    color: '#6f263d',
+    fontSize: '23px',
+    fontWeight: 800,
+    color: '#7b1e3a',
     lineHeight: 1,
-    marginBottom: '8px',
-    fontVariantNumeric:
-      'tabular-nums',
+    marginBottom: '7px',
+    fontVariantNumeric: 'tabular-nums',
   },
 
   consequenceLabel: {
-    fontSize: '12px',
-    lineHeight: 1.35,
+    fontSize: '10px',
+    lineHeight: 1.25,
     fontWeight: 700,
-    color: '#344054',
-    minHeight: '32px',
+    color: '#003b35',
+    minHeight: '27px',
   },
 
   consequenceTrack: {
     width: '100%',
-    height: '8px',
-    marginTop: '12px',
-    background: '#f2f4f7',
+    height: '7px',
+    marginTop: '10px',
+    background: '#f0f1f3',
     borderRadius: '999px',
     overflow: 'hidden',
   },
 
   consequenceBar: {
     height: '100%',
-    background: '#9b4a60',
+    background: '#a54861',
     borderRadius: '999px',
     minWidth: '1px',
   },
 
-  distributionStack: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
+  distributionGrid: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '12px',
   },
 
   distributionBlock: {
-    border:
-      '1px solid #e1e7ef',
-    borderRadius: '10px',
-    padding: '15px',
-    background: '#fbfcfd',
+    border: '1px solid #dedede',
+    borderRadius: '11px',
+    padding: '13px',
+    background: '#ffffff',
   },
 
   distributionTitle: {
-    margin: '0 0 14px 0',
-    fontSize: '13px',
-    color: '#344054',
-    fontWeight: 700,
+    margin: '0 0 12px',
+    fontSize: '12px',
+    color: '#003b35',
+    fontWeight: 800,
+    textAlign: 'center',
   },
 
   distributionList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '10px',
   },
 
   distributionRow: {
@@ -3645,87 +3309,171 @@ const styles = {
 
   distributionTop: {
     display: 'flex',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
     alignItems: 'baseline',
-    gap: '16px',
-    marginBottom: '6px',
+    gap: '12px',
+    marginBottom: '5px',
   },
 
   distributionLabel: {
-    fontSize: '12px',
-    lineHeight: 1.35,
-    color: '#344054',
+    fontSize: '10px',
+    lineHeight: 1.3,
+    color: '#003b35',
     fontWeight: 600,
   },
 
   distributionValue: {
-    fontSize: '12px',
-    color: '#6f263d',
+    fontSize: '10px',
+    color: '#7b1e3a',
     whiteSpace: 'nowrap',
-    fontVariantNumeric:
-      'tabular-nums',
+    fontVariantNumeric: 'tabular-nums',
   },
 
   distributionTrack: {
     width: '100%',
-    height: '10px',
-    background: '#f2f4f7',
+    height: '9px',
+    background: '#f0f1f3',
     borderRadius: '999px',
     overflow: 'hidden',
   },
 
   distributionBar: {
     height: '100%',
-    background: '#9b4a60',
+    background: '#a54861',
     borderRadius: '999px',
     minWidth: '1px',
   },
 
-  tableWrapper: {
-    overflowX: 'auto',
+  sources: {
+    margin: '8px 28px 14px',
+    paddingTop: '5px',
+    borderTop: '1px solid #bdbdbd',
+    fontSize: '8px',
+    lineHeight: 1.35,
+    color: '#222222',
+    fontStyle: 'italic',
   },
 
-  table: {
+  sourcesTitle: {
+    fontWeight: 800,
+  },
+
+  // -------------------------------------------------------------------
+  // MAPA
+  // -------------------------------------------------------------------
+
+  mapBlock: {
     width: '100%',
-    borderCollapse:
-      'collapse',
-    fontSize: '13px',
   },
 
-  th: {
-    textAlign: 'left',
-    borderBottom:
-      '1px solid #d8dee6',
-    padding: '9px',
+  svgWrapper: {
+    position: 'relative',
+    width: '100%',
+    minHeight: '400px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    background: '#ffffff',
   },
 
-  thRight: {
-    textAlign: 'right',
-    borderBottom:
-      '1px solid #d8dee6',
-    padding: '9px',
+  mapSvg: {
+    width: '100%',
+    height: 'auto',
+    display: 'block',
+    maxHeight: '500px',
   },
 
-  td: {
-    padding: '8px 9px',
-    borderBottom:
-      '1px solid #eef2f6',
+  mapStatus: {
+    minHeight: '400px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    color: '#667085',
+    fontSize: '12px',
   },
 
-  tdRight: {
-    padding: '8px 9px',
-    borderBottom:
-      '1px solid #eef2f6',
-    textAlign: 'right',
-    fontVariantNumeric:
-      'tabular-nums',
+  mapStatusError: {
+    minHeight: '400px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '8px',
+    textAlign: 'center',
+    color: '#b42318',
+    padding: '20px',
+  },
+
+  tooltip: {
+    position: 'absolute',
+    zIndex: 10,
+    minWidth: '170px',
+    maxWidth: '230px',
+    background: 'rgba(17, 24, 39, 0.96)',
+    color: '#ffffff',
+    padding: '9px 11px',
+    borderRadius: '7px',
+    pointerEvents: 'none',
+    boxShadow:
+      '0 8px 22px rgba(15, 23, 42, 0.18)',
+    fontSize: '11px',
+  },
+
+  tooltipTitle: {
+    fontWeight: 800,
+    marginBottom: '6px',
+  },
+
+  tooltipRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '14px',
+    marginTop: '4px',
+  },
+
+  mapFooter: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '8px 14px',
+    padding: '9px 8px 4px',
+    borderTop: '1px solid #eeeeee',
+  },
+
+  legend: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '3px',
+    flexWrap: 'wrap',
+  },
+
+  legendSwatch: {
+    width: '18px',
+    height: '9px',
+    borderRadius: '2px',
+    display: 'inline-block',
+    border: '1px solid rgba(0,0,0,0.05)',
+  },
+
+  legendText: {
+    fontSize: '9px',
+    color: '#667085',
+    margin: '0 3px',
+  },
+
+  note: {
+    fontSize: '9px',
+    color: '#667085',
+    lineHeight: 1.35,
   },
 
   estado: {
     padding: '40px',
     fontFamily:
-      'Arial, Helvetica, sans-serif',
+      '"Noto Sans", Arial, Helvetica, sans-serif',
   },
 };
 
