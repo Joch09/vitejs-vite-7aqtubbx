@@ -8,6 +8,657 @@ import {
   loadCategoryMap,
 } from './data/dashboardData';
 
+// =============================================================================
+// GEOMETRÍA DEL MAPA
+// =============================================================================
+//
+// Para esta primera integración visual no se agrega ninguna librería externa.
+// El GeoJSON se consulta directamente y React lo convierte a SVG.
+//
+// Una vez validado visualmente en StackBlitz, podemos guardar esta geometría
+// dentro de public/data para eliminar la dependencia externa.
+//
+const MEXICO_GEOJSON_URL =
+  'https://raw.githubusercontent.com/angelnmara/geojson/master/mexicoHigh.json';
+
+const MAP_WIDTH = 900;
+const MAP_HEIGHT = 520;
+const MAP_PADDING = 20;
+
+const MAP_COLORS = [
+  '#f4e9ec',
+  '#e6c8d0',
+  '#cf9fac',
+  '#b36d80',
+  '#91465c',
+  '#6f263d',
+];
+
+const NO_DATA_COLOR = '#e5e7eb';
+
+function normalizeText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .trim();
+}
+
+const ENTITY_ALIASES = {
+  'CIUDAD DE MEXICO': [
+    'CIUDAD DE MEXICO',
+    'CDMX',
+    'DISTRITO FEDERAL',
+  ],
+  MEXICO: [
+    'MEXICO',
+    'ESTADO DE MEXICO',
+  ],
+  COAHUILA: [
+    'COAHUILA',
+    'COAHUILA DE ZARAGOZA',
+  ],
+  MICHOACAN: [
+    'MICHOACAN',
+    'MICHOACAN DE OCAMPO',
+  ],
+  VERACRUZ: [
+    'VERACRUZ',
+    'VERACRUZ DE IGNACIO DE LA LLAVE',
+  ],
+  QUERETARO: [
+    'QUERETARO',
+    'QUERETARO DE ARTEAGA',
+  ],
+};
+
+function resolveFeatureEntity(featureName, availableEntities) {
+  const normalizedFeature = normalizeText(featureName);
+
+  const byNormalized = new Map(
+    availableEntities.map((name) => [
+      normalizeText(name),
+      name,
+    ])
+  );
+
+  if (byNormalized.has(normalizedFeature)) {
+    return byNormalized.get(normalizedFeature);
+  }
+
+  const aliasList =
+    ENTITY_ALIASES[normalizedFeature] ?? [];
+
+  for (const alias of aliasList) {
+    if (byNormalized.has(alias)) {
+      return byNormalized.get(alias);
+    }
+  }
+
+  for (const [normalizedEntity, original] of byNormalized) {
+    if (
+      normalizedEntity === normalizedFeature ||
+      normalizedEntity.startsWith(
+        `${normalizedFeature} `
+      ) ||
+      normalizedFeature.startsWith(
+        `${normalizedEntity} `
+      )
+    ) {
+      return original;
+    }
+  }
+
+  return null;
+}
+
+function collectCoordinates(coords, target) {
+  if (!Array.isArray(coords)) {
+    return;
+  }
+
+  if (
+    coords.length >= 2 &&
+    typeof coords[0] === 'number' &&
+    typeof coords[1] === 'number'
+  ) {
+    target.push(coords);
+    return;
+  }
+
+  coords.forEach((item) =>
+    collectCoordinates(item, target)
+  );
+}
+
+function createProjection(features) {
+  const points = [];
+
+  features.forEach((feature) => {
+    collectCoordinates(
+      feature?.geometry?.coordinates,
+      points
+    );
+  });
+
+  if (points.length === 0) {
+    return null;
+  }
+
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+
+  points.forEach(([lon, lat]) => {
+    minLon = Math.min(minLon, lon);
+    maxLon = Math.max(maxLon, lon);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  });
+
+  const midLat = (minLat + maxLat) / 2;
+  const cosLat =
+    Math.cos((midLat * Math.PI) / 180) || 1;
+
+  const minX = minLon * cosLat;
+  const maxX = maxLon * cosLat;
+  const minY = -maxLat;
+  const maxY = -minLat;
+
+  const rawWidth = maxX - minX;
+  const rawHeight = maxY - minY;
+
+  const usableWidth =
+    MAP_WIDTH - MAP_PADDING * 2;
+  const usableHeight =
+    MAP_HEIGHT - MAP_PADDING * 2;
+
+  const scale = Math.min(
+    usableWidth / rawWidth,
+    usableHeight / rawHeight
+  );
+
+  const projectedWidth = rawWidth * scale;
+  const projectedHeight = rawHeight * scale;
+
+  const offsetX =
+    (MAP_WIDTH - projectedWidth) / 2;
+  const offsetY =
+    (MAP_HEIGHT - projectedHeight) / 2;
+
+  return ([lon, lat]) => {
+    const rawX = lon * cosLat;
+    const rawY = -lat;
+
+    const x =
+      offsetX + (rawX - minX) * scale;
+
+    const y =
+      offsetY + (rawY - minY) * scale;
+
+    return [x, y];
+  };
+}
+
+function ringToPath(ring, project) {
+  if (!Array.isArray(ring) || ring.length === 0) {
+    return '';
+  }
+
+  return ring
+    .map((point, index) => {
+      const [x, y] = project(point);
+      return `${
+        index === 0 ? 'M' : 'L'
+      }${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(' ')
+    .concat(' Z');
+}
+
+function geometryToPath(geometry, project) {
+  if (!geometry || !project) {
+    return '';
+  }
+
+  if (geometry.type === 'Polygon') {
+    return geometry.coordinates
+      .map((ring) =>
+        ringToPath(ring, project)
+      )
+      .join(' ');
+  }
+
+  if (geometry.type === 'MultiPolygon') {
+    return geometry.coordinates
+      .flatMap((polygon) =>
+        polygon.map((ring) =>
+          ringToPath(ring, project)
+        )
+      )
+      .join(' ');
+  }
+
+  return '';
+}
+
+function getColorIndex(
+  value,
+  minValue,
+  maxValue
+) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(Number(value))
+  ) {
+    return null;
+  }
+
+  if (
+    !Number.isFinite(minValue) ||
+    !Number.isFinite(maxValue) ||
+    maxValue <= minValue
+  ) {
+    return MAP_COLORS.length - 1;
+  }
+
+  const ratio =
+    (Number(value) - minValue) /
+    (maxValue - minValue);
+
+  const index = Math.floor(
+    Math.max(
+      0,
+      Math.min(0.999999, ratio)
+    ) * MAP_COLORS.length
+  );
+
+  return Math.max(
+    0,
+    Math.min(
+      MAP_COLORS.length - 1,
+      index
+    )
+  );
+}
+
+function MexicoChoropleth({
+  geoData,
+  geoLoading,
+  geoError,
+  entities,
+  rateValues,
+  countValues,
+  selectedEntity,
+  onSelectEntity,
+  measure,
+  date,
+}) {
+  const [tooltip, setTooltip] =
+    useState(null);
+
+  const features = useMemo(() => {
+    if (!Array.isArray(geoData?.features)) {
+      return [];
+    }
+
+    return geoData.features;
+  }, [geoData]);
+
+  const projection = useMemo(
+    () => createProjection(features),
+    [features]
+  );
+
+  const rateByEntity = useMemo(() => {
+    const map = new Map();
+
+    rateValues.forEach((item) => {
+      map.set(
+        normalizeText(item.entity),
+        item.value
+      );
+    });
+
+    return map;
+  }, [rateValues]);
+
+  const countByEntity = useMemo(() => {
+    const map = new Map();
+
+    countValues.forEach((item) => {
+      map.set(
+        normalizeText(item.entity),
+        item.value
+      );
+    });
+
+    return map;
+  }, [countValues]);
+
+  const validRates = useMemo(() => {
+    return rateValues
+      .map((item) => Number(item.value))
+      .filter((value) =>
+        Number.isFinite(value)
+      );
+  }, [rateValues]);
+
+  const minRate =
+    validRates.length > 0
+      ? Math.min(...validRates)
+      : NaN;
+
+  const maxRate =
+    validRates.length > 0
+      ? Math.max(...validRates)
+      : NaN;
+
+  if (geoLoading) {
+    return (
+      <div style={styles.mapStatus}>
+        Cargando geometría del mapa...
+      </div>
+    );
+  }
+
+  if (geoError) {
+    return (
+      <div style={styles.mapStatusError}>
+        <strong>
+          No fue posible cargar el mapa.
+        </strong>
+        <div style={styles.note}>
+          {geoError.message}
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    features.length === 0 ||
+    !projection
+  ) {
+    return (
+      <div style={styles.mapStatus}>
+        Sin geometría disponible.
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.mapBlock}>
+      <div style={styles.svgWrapper}>
+        <svg
+          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+          role="img"
+          aria-label="Mapa coroplético de México por entidad federativa"
+          style={styles.mapSvg}
+        >
+          {features.map((feature) => {
+            const featureName =
+              feature?.properties?.name ??
+              feature?.id ??
+              'Entidad';
+
+            const resolvedEntity =
+              resolveFeatureEntity(
+                featureName,
+                entities
+              );
+
+            const normalizedResolved =
+              normalizeText(
+                resolvedEntity ??
+                  featureName
+              );
+
+            const rate =
+              rateByEntity.has(
+                normalizedResolved
+              )
+                ? rateByEntity.get(
+                    normalizedResolved
+                  )
+                : null;
+
+            const count =
+              countByEntity.has(
+                normalizedResolved
+              )
+                ? countByEntity.get(
+                    normalizedResolved
+                  )
+                : null;
+
+            const colorIndex =
+              getColorIndex(
+                rate,
+                minRate,
+                maxRate
+              );
+
+            const fill =
+              colorIndex === null
+                ? NO_DATA_COLOR
+                : MAP_COLORS[
+                    colorIndex
+                  ];
+
+            const isSelected =
+              resolvedEntity &&
+              normalizeText(
+                selectedEntity
+              ) ===
+                normalizeText(
+                  resolvedEntity
+                );
+
+            const path =
+              geometryToPath(
+                feature.geometry,
+                projection
+              );
+
+            return (
+              <path
+                key={
+                  feature.id ??
+                  featureName
+                }
+                d={path}
+                fill={fill}
+                fillRule="evenodd"
+                stroke={
+                  isSelected
+                    ? '#111827'
+                    : '#ffffff'
+                }
+                strokeWidth={
+                  isSelected ? 2.3 : 1.1
+                }
+                vectorEffect="non-scaling-stroke"
+                style={{
+                  cursor:
+                    resolvedEntity
+                      ? 'pointer'
+                      : 'default',
+                  transition:
+                    'fill 120ms ease, opacity 120ms ease',
+                }}
+                onMouseMove={(event) => {
+                  const svg =
+                    event.currentTarget
+                      .ownerSVGElement;
+
+                  const rect =
+                    svg.getBoundingClientRect();
+
+                  setTooltip({
+                    x:
+                      event.clientX -
+                      rect.left +
+                      12,
+                    y:
+                      event.clientY -
+                      rect.top +
+                      12,
+                    featureName,
+                    entity:
+                      resolvedEntity ??
+                      featureName,
+                    rate,
+                    count,
+                    hasDashboardEntity:
+                      Boolean(
+                        resolvedEntity
+                      ),
+                  });
+                }}
+                onMouseLeave={() =>
+                  setTooltip(null)
+                }
+                onClick={() => {
+                  if (resolvedEntity) {
+                    onSelectEntity(
+                      resolvedEntity
+                    );
+                  }
+                }}
+              >
+                <title>
+                  {resolvedEntity ??
+                    featureName}
+                </title>
+              </path>
+            );
+          })}
+        </svg>
+
+        {tooltip && (
+          <div
+            style={{
+              ...styles.tooltip,
+              left: tooltip.x,
+              top: tooltip.y,
+            }}
+          >
+            <div
+              style={
+                styles.tooltipTitle
+              }
+            >
+              {tooltip.entity}
+            </div>
+
+            {tooltip.hasDashboardEntity ? (
+              <>
+                <div
+                  style={
+                    styles.tooltipRow
+                  }
+                >
+                  <span>
+                    {measure ===
+                    'incidencia'
+                      ? 'Casos'
+                      : 'Defunciones'}
+                  </span>
+                  <strong>
+                    {tooltip.count ===
+                      null ||
+                    tooltip.count ===
+                      undefined
+                      ? '—'
+                      : Number(
+                          tooltip.count
+                        ).toLocaleString(
+                          'es-MX'
+                        )}
+                  </strong>
+                </div>
+
+                <div
+                  style={
+                    styles.tooltipRow
+                  }
+                >
+                  <span>Tasa</span>
+                  <strong>
+                    {tooltip.rate ===
+                      null ||
+                    tooltip.rate ===
+                      undefined
+                      ? 'No disponible'
+                      : Number(
+                          tooltip.rate
+                        ).toFixed(2)}
+                  </strong>
+                </div>
+              </>
+            ) : (
+              <div style={styles.note}>
+                Sin información para la
+                selección actual.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={styles.mapFooter}>
+        <div style={styles.legend}>
+          <span style={styles.legendText}>
+            Menor tasa
+          </span>
+
+          {MAP_COLORS.map(
+            (color, index) => (
+              <span
+                key={color}
+                title={`Nivel ${
+                  index + 1
+                }`}
+                style={{
+                  ...styles.legendSwatch,
+                  background: color,
+                }}
+              />
+            )
+          )}
+
+          <span style={styles.legendText}>
+            Mayor tasa
+          </span>
+
+          <span
+            style={{
+              ...styles.legendSwatch,
+              background:
+                NO_DATA_COLOR,
+              marginLeft: '10px',
+            }}
+          />
+
+          <span style={styles.legendText}>
+            Sin tasa
+          </span>
+        </div>
+
+        <div style={styles.note}>
+          Tasa acumulada al{' '}
+          <strong>{date || '—'}</strong>.
+          Selecciona una entidad en el mapa
+          para actualizar el KPI.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const {
     manifest,
@@ -16,17 +667,92 @@ function App() {
     error: loadingError,
   } = useDashboardData();
 
-  const [evento, setEvento] = useState('TODOS');
-  const [tipo, setTipo] = useState('TODOS');
-  const [categoria, setCategoria] = useState('TODAS');
-  const [entidad, setEntidad] = useState('NACIONAL');
+  const [evento, setEvento] =
+    useState('TODOS');
+  const [tipo, setTipo] =
+    useState('TODOS');
+  const [categoria, setCategoria] =
+    useState('TODAS');
+  const [entidad, setEntidad] =
+    useState('NACIONAL');
 
-  const [medida, setMedida] = useState('incidencia');
-  const [fecha, setFecha] = useState('');
+  const [medida, setMedida] =
+    useState('incidencia');
+  const [fecha, setFecha] =
+    useState('');
 
-  const [categoryMap, setCategoryMap] = useState(null);
-  const [loadingCategoryMap, setLoadingCategoryMap] = useState(false);
-  const [categoryError, setCategoryError] = useState(null);
+  const [
+    categoryMap,
+    setCategoryMap,
+  ] = useState(null);
+
+  const [
+    loadingCategoryMap,
+    setLoadingCategoryMap,
+  ] = useState(false);
+
+  const [
+    categoryError,
+    setCategoryError,
+  ] = useState(null);
+
+  const [geoData, setGeoData] =
+    useState(null);
+  const [geoLoading, setGeoLoading] =
+    useState(true);
+  const [geoError, setGeoError] =
+    useState(null);
+
+  // ===========================================================================
+  // GEOMETRÍA DEL MAPA
+  // ===========================================================================
+
+  useEffect(() => {
+    let active = true;
+
+    async function cargarGeoJSON() {
+      try {
+        setGeoLoading(true);
+        setGeoError(null);
+
+        const response = await fetch(
+          MEXICO_GEOJSON_URL
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `GeoJSON HTTP ${response.status}`
+          );
+        }
+
+        const data =
+          await response.json();
+
+        if (!active) {
+          return;
+        }
+
+        setGeoData(data);
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+
+        setGeoData(null);
+        setGeoError(err);
+      } finally {
+        if (active) {
+          setGeoLoading(false);
+        }
+      }
+    }
+
+    cargarGeoJSON();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // ===========================================================================
   // CATÁLOGOS BASE
@@ -37,9 +763,13 @@ function App() {
       return [];
     }
 
-    return Array.isArray(coreMap.indexes.dates)
+    return Array.isArray(
+      coreMap.indexes.dates
+    )
       ? coreMap.indexes.dates
-      : Object.values(coreMap.indexes.dates);
+      : Object.values(
+          coreMap.indexes.dates
+        );
   }, [coreMap]);
 
   const entidades = useMemo(() => {
@@ -47,9 +777,13 @@ function App() {
       return [];
     }
 
-    return Array.isArray(coreMap.indexes.entities)
+    return Array.isArray(
+      coreMap.indexes.entities
+    )
       ? coreMap.indexes.entities
-      : Object.values(coreMap.indexes.entities);
+      : Object.values(
+          coreMap.indexes.entities
+        );
   }, [coreMap]);
 
   const combosCore = useMemo(() => {
@@ -57,9 +791,13 @@ function App() {
       return [];
     }
 
-    return Array.isArray(coreMap.indexes.combos)
+    return Array.isArray(
+      coreMap.indexes.combos
+    )
       ? coreMap.indexes.combos
-      : Object.values(coreMap.indexes.combos);
+      : Object.values(
+          coreMap.indexes.combos
+        );
   }, [coreMap]);
 
   // ===========================================================================
@@ -67,8 +805,15 @@ function App() {
   // ===========================================================================
 
   useEffect(() => {
-    if (fechas.length > 0 && !fecha) {
-      setFecha(fechas[fechas.length - 1]);
+    if (
+      fechas.length > 0 &&
+      !fecha
+    ) {
+      setFecha(
+        fechas[
+          fechas.length - 1
+        ]
+      );
     }
   }, [fechas, fecha]);
 
@@ -78,13 +823,22 @@ function App() {
 
   const eventos = useMemo(() => {
     const valores = combosCore
-      .filter((x) => x.nivel === 'evento')
+      .filter(
+        (x) =>
+          x.nivel === 'evento'
+      )
       .map((x) => x.evento)
-      .filter((x) => x && x !== 'TODOS');
+      .filter(
+        (x) =>
+          x &&
+          x !== 'TODOS'
+      );
 
     return [
       'TODOS',
-      ...Array.from(new Set(valores)),
+      ...Array.from(
+        new Set(valores)
+      ),
     ];
   }, [combosCore]);
 
@@ -104,11 +858,17 @@ function App() {
           x.evento === evento
       )
       .map((x) => x.tipo)
-      .filter((x) => x && x !== 'TODOS');
+      .filter(
+        (x) =>
+          x &&
+          x !== 'TODOS'
+      );
 
     return [
       'TODOS',
-      ...Array.from(new Set(valores)),
+      ...Array.from(
+        new Set(valores)
+      ),
     ];
   }, [combosCore, evento]);
 
@@ -131,7 +891,10 @@ function App() {
         setLoadingCategoryMap(true);
         setCategoryError(null);
 
-        const data = await loadCategoryMap(tipo);
+        const data =
+          await loadCategoryMap(
+            tipo
+          );
 
         if (!active) {
           return;
@@ -148,7 +911,9 @@ function App() {
         setCategoryError(err);
       } finally {
         if (active) {
-          setLoadingCategoryMap(false);
+          setLoadingCategoryMap(
+            false
+          );
         }
       }
     }
@@ -165,7 +930,10 @@ function App() {
   // ===========================================================================
 
   const categorias = useMemo(() => {
-    if (tipo === 'TODOS' || !categoryMap) {
+    if (
+      tipo === 'TODOS' ||
+      !categoryMap
+    ) {
       return ['TODAS'];
     }
 
@@ -174,16 +942,20 @@ function App() {
     )
       ? categoryMap.indexes.combos
       : Object.values(
-          categoryMap?.indexes?.combos ?? {}
+          categoryMap?.indexes
+            ?.combos ?? {}
         );
 
     const valores = combos
       .filter(
         (x) =>
-          x.nivel === 'categoria' &&
+          x.nivel ===
+            'categoria' &&
           x.tipo === tipo
       )
-      .map((x) => x.categoria)
+      .map(
+        (x) => x.categoria
+      )
       .filter(
         (x) =>
           x &&
@@ -192,7 +964,9 @@ function App() {
 
     return [
       'TODAS',
-      ...Array.from(new Set(valores)),
+      ...Array.from(
+        new Set(valores)
+      ),
     ];
   }, [categoryMap, tipo]);
 
@@ -201,7 +975,10 @@ function App() {
   // ===========================================================================
 
   const consulta = useMemo(() => {
-    if (categoria !== 'TODAS' && tipo !== 'TODOS') {
+    if (
+      categoria !== 'TODAS' &&
+      tipo !== 'TODOS'
+    ) {
       return {
         mapData: categoryMap,
         level: 'categoria',
@@ -252,105 +1029,154 @@ function App() {
   // VALORES DEL KPI
   // ===========================================================================
 
-  const valorConteo = useMemo(() => {
-    if (!consulta.mapData || !fecha) {
-      return null;
-    }
+  const valorConteo =
+    useMemo(() => {
+      if (
+        !consulta.mapData ||
+        !fecha
+      ) {
+        return null;
+      }
 
-    return getMapValue({
-      mapData: consulta.mapData,
-      date: fecha,
-      entity: entidad,
-      event: evento,
-      type: tipo,
-      category: categoria,
-      level: consulta.level,
-      metric: metricaConteo,
-      mode: 'acumulado',
-    });
-  }, [
-    consulta,
-    fecha,
-    entidad,
-    evento,
-    tipo,
-    categoria,
-    metricaConteo,
-  ]);
+      return getMapValue({
+        mapData:
+          consulta.mapData,
+        date: fecha,
+        entity: entidad,
+        event: evento,
+        type: tipo,
+        category: categoria,
+        level: consulta.level,
+        metric:
+          metricaConteo,
+        mode: 'acumulado',
+      });
+    }, [
+      consulta,
+      fecha,
+      entidad,
+      evento,
+      tipo,
+      categoria,
+      metricaConteo,
+    ]);
 
-  const valorTasa = useMemo(() => {
-    if (!consulta.mapData || !fecha) {
-      return null;
-    }
+  const valorTasa =
+    useMemo(() => {
+      if (
+        !consulta.mapData ||
+        !fecha
+      ) {
+        return null;
+      }
 
-    return getMapValue({
-      mapData: consulta.mapData,
-      date: fecha,
-      entity: entidad,
-      event: evento,
-      type: tipo,
-      category: categoria,
-      level: consulta.level,
-      metric: metricaTasa,
-      mode: 'acumulado',
-    });
-  }, [
-    consulta,
-    fecha,
-    entidad,
-    evento,
-    tipo,
-    categoria,
-    metricaTasa,
-  ]);
-
-  // ===========================================================================
-  // VALORES POR ENTIDAD PARA FUTURO MAPA
-  // ===========================================================================
-
-  const valoresMapa = useMemo(() => {
-    if (!consulta.mapData || !fecha) {
-      return [];
-    }
-
-    return getMapEntityValues({
-      mapData: consulta.mapData,
-      date: fecha,
-      event: evento,
-      type: tipo,
-      category: categoria,
-      level: consulta.level,
-      metric: metricaTasa,
-      mode: 'acumulado',
-      includeNational: false,
-    });
-  }, [
-    consulta,
-    fecha,
-    evento,
-    tipo,
-    categoria,
-    metricaTasa,
-  ]);
+      return getMapValue({
+        mapData:
+          consulta.mapData,
+        date: fecha,
+        entity: entidad,
+        event: evento,
+        type: tipo,
+        category: categoria,
+        level: consulta.level,
+        metric: metricaTasa,
+        mode: 'acumulado',
+      });
+    }, [
+      consulta,
+      fecha,
+      entidad,
+      evento,
+      tipo,
+      categoria,
+      metricaTasa,
+    ]);
 
   // ===========================================================================
-  // TOP PROVISIONAL PARA VALIDAR EL MAPA
+  // VALORES POR ENTIDAD PARA MAPA
   // ===========================================================================
 
-  const topEntidades = useMemo(() => {
-    return [...valoresMapa]
-      .filter(
-        (x) =>
-          x.value !== null &&
-          x.value !== undefined
-      )
-      .sort(
-        (a, b) =>
-          Number(b.value) -
-          Number(a.value)
-      )
-      .slice(0, 10);
-  }, [valoresMapa]);
+  const valoresMapa =
+    useMemo(() => {
+      if (
+        !consulta.mapData ||
+        !fecha
+      ) {
+        return [];
+      }
+
+      return getMapEntityValues({
+        mapData:
+          consulta.mapData,
+        date: fecha,
+        event: evento,
+        type: tipo,
+        category: categoria,
+        level: consulta.level,
+        metric: metricaTasa,
+        mode: 'acumulado',
+        includeNational: false,
+      });
+    }, [
+      consulta,
+      fecha,
+      evento,
+      tipo,
+      categoria,
+      metricaTasa,
+    ]);
+
+  const conteosMapa =
+    useMemo(() => {
+      if (
+        !consulta.mapData ||
+        !fecha
+      ) {
+        return [];
+      }
+
+      return getMapEntityValues({
+        mapData:
+          consulta.mapData,
+        date: fecha,
+        event: evento,
+        type: tipo,
+        category: categoria,
+        level: consulta.level,
+        metric:
+          metricaConteo,
+        mode: 'acumulado',
+        includeNational: false,
+      });
+    }, [
+      consulta,
+      fecha,
+      evento,
+      tipo,
+      categoria,
+      metricaConteo,
+    ]);
+
+  // ===========================================================================
+  // TOP PROVISIONAL PARA VALIDACIÓN
+  // ===========================================================================
+
+  const topEntidades =
+    useMemo(() => {
+      return [...valoresMapa]
+        .filter(
+          (x) =>
+            x.value !== null &&
+            x.value !==
+              undefined
+        )
+        .sort(
+          (a, b) =>
+            Number(b.value) -
+            Number(a.value)
+        )
+        .slice(0, 10);
+    }, [valoresMapa]);
 
   // ===========================================================================
   // CAMBIOS DE FILTROS
@@ -375,8 +1201,13 @@ function App() {
   if (loadingInitial) {
     return (
       <div style={styles.estado}>
-        <h1>Cargando tablero...</h1>
-        <p>Preparando los datos validados.</p>
+        <h1>
+          Cargando tablero...
+        </h1>
+        <p>
+          Preparando los datos
+          validados.
+        </p>
       </div>
     );
   }
@@ -384,9 +1215,14 @@ function App() {
   if (loadingError) {
     return (
       <div style={styles.estado}>
-        <h1>Error al cargar los datos</h1>
+        <h1>
+          Error al cargar los
+          datos
+        </h1>
         <pre>
-          {loadingError.message}
+          {
+            loadingError.message
+          }
         </pre>
       </div>
     );
@@ -400,8 +1236,13 @@ function App() {
     <div style={styles.page}>
       <header style={styles.header}>
         <div>
-          <div style={styles.supraTitle}>
-            Vigilancia epidemiológica
+          <div
+            style={
+              styles.supraTitle
+            }
+          >
+            Vigilancia
+            epidemiológica
           </div>
 
           <h1 style={styles.title}>
@@ -409,9 +1250,15 @@ function App() {
           </h1>
         </div>
 
-        <div style={styles.headerInfo}>
+        <div
+          style={
+            styles.headerInfo
+          }
+        >
           Datos acumulados al{' '}
-          <strong>{fecha || '—'}</strong>
+          <strong>
+            {fecha || '—'}
+          </strong>
         </div>
       </header>
 
@@ -421,7 +1268,11 @@ function App() {
         {/* ============================================================= */}
 
         <aside style={styles.sidebar}>
-          <h2 style={styles.sectionTitle}>
+          <h2
+            style={
+              styles.sectionTitle
+            }
+          >
             Filtros
           </h2>
 
@@ -491,24 +1342,31 @@ function App() {
             }
             style={styles.select}
           >
-            {categorias.map((x) => (
-              <option
-                key={x}
-                value={x}
-              >
-                {x}
-              </option>
-            ))}
+            {categorias.map(
+              (x) => (
+                <option
+                  key={x}
+                  value={x}
+                >
+                  {x}
+                </option>
+              )
+            )}
           </select>
 
           {loadingCategoryMap && (
             <div style={styles.note}>
-              Cargando categorías...
+              Cargando
+              categorías...
             </div>
           )}
 
           {categoryError && (
-            <div style={styles.errorText}>
+            <div
+              style={
+                styles.errorText
+              }
+            >
               {
                 categoryError.message
               }
@@ -545,60 +1403,94 @@ function App() {
 
         <section style={styles.center}>
           <div style={styles.panel}>
-            <div style={styles.panelHeader}>
+            <div
+              style={
+                styles.panelHeader
+              }
+            >
               <div>
-                <h2 style={styles.sectionTitle}>
+                <h2
+                  style={
+                    styles.sectionTitle
+                  }
+                >
                   Mapa de México
                 </h2>
 
-                <div style={styles.note}>
-                  Vista provisional para validar
-                  los datos por entidad.
+                <div
+                  style={styles.note}
+                >
+                  Distribución de la
+                  tasa acumulada por
+                  entidad.
                 </div>
               </div>
 
-              <div style={styles.badge}>
-                {
-                  medida ===
-                  'incidencia'
-                    ? 'Incidencia'
-                    : 'Mortalidad'
-                }
-              </div>
-            </div>
-
-            <div style={styles.mapPlaceholder}>
               <div
-                style={
-                  styles.mapPlaceholderTitle
-                }
+                style={styles.badge}
               >
-                MAPA
-              </div>
-
-              <div style={styles.note}>
-                Aquí colocaremos el mapa
-                coroplético de México en el
-                siguiente bloque visual.
+                {medida ===
+                'incidencia'
+                  ? 'Incidencia'
+                  : 'Mortalidad'}
               </div>
             </div>
+
+            <MexicoChoropleth
+              geoData={geoData}
+              geoLoading={
+                geoLoading
+              }
+              geoError={geoError}
+              entities={entidades}
+              rateValues={
+                valoresMapa
+              }
+              countValues={
+                conteosMapa
+              }
+              selectedEntity={
+                entidad
+              }
+              onSelectEntity={
+                setEntidad
+              }
+              measure={medida}
+              date={fecha}
+            />
           </div>
 
           <div style={styles.panel}>
-            <h2 style={styles.sectionTitle}>
-              Verificación provisional por
-              entidad
+            <h2
+              style={
+                styles.sectionTitle
+              }
+            >
+              Verificación
+              provisional por entidad
             </h2>
 
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
+            <div
+              style={
+                styles.tableWrapper
+              }
+            >
+              <table
+                style={styles.table}
+              >
                 <thead>
                   <tr>
-                    <th style={styles.th}>
+                    <th
+                      style={styles.th}
+                    >
                       Entidad
                     </th>
 
-                    <th style={styles.thRight}>
+                    <th
+                      style={
+                        styles.thRight
+                      }
+                    >
                       Tasa acumulada
                     </th>
                   </tr>
@@ -608,10 +1500,18 @@ function App() {
                   {topEntidades.map(
                     (item) => (
                       <tr
-                        key={item.entity}
+                        key={
+                          item.entity
+                        }
                       >
-                        <td style={styles.td}>
-                          {item.entity}
+                        <td
+                          style={
+                            styles.td
+                          }
+                        >
+                          {
+                            item.entity
+                          }
                         </td>
 
                         <td
@@ -636,13 +1536,25 @@ function App() {
         {/* PANEL DERECHO */}
         {/* ============================================================= */}
 
-        <aside style={styles.rightPanel}>
+        <aside
+          style={
+            styles.rightPanel
+          }
+        >
           <div style={styles.panel}>
-            <h2 style={styles.sectionTitle}>
+            <h2
+              style={
+                styles.sectionTitle
+              }
+            >
               Medida
             </h2>
 
-            <div style={styles.measureButtons}>
+            <div
+              style={
+                styles.measureButtons
+              }
+            >
               <button
                 type="button"
                 onClick={() =>
@@ -680,14 +1592,22 @@ function App() {
           </div>
 
           <div style={styles.kpi}>
-            <div style={styles.kpiLabel}>
+            <div
+              style={
+                styles.kpiLabel
+              }
+            >
               {medida ===
               'incidencia'
                 ? 'Casos'
                 : 'Defunciones'}
             </div>
 
-            <div style={styles.kpiValue}>
+            <div
+              style={
+                styles.kpiValue
+              }
+            >
               {valorConteo === null
                 ? '—'
                 : Number(
@@ -697,7 +1617,11 @@ function App() {
                   )}
             </div>
 
-            <div style={styles.kpiRate}>
+            <div
+              style={
+                styles.kpiRate
+              }
+            >
               Tasa:{' '}
               {valorTasa === null
                 ? 'No disponible'
@@ -706,13 +1630,21 @@ function App() {
                   ).toFixed(2)}
             </div>
 
-            <div style={styles.kpiEntity}>
+            <div
+              style={
+                styles.kpiEntity
+              }
+            >
               {entidad}
             </div>
           </div>
 
           <div style={styles.panel}>
-            <h2 style={styles.sectionTitle}>
+            <h2
+              style={
+                styles.sectionTitle
+              }
+            >
               Fecha
             </h2>
 
@@ -727,7 +1659,8 @@ function App() {
               max={
                 fechas.length > 0
                   ? fechas[
-                      fechas.length - 1
+                      fechas.length -
+                        1
                     ]
                   : undefined
               }
@@ -736,17 +1669,22 @@ function App() {
                   e.target.value
                 )
               }
-              style={styles.dateInput}
+              style={
+                styles.dateInput
+              }
             />
 
-            <div style={styles.note}>
+            <div
+              style={styles.note}
+            >
               Periodo disponible:
               <br />
 
               {fechas.length > 0
                 ? `${fechas[0]} a ${
                     fechas[
-                      fechas.length - 1
+                      fechas.length -
+                        1
                     ]
                   }`
                 : '—'}
@@ -754,28 +1692,54 @@ function App() {
           </div>
 
           <div style={styles.panel}>
-            <h2 style={styles.sectionTitle}>
+            <h2
+              style={
+                styles.sectionTitle
+              }
+            >
               Selección actual
             </h2>
 
-            <div style={styles.selectionRow}>
-              <strong>Evento:</strong>
+            <div
+              style={
+                styles.selectionRow
+              }
+            >
+              <strong>
+                Evento:
+              </strong>
               <span>{evento}</span>
             </div>
 
-            <div style={styles.selectionRow}>
-              <strong>Tipo:</strong>
+            <div
+              style={
+                styles.selectionRow
+              }
+            >
+              <strong>
+                Tipo:
+              </strong>
               <span>{tipo}</span>
             </div>
 
-            <div style={styles.selectionRow}>
+            <div
+              style={
+                styles.selectionRow
+              }
+            >
               <strong>
                 Categoría:
               </strong>
-              <span>{categoria}</span>
+              <span>
+                {categoria}
+              </span>
             </div>
 
-            <div style={styles.selectionRow}>
+            <div
+              style={
+                styles.selectionRow
+              }
+            >
               <strong>
                 Entidad:
               </strong>
@@ -789,7 +1753,7 @@ function App() {
 }
 
 // =============================================================================
-// ESTILOS PROVISIONALES
+// ESTILOS
 // =============================================================================
 
 const styles = {
@@ -815,7 +1779,8 @@ const styles = {
 
   supraTitle: {
     fontSize: '13px',
-    textTransform: 'uppercase',
+    textTransform:
+      'uppercase',
     letterSpacing: '0.08em',
     color: '#667085',
     marginBottom: '4px',
@@ -883,8 +1848,7 @@ const styles = {
 
   sectionTitle: {
     fontSize: '17px',
-    margin:
-      '0 0 14px 0',
+    margin: '0 0 14px 0',
   },
 
   label: {
@@ -929,31 +1893,119 @@ const styles = {
     whiteSpace: 'nowrap',
   },
 
-  mapPlaceholder: {
+  mapBlock: {
+    marginTop: '10px',
+  },
+
+  svgWrapper: {
+    position: 'relative',
+    width: '100%',
     minHeight: '390px',
-    marginTop: '14px',
-    border:
-      '2px dashed #cbd5e1',
-    borderRadius: '10px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    background:
+      'linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%)',
+    borderRadius: '9px',
+  },
+
+  mapSvg: {
+    width: '100%',
+    height: 'auto',
+    display: 'block',
+    maxHeight: '500px',
+  },
+
+  mapStatus: {
+    minHeight: '390px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    color: '#667085',
+    fontSize: '13px',
+  },
+
+  mapStatusError: {
+    minHeight: '390px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: '8px',
     textAlign: 'center',
+    color: '#b42318',
     padding: '20px',
-    boxSizing: 'border-box',
   },
 
-  mapPlaceholderTitle: {
-    fontSize: '42px',
+  tooltip: {
+    position: 'absolute',
+    zIndex: 10,
+    minWidth: '180px',
+    maxWidth: '240px',
+    background:
+      'rgba(17, 24, 39, 0.96)',
+    color: '#ffffff',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    pointerEvents: 'none',
+    boxShadow:
+      '0 8px 22px rgba(15, 23, 42, 0.18)',
+    fontSize: '12px',
+  },
+
+  tooltipTitle: {
     fontWeight: 700,
-    color: '#cbd5e1',
-    marginBottom: '10px',
+    marginBottom: '7px',
+  },
+
+  tooltipRow: {
+    display: 'flex',
+    justifyContent:
+      'space-between',
+    gap: '15px',
+    marginTop: '4px',
+  },
+
+  mapFooter: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent:
+      'space-between',
+    alignItems: 'center',
+    gap: '10px 18px',
+    paddingTop: '10px',
+    borderTop:
+      '1px solid #eef2f6',
+  },
+
+  legend: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    flexWrap: 'wrap',
+  },
+
+  legendSwatch: {
+    width: '19px',
+    height: '10px',
+    borderRadius: '2px',
+    display: 'inline-block',
+    border:
+      '1px solid rgba(0, 0, 0, 0.05)',
+  },
+
+  legendText: {
+    fontSize: '11px',
+    color: '#667085',
+    margin: '0 3px',
   },
 
   measureButtons: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns:
+      '1fr 1fr',
     gap: '8px',
   },
 
@@ -989,7 +2041,8 @@ const styles = {
     fontSize: '13px',
     fontWeight: 700,
     color: '#667085',
-    textTransform: 'uppercase',
+    textTransform:
+      'uppercase',
     letterSpacing: '0.05em',
   },
 
@@ -1026,8 +2079,7 @@ const styles = {
     flexDirection: 'column',
     gap: '3px',
     fontSize: '12px',
-    padding:
-      '8px 0',
+    padding: '8px 0',
     borderBottom:
       '1px solid #eef2f6',
   },
