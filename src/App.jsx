@@ -1422,6 +1422,67 @@ function App() {
       : 1;
   }, [perfilEdadSexo]);
 
+  const perfilAreaAnatomica = useMemo(() => {
+    if (
+      tipo === 'TODOS' ||
+      !profileData ||
+      !fecha
+    ) {
+      return [];
+    }
+
+    try {
+      const series =
+        getProfileSeries({
+          profileData,
+          profileId: 'area_anatomica',
+          date: fecha,
+          entity: entidad,
+          category: categoria,
+          mode: 'acumulado',
+        });
+
+      if (!Array.isArray(series)) {
+        return [];
+      }
+
+      return series
+        .map((item) => ({
+          id:
+            item?.id ??
+            item?.etiqueta,
+          etiqueta:
+            String(
+              item?.etiqueta ??
+                item?.id ??
+                ''
+            ).trim(),
+          value:
+            Number(item?.value),
+        }))
+        .filter(
+          (item) =>
+            item.etiqueta &&
+            Number.isFinite(
+              item.value
+            )
+        );
+    } catch (error) {
+      console.error(
+        'Error al interpretar perfil de área anatómica:',
+        error
+      );
+
+      return [];
+    }
+  }, [
+    profileData,
+    tipo,
+    fecha,
+    entidad,
+    categoria,
+  ]);
+
   // ===========================================================================
   // CAMBIOS DE FILTROS
   // ===========================================================================
@@ -2071,6 +2132,135 @@ function App() {
                               'es-MX'
                             )}
                           </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={styles.panel}>
+            <div
+              style={
+                styles.profileHeader
+              }
+            >
+              <div>
+                <h2
+                  style={
+                    styles.sectionTitle
+                  }
+                >
+                  Área anatómica
+                </h2>
+
+                <div style={styles.note}>
+                  Distribución porcentual
+                  acumulada para la
+                  selección actual.
+                </div>
+              </div>
+            </div>
+
+            {tipo === 'TODOS' ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Selecciona un tipo para
+                consultar el perfil por
+                área anatómica.
+              </div>
+            ) : loadingBullets ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                Cargando perfil...
+              </div>
+            ) : perfilAreaAnatomica.length ===
+              0 ? (
+              <div
+                style={
+                  styles.profileEmpty
+                }
+              >
+                No hay información de
+                área anatómica para la
+                selección actual.
+              </div>
+            ) : (
+              <div
+                style={
+                  styles.areaList
+                }
+              >
+                {perfilAreaAnatomica.map(
+                  (item) => {
+                    const ancho =
+                      `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          item.value
+                        )
+                      )}%`;
+
+                    return (
+                      <div
+                        key={item.id}
+                        style={
+                          styles.areaRow
+                        }
+                      >
+                        <div
+                          style={
+                            styles.areaTop
+                          }
+                        >
+                          <span
+                            style={
+                              styles.areaLabel
+                            }
+                          >
+                            {item.etiqueta}
+                          </span>
+
+                          <strong
+                            style={
+                              styles.areaValue
+                            }
+                          >
+                            {new Intl.NumberFormat(
+                              'es-MX',
+                              {
+                                minimumFractionDigits:
+                                  0,
+                                maximumFractionDigits:
+                                  1,
+                              }
+                            ).format(
+                              item.value
+                            )}
+                            %
+                          </strong>
+                        </div>
+
+                        <div
+                          style={
+                            styles.areaTrack
+                          }
+                        >
+                          <div
+                            style={{
+                              ...styles.areaBar,
+                              width: ancho,
+                            }}
+                          />
                         </div>
                       </div>
                     );
@@ -2902,6 +3092,55 @@ const styles = {
     color: '#667085',
     fontVariantNumeric:
       'tabular-nums',
+  },
+
+  areaList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+  },
+
+  areaRow: {
+    width: '100%',
+  },
+
+  areaTop: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent:
+      'space-between',
+    gap: '16px',
+    marginBottom: '6px',
+  },
+
+  areaLabel: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#344054',
+    lineHeight: 1.35,
+  },
+
+  areaValue: {
+    fontSize: '12px',
+    color: '#6f263d',
+    fontVariantNumeric:
+      'tabular-nums',
+    whiteSpace: 'nowrap',
+  },
+
+  areaTrack: {
+    width: '100%',
+    height: '12px',
+    background: '#f2f4f7',
+    borderRadius: '999px',
+    overflow: 'hidden',
+  },
+
+  areaBar: {
+    height: '100%',
+    background: '#9b4a60',
+    borderRadius: '999px',
+    minWidth: '1px',
   },
 
   tableWrapper: {
