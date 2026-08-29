@@ -2063,6 +2063,14 @@ function App() {
                     e.target.value
                   )
                 }
+                onClick={(e) => {
+                  if (
+                    typeof e.currentTarget.showPicker ===
+                    'function'
+                  ) {
+                    e.currentTarget.showPicker();
+                  }
+                }}
                 style={styles.dateInput}
               />
 
@@ -2931,6 +2939,8 @@ const styles = {
     color: '#003b35',
     fontSize: '12px',
     fontWeight: 700,
+    cursor: 'pointer',
+    colorScheme: 'light',
   },
 
   dateRange: {
