@@ -3,11 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDashboardData } from './hooks/useDashboardData';
 
 import {
-  getBulletValues,
   getMapEntityValues,
   getMapValue,
   loadCategoryMap,
-  loadTypeBundle,
 } from './data/dashboardData';
 
 // =============================================================================
@@ -285,22 +283,6 @@ function getColorIndex(
       index
     )
   );
-}
-
-function formatBulletValue(value) {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return '—';
-  }
-
-  return `${new Intl.NumberFormat(
-    'es-MX',
-    {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1,
-    }
-  ).format(number)}%`;
 }
 
 function MexicoChoropleth({
@@ -714,21 +696,6 @@ function App() {
     setCategoryError,
   ] = useState(null);
 
-  const [
-    bulletData,
-    setBulletData,
-  ] = useState(null);
-
-  const [
-    loadingBullets,
-    setLoadingBullets,
-  ] = useState(false);
-
-  const [
-    bulletError,
-    setBulletError,
-  ] = useState(null);
-
   const [geoData, setGeoData] =
     useState(null);
   const [geoLoading, setGeoLoading] =
@@ -952,60 +919,6 @@ function App() {
     }
 
     cargar();
-
-    return () => {
-      active = false;
-    };
-  }, [tipo]);
-
-  // ===========================================================================
-  // BULLETS DEL TIPO SELECCIONADO
-  // ===========================================================================
-  //
-  // Se usa loadTypeBundle(), que ya existe en dashboardData.js.
-  // Así este App.jsx NO necesita ningún cambio adicional en la capa de datos.
-
-  useEffect(() => {
-    let active = true;
-
-    async function cargarBullets() {
-      if (tipo === 'TODOS') {
-        setBulletData(null);
-        setBulletError(null);
-        setLoadingBullets(false);
-        return;
-      }
-
-      try {
-        setLoadingBullets(true);
-        setBulletError(null);
-        setBulletData(null);
-
-        const bundle =
-          await loadTypeBundle(tipo);
-
-        if (!active) {
-          return;
-        }
-
-        setBulletData(
-          bundle?.bullets ?? null
-        );
-      } catch (err) {
-        if (!active) {
-          return;
-        }
-
-        setBulletData(null);
-        setBulletError(err);
-      } finally {
-        if (active) {
-          setLoadingBullets(false);
-        }
-      }
-    }
-
-    cargarBullets();
 
     return () => {
       active = false;
@@ -1245,46 +1158,25 @@ function App() {
     ]);
 
   // ===========================================================================
-  // INDICADORES DESCRIPTIVOS
+  // TOP PROVISIONAL PARA VALIDACIÓN
   // ===========================================================================
 
-  const bullets = useMemo(() => {
-    if (
-      tipo === 'TODOS' ||
-      !bulletData ||
-      !fecha
-    ) {
-      return [];
-    }
-
-    try {
-      const values =
-        getBulletValues({
-          bulletData,
-          date: fecha,
-          entity: entidad,
-          category: categoria,
-          mode: 'acumulado',
-        });
-
-      return Array.isArray(values)
-        ? values
-        : [];
-    } catch (error) {
-      console.error(
-        'Error al interpretar bullets:',
-        error
-      );
-
-      return [];
-    }
-  }, [
-    bulletData,
-    tipo,
-    fecha,
-    entidad,
-    categoria,
-  ]);
+  const topEntidades =
+    useMemo(() => {
+      return [...valoresMapa]
+        .filter(
+          (x) =>
+            x.value !== null &&
+            x.value !==
+              undefined
+        )
+        .sort(
+          (a, b) =>
+            Number(b.value) -
+            Number(a.value)
+        )
+        .slice(0, 10);
+    }, [valoresMapa]);
 
   // ===========================================================================
   // CAMBIOS DE FILTROS
@@ -1295,8 +1187,6 @@ function App() {
     setTipo('TODOS');
     setCategoria('TODAS');
     setCategoryMap(null);
-    setBulletData(null);
-    setBulletError(null);
   }
 
   function cambiarTipo(value) {
@@ -1571,132 +1461,74 @@ function App() {
           </div>
 
           <div style={styles.panel}>
-            <div
+            <h2
               style={
-                styles.bulletHeader
+                styles.sectionTitle
               }
             >
-              <div>
-                <h2
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Indicadores descriptivos
-                </h2>
+              Verificación
+              provisional por entidad
+            </h2>
 
-                <div style={styles.note}>
-                  Valores acumulados para
-                  la selección actual.
-                </div>
-              </div>
+            <div
+              style={
+                styles.tableWrapper
+              }
+            >
+              <table
+                style={styles.table}
+              >
+                <thead>
+                  <tr>
+                    <th
+                      style={styles.th}
+                    >
+                      Entidad
+                    </th>
 
-              {tipo !== 'TODOS' &&
-                !loadingBullets && (
-                  <div
-                    style={
-                      styles.bulletCount
-                    }
-                  >
-                    {bullets.length}{' '}
-                    indicadores
-                  </div>
-                )}
-            </div>
-
-            {tipo === 'TODOS' ? (
-              <div
-                style={
-                  styles.bulletEmpty
-                }
-              >
-                Selecciona un tipo para
-                consultar sus indicadores
-                descriptivos.
-              </div>
-            ) : loadingBullets ? (
-              <div
-                style={
-                  styles.bulletEmpty
-                }
-              >
-                Cargando indicadores...
-              </div>
-            ) : bulletError ? (
-              <div
-                style={
-                  styles.bulletError
-                }
-              >
-                <strong>
-                  No fue posible cargar
-                  los indicadores.
-                </strong>
-
-                <div style={styles.note}>
-                  {bulletError.message}
-                </div>
-              </div>
-            ) : bullets.length === 0 ? (
-              <div
-                style={
-                  styles.bulletEmpty
-                }
-              >
-                No hay indicadores para
-                la selección actual.
-              </div>
-            ) : (
-              <div
-                style={
-                  styles.bulletGrid
-                }
-              >
-                {bullets.map(
-                  (item, index) => (
-                    <div
-                      key={
-                        item.indicador_id ??
-                        item.indicador ??
-                        index
-                      }
+                    <th
                       style={
-                        styles.bulletCard
+                        styles.thRight
                       }
                     >
-                      <div
-                        style={
-                          styles.bulletValue
-                        }
-                      >
-                        {formatBulletValue(
-                          item.value
-                        )}
-                      </div>
+                      Tasa acumulada
+                    </th>
+                  </tr>
+                </thead>
 
-                      <div
-                        style={
-                          styles.bulletLabel
+                <tbody>
+                  {topEntidades.map(
+                    (item) => (
+                      <tr
+                        key={
+                          item.entity
                         }
                       >
-                        {item.indicador ??
-                          'Indicador'}
-                      </div>
+                        <td
+                          style={
+                            styles.td
+                          }
+                        >
+                          {
+                            item.entity
+                          }
+                        </td>
 
-                      <div
-                        style={
-                          styles.bulletContext
-                        }
-                      >
-                        {entidad}
-                        {' · '}
-                        {categoria}
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
+                        <td
+                          style={
+                            styles.tdRight
+                          }
+                        >
+                          {Number(
+                            item.value
+                          ).toFixed(2)}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -2250,108 +2082,6 @@ const styles = {
     padding: '8px 0',
     borderBottom:
       '1px solid #eef2f6',
-  },
-
-  bulletHeader: {
-    display: 'flex',
-    justifyContent:
-      'space-between',
-    alignItems: 'flex-start',
-    gap: '15px',
-    marginBottom: '16px',
-  },
-
-  bulletCount: {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: '#667085',
-    border:
-      '1px solid #d8dee6',
-    borderRadius: '999px',
-    padding: '5px 9px',
-    whiteSpace: 'nowrap',
-  },
-
-  bulletGrid: {
-    display: 'grid',
-    gridTemplateColumns:
-      'repeat(auto-fit, minmax(190px, 1fr))',
-    gap: '12px',
-  },
-
-  bulletCard: {
-    minHeight: '116px',
-    border:
-      '1px solid #e1e7ef',
-    borderRadius: '10px',
-    padding: '16px',
-    background: '#fbfcfd',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent:
-      'center',
-    boxSizing: 'border-box',
-  },
-
-  bulletValue: {
-    fontSize: '30px',
-    lineHeight: 1,
-    fontWeight: 700,
-    color: '#6f263d',
-    marginBottom: '10px',
-    fontVariantNumeric:
-      'tabular-nums',
-  },
-
-  bulletLabel: {
-    fontSize: '13px',
-    lineHeight: 1.35,
-    fontWeight: 700,
-    color: '#344054',
-  },
-
-  bulletContext: {
-    marginTop: '9px',
-    paddingTop: '8px',
-    borderTop:
-      '1px solid #eef2f6',
-    fontSize: '10px',
-    lineHeight: 1.3,
-    color: '#98a2b3',
-  },
-
-  bulletEmpty: {
-    minHeight: '145px',
-    border:
-      '1px dashed #cbd5e1',
-    borderRadius: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    padding: '24px',
-    color: '#667085',
-    fontSize: '13px',
-    lineHeight: 1.5,
-    boxSizing: 'border-box',
-  },
-
-  bulletError: {
-    minHeight: '145px',
-    border:
-      '1px solid #fecdca',
-    background: '#fffbfa',
-    borderRadius: '10px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    textAlign: 'center',
-    padding: '24px',
-    color: '#b42318',
-    fontSize: '13px',
-    boxSizing: 'border-box',
   },
 
   tableWrapper: {
