@@ -5,9 +5,9 @@
 // Capa única de acceso a los JSON de producción.
 // NO contiene cálculos epidemiológicos.
 //
-// PASO 39:
-// Se incorpora lectura/selectores del mapa municipal dinámico.
-// La medida municipal es exclusivamente CONTEO DE CASOS.
+// Compatibilidad:
+// Los JSON compactos generados por R pueden serializar algunos arreglos
+// como objetos con claves numéricas. asArray() normaliza ambas formas.
 // =============================================================================
 
 const DATA_ROOT = `${import.meta.env.BASE_URL}data`.replace(/\/+$/, '');
@@ -52,8 +52,30 @@ async function fetchJson(relativePath) {
   }
 }
 
+function asArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (
+    value &&
+    typeof value === 'object'
+  ) {
+    return Object.values(value);
+  }
+
+  return [];
+}
+
 function buildLookup(values) {
-  return new Map(values.map((value, index) => [String(value), index]));
+  return new Map(
+    asArray(values).map(
+      (value, index) => [
+        String(value),
+        index,
+      ]
+    )
+  );
 }
 
 function getCompactIndexes(data) {
@@ -81,7 +103,7 @@ function getRecordLookup(data, keys) {
 
   const map = new Map();
 
-  for (const record of data?.data ?? []) {
+  for (const record of asArray(data?.data)) {
     const key = keys.map((k) => record[k]).join('|');
     map.set(key, record);
   }
@@ -117,7 +139,7 @@ export async function resolveType(typeOrId) {
 
   const wanted = String(typeOrId ?? '').trim().toLowerCase();
 
-  const match = (manifest.tipos ?? []).find((item) => {
+  const match = asArray(manifest?.tipos).find((item) => {
     return (
       String(item.tipo_id).toLowerCase() === wanted ||
       String(item.tipo).toLowerCase() === wanted
@@ -157,7 +179,7 @@ export async function loadCategoryMap(typeOrId) {
 }
 
 // -----------------------------------------------------------------------------
-// MAPA ESTATAL
+// MAPA
 // -----------------------------------------------------------------------------
 
 const MAP_METRIC_KEYS = {
@@ -190,7 +212,9 @@ function getMapStructures(mapData) {
   const entities = buildLookup(mapData?.indexes?.entities ?? []);
 
   const comboBySignature = new Map();
-  (mapData?.indexes?.combos ?? []).forEach((combo, index) => {
+  asArray(
+    mapData?.indexes?.combos
+  ).forEach((combo, index) => {
     const signature = [
       combo.evento,
       combo.tipo,
@@ -202,7 +226,7 @@ function getMapStructures(mapData) {
 
   const recordByEntityCombo = new Map();
 
-  for (const record of mapData?.data ?? []) {
+  for (const record of asArray(mapData?.data)) {
     recordByEntityCombo.set(`${record.e}|${record.k}`, record);
   }
 
@@ -278,7 +302,9 @@ export function getMapEntityValues({
   mode = 'acumulado',
   includeNational = false,
 }) {
-  const entities = mapData?.indexes?.entities ?? [];
+  const entities = asArray(
+    mapData?.indexes?.entities
+  );
 
   return entities
     .filter((entity) => includeNational || entity !== 'NACIONAL')
@@ -298,6 +324,7 @@ export function getMapEntityValues({
     }));
 }
 
+
 // -----------------------------------------------------------------------------
 // MAPA MUNICIPAL - PASO 39
 // -----------------------------------------------------------------------------
@@ -305,8 +332,8 @@ export function getMapEntityValues({
 // Los JSON municipales usan series SPARSE:
 //   p = [[indice_fecha, casos_dia, casos_acumulados], ...]
 //
-// Aquí NO se calcula epidemiología.
-// Sólo se recupera el valor ya precomputado en R.
+// Aquí NO se calcula epidemiología. Sólo se recuperan valores ya
+// precomputados por R en el Paso 38.
 // -----------------------------------------------------------------------------
 
 const MUNICIPAL_ROOT = 'municipal';
@@ -332,7 +359,7 @@ export async function resolveMunicipalType(typeOrId) {
   const manifest = await loadMunicipalManifest();
   const wanted = String(typeOrId ?? '').trim().toLowerCase();
 
-  const match = (manifest?.tipos ?? []).find((item) => {
+  const match = asArray(manifest?.tipos).find((item) => {
     return (
       String(item?.tipo_id ?? '').toLowerCase() === wanted ||
       String(item?.tipo ?? '').toLowerCase() === wanted
@@ -363,12 +390,12 @@ function getMunicipalStructures(mapData) {
     return existing.municipalStructures;
   }
 
-  const dateByValue = buildLookup(mapData?.indexes?.dates ?? []);
-  const municipalities = mapData?.indexes?.municipalities ?? [];
+  const dates = buildLookup(mapData?.indexes?.dates ?? []);
+  const municipalities = asArray(mapData?.indexes?.municipalities);
 
   const comboBySignature = new Map();
 
-  (mapData?.indexes?.combos ?? []).forEach((combo, index) => {
+  asArray(mapData?.indexes?.combos).forEach((combo, index) => {
     const signature = [
       combo.nivel,
       combo.evento,
@@ -381,12 +408,12 @@ function getMunicipalStructures(mapData) {
 
   const recordByMunicipalityCombo = new Map();
 
-  for (const record of mapData?.data ?? []) {
+  for (const record of asArray(mapData?.data)) {
     recordByMunicipalityCombo.set(`${record.m}|${record.k}`, record);
   }
 
   const structures = {
-    dateByValue,
+    dates,
     municipalities,
     comboBySignature,
     recordByMunicipalityCombo,
@@ -398,8 +425,10 @@ function getMunicipalStructures(mapData) {
   return structures;
 }
 
-function getSparseMunicipalValue(points, dateIdx, mode) {
-  if (!Array.isArray(points) || points.length === 0) {
+function getSparseMunicipalValue(pointsRaw, dateIdx, mode) {
+  const points = asArray(pointsRaw);
+
+  if (points.length === 0) {
     return 0;
   }
 
@@ -409,11 +438,11 @@ function getSparseMunicipalValue(points, dateIdx, mode) {
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
-      const point = points[mid];
-      const pointDate = Number(point?.[0]);
+      const point = asArray(points[mid]);
+      const pointDate = Number(point[0]);
 
       if (pointDate === dateIdx) {
-        return Number(point?.[1] ?? 0);
+        return Number(point[1] ?? 0);
       }
 
       if (pointDate < dateIdx) {
@@ -426,15 +455,15 @@ function getSparseMunicipalValue(points, dateIdx, mode) {
     return 0;
   }
 
-  // acumulado:
-  // último punto cuya fecha sea <= a la fecha solicitada.
+  // Acumulado: último punto cuya fecha sea <= a la fecha solicitada.
   let low = 0;
   let high = points.length - 1;
   let found = -1;
 
   while (low <= high) {
     const mid = Math.floor((low + high) / 2);
-    const pointDate = Number(points[mid]?.[0]);
+    const point = asArray(points[mid]);
+    const pointDate = Number(point[0]);
 
     if (pointDate <= dateIdx) {
       found = mid;
@@ -448,7 +477,8 @@ function getSparseMunicipalValue(points, dateIdx, mode) {
     return 0;
   }
 
-  return Number(points[found]?.[2] ?? 0);
+  const point = asArray(points[found]);
+  return Number(point[2] ?? 0);
 }
 
 export function getMunicipalValues({
@@ -466,14 +496,13 @@ export function getMunicipalValues({
   }
 
   const {
-    dateByValue,
+    dates,
     municipalities,
     comboBySignature,
     recordByMunicipalityCombo,
   } = getMunicipalStructures(mapData);
 
-  const dateIdx = dateByValue.get(String(date));
-
+  const dateIdx = dates.get(String(date));
   const comboIdx = comboBySignature.get(
     [level, event, type, category].join('|')
   );
@@ -483,7 +512,9 @@ export function getMunicipalValues({
   }
 
   const wantedEntity =
-    entityCode === null || entityCode === undefined || entityCode === ''
+    entityCode === null ||
+    entityCode === undefined ||
+    entityCode === ''
       ? null
       : String(entityCode).padStart(2, '0');
 
@@ -493,8 +524,14 @@ export function getMunicipalValues({
       municipalityIdx,
     }))
     .filter(({ municipality }) => {
-      if (!wantedEntity) return true;
-      return String(municipality?.cve_ent ?? '').padStart(2, '0') === wantedEntity;
+      if (!wantedEntity) {
+        return true;
+      }
+
+      return (
+        String(municipality?.cve_ent ?? '').padStart(2, '0') ===
+        wantedEntity
+      );
     })
     .map(({ municipality, municipalityIdx }) => {
       const record = recordByMunicipalityCombo.get(
@@ -529,7 +566,10 @@ function getBulletStructures(data) {
   const entities = buildLookup(data?.indexes?.entities ?? []);
   const categories = buildLookup(data?.indexes?.categories ?? []);
 
-  const indicators = data?.indexes?.indicators ?? [];
+  const indicators = asArray(
+    data?.indexes?.indicators
+  );
+
   const indicatorsByIndex = indicators.map((item, index) => ({
     ...item,
     index,
@@ -537,7 +577,7 @@ function getBulletStructures(data) {
 
   const records = new Map();
 
-  for (const record of data?.data ?? []) {
+  for (const record of asArray(data?.data)) {
     records.set(`${record.e}|${record.c}|${record.i}`, record);
   }
 
@@ -633,7 +673,7 @@ function getProfileStructures(profileData, profileId) {
 
   const records = new Map();
 
-  for (const record of profile?.data ?? []) {
+  for (const record of asArray(profile?.data)) {
     const [e, c, s] = record;
     records.set(`${e}|${c}|${s}`, record);
   }
@@ -684,7 +724,9 @@ export function getProfileSeries({
     return [];
   }
 
-  return (profile.series ?? []).map((series, seriesIdx) => {
+  return asArray(
+    profile?.series
+  ).map((series, seriesIdx) => {
     const record = records.get(`${entityIdx}|${categoryIdx}|${seriesIdx}`);
 
     if (!record) {
