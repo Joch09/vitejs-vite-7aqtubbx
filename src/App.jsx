@@ -2473,6 +2473,40 @@ function App() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        html,
+        body,
+        #root {
+          width: 100%;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        html,
+        body {
+          min-width: 320px;
+          min-height: 100%;
+          background: #f1f1f1 !important;
+        }
+
+        body {
+          display: block !important;
+          place-items: initial !important;
+          overflow-x: auto;
+        }
+
+        #root {
+          min-height: 100vh;
+          text-align: left !important;
+        }
+
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+      `}</style>
       {/* ============================================================= */}
       {/* ENCABEZADO INSTITUCIONAL */}
       {/* ============================================================= */}
@@ -3403,7 +3437,11 @@ function App() {
 
 const styles = {
   page: {
+    width: '100%',
+    maxWidth: 'none',
+    minWidth: '1180px',
     minHeight: '100vh',
+    margin: 0,
     background: '#f1f1f1',
     color: '#003c36',
     fontFamily:
@@ -3418,7 +3456,8 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: '28px',
-    padding: '12px 54px',
+    padding:
+      '12px clamp(28px, 3.2vw, 64px)',
     boxSizing: 'border-box',
   },
 
@@ -3534,7 +3573,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '20px',
-    padding: '7px 18px 5px',
+    padding:
+      '7px clamp(20px, 2vw, 36px) 5px',
     boxSizing: 'border-box',
   },
 
@@ -3553,19 +3593,22 @@ const styles = {
   },
 
   dashboardBody: {
-    padding: '10px 28px 20px',
-    maxWidth: '1500px',
-    margin: '0 auto',
+    width: '100%',
+    maxWidth: 'none',
+    padding:
+      '10px clamp(20px, 2vw, 36px) 24px',
+    margin: 0,
     boxSizing: 'border-box',
   },
 
   heroGrid: {
+    width: '100%',
     display: 'grid',
     gridTemplateColumns:
-      'minmax(300px, 330px) minmax(550px, 1fr) 180px',
-    gap: '16px',
+      'clamp(290px, 19vw, 350px) minmax(620px, 1fr) clamp(190px, 13vw, 230px)',
+    gap: '18px',
     alignItems: 'start',
-    minWidth: '1060px',
+    minWidth: '1120px',
   },
 
   filterCard: {
@@ -4304,7 +4347,7 @@ const styles = {
   svgWrapper: {
     position: 'relative',
     width: '100%',
-    minHeight: '420px',
+    minHeight: '500px',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -4316,7 +4359,7 @@ const styles = {
     width: '100%',
     height: 'auto',
     display: 'block',
-    maxHeight: '530px',
+    maxHeight: '650px',
   },
 
   mapStatus: {
