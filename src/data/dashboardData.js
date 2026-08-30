@@ -5,9 +5,9 @@
 // Capa única de acceso a los JSON de producción.
 // NO contiene cálculos epidemiológicos.
 //
-// Compatibilidad:
-// Los JSON compactos generados por R pueden serializar algunos arreglos
-// como objetos con claves numéricas. asArray() normaliza ambas formas.
+// PASO 39:
+// Se incorpora lectura/selectores del mapa municipal dinámico.
+// La medida municipal es exclusivamente CONTEO DE CASOS.
 // =============================================================================
 
 const DATA_ROOT = `${import.meta.env.BASE_URL}data`.replace(/\/+$/, '');
@@ -52,30 +52,8 @@ async function fetchJson(relativePath) {
   }
 }
 
-function asArray(value) {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (
-    value &&
-    typeof value === 'object'
-  ) {
-    return Object.values(value);
-  }
-
-  return [];
-}
-
 function buildLookup(values) {
-  return new Map(
-    asArray(values).map(
-      (value, index) => [
-        String(value),
-        index,
-      ]
-    )
-  );
+  return new Map(values.map((value, index) => [String(value), index]));
 }
 
 function getCompactIndexes(data) {
@@ -103,7 +81,7 @@ function getRecordLookup(data, keys) {
 
   const map = new Map();
 
-  for (const record of asArray(data?.data)) {
+  for (const record of data?.data ?? []) {
     const key = keys.map((k) => record[k]).join('|');
     map.set(key, record);
   }
@@ -139,7 +117,7 @@ export async function resolveType(typeOrId) {
 
   const wanted = String(typeOrId ?? '').trim().toLowerCase();
 
-  const match = asArray(manifest?.tipos).find((item) => {
+  const match = (manifest.tipos ?? []).find((item) => {
     return (
       String(item.tipo_id).toLowerCase() === wanted ||
       String(item.tipo).toLowerCase() === wanted
@@ -179,7 +157,7 @@ export async function loadCategoryMap(typeOrId) {
 }
 
 // -----------------------------------------------------------------------------
-// MAPA
+// MAPA ESTATAL
 // -----------------------------------------------------------------------------
 
 const MAP_METRIC_KEYS = {
@@ -212,9 +190,7 @@ function getMapStructures(mapData) {
   const entities = buildLookup(mapData?.indexes?.entities ?? []);
 
   const comboBySignature = new Map();
-  asArray(
-    mapData?.indexes?.combos
-  ).forEach((combo, index) => {
+  (mapData?.indexes?.combos ?? []).forEach((combo, index) => {
     const signature = [
       combo.evento,
       combo.tipo,
@@ -226,7 +202,7 @@ function getMapStructures(mapData) {
 
   const recordByEntityCombo = new Map();
 
-  for (const record of asArray(mapData?.data)) {
+  for (const record of mapData?.data ?? []) {
     recordByEntityCombo.set(`${record.e}|${record.k}`, record);
   }
 
@@ -302,9 +278,7 @@ export function getMapEntityValues({
   mode = 'acumulado',
   includeNational = false,
 }) {
-  const entities = asArray(
-    mapData?.indexes?.entities
-  );
+  const entities = mapData?.indexes?.entities ?? [];
 
   return entities
     .filter((entity) => includeNational || entity !== 'NACIONAL')
@@ -325,6 +299,222 @@ export function getMapEntityValues({
 }
 
 // -----------------------------------------------------------------------------
+// MAPA MUNICIPAL - PASO 39
+// -----------------------------------------------------------------------------
+//
+// Los JSON municipales usan series SPARSE:
+//   p = [[indice_fecha, casos_dia, casos_acumulados], ...]
+//
+// Aquí NO se calcula epidemiología.
+// Sólo se recupera el valor ya precomputado en R.
+// -----------------------------------------------------------------------------
+
+const MUNICIPAL_ROOT = 'municipal';
+const MUNICIPAL_DYNAMIC_ROOT = `${MUNICIPAL_ROOT}/dinamico`;
+
+export async function loadMunicipalManifest() {
+  return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/00_manifest.json`);
+}
+
+export async function loadMunicipalCore() {
+  return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/00_core.json`);
+}
+
+export async function loadMunicipalGeometry() {
+  return fetchJson(`${MUNICIPAL_ROOT}/municipios.geojson`);
+}
+
+export async function loadMunicipalStatesGeometry() {
+  return fetchJson(`${MUNICIPAL_ROOT}/estados.geojson`);
+}
+
+export async function resolveMunicipalType(typeOrId) {
+  const manifest = await loadMunicipalManifest();
+  const wanted = String(typeOrId ?? '').trim().toLowerCase();
+
+  const match = (manifest?.tipos ?? []).find((item) => {
+    return (
+      String(item?.tipo_id ?? '').toLowerCase() === wanted ||
+      String(item?.tipo ?? '').toLowerCase() === wanted
+    );
+  });
+
+  if (!match) {
+    throw new Error(`Tipo municipal no reconocido: ${typeOrId}`);
+  }
+
+  return match;
+}
+
+export async function loadMunicipalCategoryMap(typeOrId) {
+  const type = await resolveMunicipalType(typeOrId);
+
+  if (!type?.archivo) {
+    throw new Error(`El tipo municipal no tiene archivo: ${typeOrId}`);
+  }
+
+  return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/${type.archivo}`);
+}
+
+function getMunicipalStructures(mapData) {
+  const existing = indexCache.get(mapData) ?? {};
+
+  if (existing.municipalStructures) {
+    return existing.municipalStructures;
+  }
+
+  const dateByValue = buildLookup(mapData?.indexes?.dates ?? []);
+  const municipalities = mapData?.indexes?.municipalities ?? [];
+
+  const comboBySignature = new Map();
+
+  (mapData?.indexes?.combos ?? []).forEach((combo, index) => {
+    const signature = [
+      combo.nivel,
+      combo.evento,
+      combo.tipo,
+      combo.categoria,
+    ].join('|');
+
+    comboBySignature.set(signature, index);
+  });
+
+  const recordByMunicipalityCombo = new Map();
+
+  for (const record of mapData?.data ?? []) {
+    recordByMunicipalityCombo.set(`${record.m}|${record.k}`, record);
+  }
+
+  const structures = {
+    dateByValue,
+    municipalities,
+    comboBySignature,
+    recordByMunicipalityCombo,
+  };
+
+  existing.municipalStructures = structures;
+  indexCache.set(mapData, existing);
+
+  return structures;
+}
+
+function getSparseMunicipalValue(points, dateIdx, mode) {
+  if (!Array.isArray(points) || points.length === 0) {
+    return 0;
+  }
+
+  if (mode === 'dia') {
+    let low = 0;
+    let high = points.length - 1;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const point = points[mid];
+      const pointDate = Number(point?.[0]);
+
+      if (pointDate === dateIdx) {
+        return Number(point?.[1] ?? 0);
+      }
+
+      if (pointDate < dateIdx) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    return 0;
+  }
+
+  // acumulado:
+  // último punto cuya fecha sea <= a la fecha solicitada.
+  let low = 0;
+  let high = points.length - 1;
+  let found = -1;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const pointDate = Number(points[mid]?.[0]);
+
+    if (pointDate <= dateIdx) {
+      found = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  if (found < 0) {
+    return 0;
+  }
+
+  return Number(points[found]?.[2] ?? 0);
+}
+
+export function getMunicipalValues({
+  mapData,
+  date,
+  event = 'TODOS',
+  type = 'TODOS',
+  category = 'TODAS',
+  level = 'total',
+  mode = 'acumulado',
+  entityCode = null,
+}) {
+  if (!mapData || !date) {
+    return [];
+  }
+
+  const {
+    dateByValue,
+    municipalities,
+    comboBySignature,
+    recordByMunicipalityCombo,
+  } = getMunicipalStructures(mapData);
+
+  const dateIdx = dateByValue.get(String(date));
+
+  const comboIdx = comboBySignature.get(
+    [level, event, type, category].join('|')
+  );
+
+  if (dateIdx === undefined || comboIdx === undefined) {
+    return [];
+  }
+
+  const wantedEntity =
+    entityCode === null || entityCode === undefined || entityCode === ''
+      ? null
+      : String(entityCode).padStart(2, '0');
+
+  return municipalities
+    .map((municipality, municipalityIdx) => ({
+      municipality,
+      municipalityIdx,
+    }))
+    .filter(({ municipality }) => {
+      if (!wantedEntity) return true;
+      return String(municipality?.cve_ent ?? '').padStart(2, '0') === wantedEntity;
+    })
+    .map(({ municipality, municipalityIdx }) => {
+      const record = recordByMunicipalityCombo.get(
+        `${municipalityIdx}|${comboIdx}`
+      );
+
+      return {
+        index: municipalityIdx,
+        cvegeo: String(municipality?.cvegeo ?? ''),
+        cve_ent: String(municipality?.cve_ent ?? '').padStart(2, '0'),
+        cve_mun: String(municipality?.cve_mun ?? '').padStart(3, '0'),
+        municipio: municipality?.municipio ?? '',
+        value: record
+          ? getSparseMunicipalValue(record.p, dateIdx, mode)
+          : 0,
+      };
+    });
+}
+
+// -----------------------------------------------------------------------------
 // BULLETS
 // -----------------------------------------------------------------------------
 
@@ -339,10 +529,7 @@ function getBulletStructures(data) {
   const entities = buildLookup(data?.indexes?.entities ?? []);
   const categories = buildLookup(data?.indexes?.categories ?? []);
 
-  const indicators = asArray(
-    data?.indexes?.indicators
-  );
-
+  const indicators = data?.indexes?.indicators ?? [];
   const indicatorsByIndex = indicators.map((item, index) => ({
     ...item,
     index,
@@ -350,7 +537,7 @@ function getBulletStructures(data) {
 
   const records = new Map();
 
-  for (const record of asArray(data?.data)) {
+  for (const record of data?.data ?? []) {
     records.set(`${record.e}|${record.c}|${record.i}`, record);
   }
 
@@ -446,7 +633,7 @@ function getProfileStructures(profileData, profileId) {
 
   const records = new Map();
 
-  for (const record of asArray(profile?.data)) {
+  for (const record of profile?.data ?? []) {
     const [e, c, s] = record;
     records.set(`${e}|${c}|${s}`, record);
   }
@@ -497,9 +684,7 @@ export function getProfileSeries({
     return [];
   }
 
-  return asArray(
-    profile?.series
-  ).map((series, seriesIdx) => {
+  return (profile.series ?? []).map((series, seriesIdx) => {
     const record = records.get(`${entityIdx}|${categoryIdx}|${seriesIdx}`);
 
     if (!record) {
