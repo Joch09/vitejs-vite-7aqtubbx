@@ -1,0 +1,118 @@
+{
+  "version": "2026-08-30_PASO40_DEFUNCIONES_MUNICIPALES_DINAMICAS_OCURRENCIA_V1",
+  "estado": "APROBADO",
+  "fuente": {
+    "base_defunciones": "base_defunciones_tablero_2026_taxonomia28.rds",
+    "taxonomia": "28 categorías cerradas en Paso 27",
+    "universo_institucional": "SEED transferida definido previamente por CLUES; este paso no reconstruye el universo",
+    "geometria": "geometria_municipal_inegi_2026.rds"
+  },
+  "periodo": {
+    "inicio": "2026-01-01",
+    "fin": "2026-06-30",
+    "dias": 181
+  },
+  "universos": {
+    "defunciones_analiticas": 1314,
+    "defunciones_georreferenciables": 1314,
+    "defunciones_no_georreferenciables": 0,
+    "municipios_oficiales": 2478,
+    "municipios_con_defunciones": 253,
+    "tipos": 9,
+    "categorias": 28
+  },
+  "geografia": {
+    "modo": "OCURRENCIA",
+    "entidad": "ENTIDADDEFUNCION",
+    "municipio": "MUNICIPIODEFUNCION",
+    "cvegeo": "ENTIDADDEFUNCION(2) + MUNICIPIODEFUNCION(3)",
+    "nota": "La pertenencia institucional IMSS-Bienestar se definió previamente mediante CLUES en la rama SEED. Estas variables sólo ubican geográficamente la defunción."
+  },
+  "medida": {
+    "nombre": "CONTEO DE DEFUNCIONES",
+    "tasa_municipal": false,
+    "denominador_municipal": false,
+    "nota": "No se calcula tasa de mortalidad municipal porque no existe denominador poblacional institucional municipal comparable."
+  },
+  "formato": {
+    "core": "00_core.json",
+    "serie_sparse": "[indice_fecha, defunciones_dia, defunciones_acumuladas]",
+    "indice_fecha_base": 0,
+    "indice_municipio_base": 0,
+    "indice_combo_base": 0
+  },
+  "tipos": [
+    {
+      "orden": 1,
+      "evento": "Accidentes",
+      "tipo": "Accidentes de transporte",
+      "tipo_id": "transporte",
+      "archivo": "01_transporte.json",
+      "categorias": ["Vehículos de motor", "Motocicletas", "Peatones", "Bicicletas", "Otros tipos de vehículos"]
+    },
+    {
+      "orden": 2,
+      "evento": "Accidentes",
+      "tipo": "Caídas",
+      "tipo_id": "caidas",
+      "archivo": "02_caidas.json",
+      "categorias": ["Desde mismo nivel", "De bajo nivel", "Desde o en escaleras y rampas", "Desde alturas"]
+    },
+    {
+      "orden": 3,
+      "evento": "Accidentes",
+      "tipo": "Fuerzas mecánicas y objetos",
+      "tipo_id": "fuerzas_mecanicas",
+      "archivo": "03_fuerzas_mecanicas.json",
+      "categorias": ["Armas de fuego", "Por herramientas manuales y objetos cortantes", "Por objetos proyectados, lanzados o que caen", "Atrapamiento o aplastamiento"]
+    },
+    {
+      "orden": 4,
+      "evento": "Accidentes",
+      "tipo": "Exposición a sustancias y energías",
+      "tipo_id": "sustancias_energias",
+      "archivo": "04_sustancias_energias.json",
+      "categorias": ["Contacto con calor y sustancias calientes", "Envenenamiento", "Ahogamiento, sofocación y asfixia"]
+    },
+    {
+      "orden": 5,
+      "evento": "Lesiones",
+      "tipo": "Armas de fuego y punzocortantes",
+      "tipo_id": "armas_punzocortantes",
+      "archivo": "05_armas_punzocortantes.json",
+      "categorias": ["Armas de fuego", "Objetos Punzocortantes"]
+    },
+    {
+      "orden": 6,
+      "evento": "Lesiones",
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "tipo_id": "maltrato_negligencia",
+      "archivo": "06_maltrato_negligencia.json",
+      "categorias": ["Agresiones de fuerza corporal", "Negligencia y otros tipos de maltrato"]
+    },
+    {
+      "orden": 7,
+      "evento": "Lesiones",
+      "tipo": "Violencia sexual",
+      "tipo_id": "violencia_sexual",
+      "archivo": "07_violencia_sexual.json",
+      "categorias": "Agresión sexual"
+    },
+    {
+      "orden": 8,
+      "evento": "Lesiones",
+      "tipo": "Otros mecanismos específicos",
+      "tipo_id": "otros_mecanismos",
+      "archivo": "08_otros_mecanismos.json",
+      "categorias": ["Sustancias (drogas, químicos, corrosivos, pesticidas y gases)", "Energías (explosivos, humo, fuego, vapor y objetos calientes)"]
+    },
+    {
+      "orden": 9,
+      "evento": "Lesiones",
+      "tipo": "Lesiones autoinfligidas",
+      "tipo_id": "autoinfligidas",
+      "archivo": "09_autoinfligidas.json",
+      "categorias": ["Intoxicación", "Ahorcamiento o sofocación", "Por arma de fuego", "Por colisión", "Otros y los no especificados"]
+    }
+  ]
+}

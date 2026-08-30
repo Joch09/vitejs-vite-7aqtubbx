@@ -338,6 +338,8 @@ export function getMapEntityValues({
 
 const MUNICIPAL_ROOT = 'municipal';
 const MUNICIPAL_DYNAMIC_ROOT = `${MUNICIPAL_ROOT}/dinamico`;
+const MUNICIPAL_DEATHS_DYNAMIC_ROOT =
+  `${MUNICIPAL_ROOT}/defunciones/dinamico`;
 
 export async function loadMunicipalManifest() {
   return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/00_manifest.json`);
@@ -381,6 +383,61 @@ export async function loadMunicipalCategoryMap(typeOrId) {
   }
 
   return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/${type.archivo}`);
+}
+
+
+// -----------------------------------------------------------------------------
+// MAPA MUNICIPAL DE DEFUNCIONES - PASOS 40 Y 41
+// -----------------------------------------------------------------------------
+//
+// Mismo formato sparse que la capa municipal de casos, pero almacenado bajo:
+//   public/data/municipal/defunciones/dinamico/
+// -----------------------------------------------------------------------------
+
+export async function loadMunicipalDeathsManifest() {
+  return fetchJson(
+    `${MUNICIPAL_DEATHS_DYNAMIC_ROOT}/00_manifest.json`
+  );
+}
+
+export async function loadMunicipalDeathsCore() {
+  return fetchJson(
+    `${MUNICIPAL_DEATHS_DYNAMIC_ROOT}/00_core.json`
+  );
+}
+
+export async function resolveMunicipalDeathsType(typeOrId) {
+  const manifest = await loadMunicipalDeathsManifest();
+  const wanted = String(typeOrId ?? '').trim().toLowerCase();
+
+  const match = asArray(manifest?.tipos).find((item) => {
+    return (
+      String(item?.tipo_id ?? '').toLowerCase() === wanted ||
+      String(item?.tipo ?? '').toLowerCase() === wanted
+    );
+  });
+
+  if (!match) {
+    throw new Error(
+      `Tipo municipal de defunciones no reconocido: ${typeOrId}`
+    );
+  }
+
+  return match;
+}
+
+export async function loadMunicipalDeathsCategoryMap(typeOrId) {
+  const type = await resolveMunicipalDeathsType(typeOrId);
+
+  if (!type?.archivo) {
+    throw new Error(
+      `El tipo municipal de defunciones no tiene archivo: ${typeOrId}`
+    );
+  }
+
+  return fetchJson(
+    `${MUNICIPAL_DEATHS_DYNAMIC_ROOT}/${type.archivo}`
+  );
 }
 
 function getMunicipalStructures(mapData) {

@@ -11,6 +11,8 @@ import {
   loadCategoryMap,
   loadMunicipalCategoryMap,
   loadMunicipalCore,
+  loadMunicipalDeathsCategoryMap,
+  loadMunicipalDeathsCore,
   loadMunicipalGeometry,
   loadMunicipalManifest,
   loadMunicipalStatesGeometry,
@@ -772,6 +774,8 @@ function MunicipalChoropleth({
   date,
   loading,
   error,
+  valueLabel = 'Casos',
+  valueNoun = 'casos',
 }) {
   const [tooltip, setTooltip] = useState(null);
 
@@ -904,7 +908,7 @@ function MunicipalChoropleth({
         <svg
           viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
           role="img"
-          aria-label="Mapa municipal de casos"
+          aria-label={`Mapa municipal de ${valueNoun}`}
           style={styles.mapSvg}
         >
           {municipalPaths.map(({ feature, cvegeo, path }) => {
@@ -943,7 +947,7 @@ function MunicipalChoropleth({
                 <title>
                   {`${entidadNombre} · ${municipio} · ${Number(
                     value
-                  ).toLocaleString('es-MX')} casos`}
+                  ).toLocaleString('es-MX')} ${valueNoun}`}
                 </title>
               </path>
             );
@@ -989,7 +993,7 @@ function MunicipalChoropleth({
             </div>
 
             <div style={styles.tooltipRow}>
-              <span>Casos</span>
+              <span>{valueLabel}</span>
               <strong>
                 {Number(tooltip.value).toLocaleString('es-MX')}
               </strong>
@@ -1017,7 +1021,7 @@ function MunicipalChoropleth({
         </div>
 
         <div style={styles.note}>
-          Conteo acumulado de casos georreferenciables al{' '}
+          Conteo acumulado de {valueNoun} georreferenciables al{' '}
           <strong>{date || '—'}</strong>. Sin tasa municipal.
         </div>
       </div>
@@ -1108,6 +1112,25 @@ function App() {
   const [municipalCategoryError, setMunicipalCategoryError] =
     useState(null);
 
+  const [municipalDeathsCore, setMunicipalDeathsCore] =
+    useState(null);
+  const [
+    municipalDeathsCategoryMap,
+    setMunicipalDeathsCategoryMap,
+  ] = useState(null);
+  const [
+    municipalDeathsLoading,
+    setMunicipalDeathsLoading,
+  ] = useState(false);
+  const [
+    municipalDeathsError,
+    setMunicipalDeathsError,
+  ] = useState(null);
+  const [
+    municipalDeathsCategoryError,
+    setMunicipalDeathsCategoryError,
+  ] = useState(null);
+
   // ===========================================================================
   // GEOMETRÍA DEL MAPA
   // ===========================================================================
@@ -1160,7 +1183,7 @@ function App() {
   }, []);
 
   // ===========================================================================
-  // ACTIVOS MUNICIPALES LOCALES - PASOS 38 Y 39
+  // ACTIVOS MUNICIPALES DE CASOS - PASOS 38 Y 39
   // ===========================================================================
 
   useEffect(() => {
@@ -1240,6 +1263,68 @@ function App() {
     municipalCore,
     municipiosGeo,
     estadosMunicipalesGeo,
+  ]);
+
+  // ===========================================================================
+  // DEFUNCIONES MUNICIPALES - PASOS 40 Y 41
+  // ===========================================================================
+
+  useEffect(() => {
+    let active = true;
+
+    if (
+      nivelMapa !== 'municipal' ||
+      medida !== 'mortalidad'
+    ) {
+      return () => {
+        active = false;
+      };
+    }
+
+    if (municipalDeathsCore) {
+      setMunicipalDeathsLoading(false);
+
+      return () => {
+        active = false;
+      };
+    }
+
+    async function cargarDefuncionesMunicipales() {
+      try {
+        setMunicipalDeathsLoading(true);
+        setMunicipalDeathsError(null);
+
+        const coreData =
+          await loadMunicipalDeathsCore();
+
+        if (!active) {
+          return;
+        }
+
+        setMunicipalDeathsCore(coreData);
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+
+        setMunicipalDeathsCore(null);
+        setMunicipalDeathsError(err);
+      } finally {
+        if (active) {
+          setMunicipalDeathsLoading(false);
+        }
+      }
+    }
+
+    cargarDefuncionesMunicipales();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    nivelMapa,
+    medida,
+    municipalDeathsCore,
   ]);
 
   // ===========================================================================
@@ -1423,6 +1508,7 @@ function App() {
     async function cargarCategoriaMunicipal() {
       if (
         nivelMapa !== 'municipal' ||
+        medida !== 'incidencia' ||
         tipo === 'TODOS' ||
         !municipalCore
       ) {
@@ -1459,7 +1545,60 @@ function App() {
   }, [
     tipo,
     nivelMapa,
+    medida,
     municipalCore,
+  ]);
+
+  // ===========================================================================
+  // CATEGORÍAS MUNICIPALES DE DEFUNCIONES
+  // ===========================================================================
+
+  useEffect(() => {
+    let active = true;
+
+    async function cargarCategoriaMunicipalDefunciones() {
+      if (
+        nivelMapa !== 'municipal' ||
+        medida !== 'mortalidad' ||
+        tipo === 'TODOS' ||
+        !municipalDeathsCore
+      ) {
+        setMunicipalDeathsCategoryMap(null);
+        setMunicipalDeathsCategoryError(null);
+        return;
+      }
+
+      try {
+        setMunicipalDeathsCategoryError(null);
+
+        const data =
+          await loadMunicipalDeathsCategoryMap(tipo);
+
+        if (!active) {
+          return;
+        }
+
+        setMunicipalDeathsCategoryMap(data);
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+
+        setMunicipalDeathsCategoryMap(null);
+        setMunicipalDeathsCategoryError(err);
+      }
+    }
+
+    cargarCategoriaMunicipalDefunciones();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    tipo,
+    nivelMapa,
+    medida,
+    municipalDeathsCore,
   ]);
 
   // ===========================================================================
@@ -1610,37 +1749,50 @@ function App() {
   ]);
 
   const consultaMunicipal = useMemo(() => {
+    const coreActivo =
+      medida === 'mortalidad'
+        ? municipalDeathsCore
+        : municipalCore;
+
+    const categoryActivo =
+      medida === 'mortalidad'
+        ? municipalDeathsCategoryMap
+        : municipalCategoryMap;
+
     if (
       categoria !== 'TODAS' &&
       tipo !== 'TODOS'
     ) {
       return {
-        mapData: municipalCategoryMap,
+        mapData: categoryActivo,
         level: 'categoria',
       };
     }
 
     if (tipo !== 'TODOS') {
       return {
-        mapData: municipalCore,
+        mapData: coreActivo,
         level: 'tipo',
       };
     }
 
     if (evento !== 'TODOS') {
       return {
-        mapData: municipalCore,
+        mapData: coreActivo,
         level: 'evento',
       };
     }
 
     return {
-      mapData: municipalCore,
+      mapData: coreActivo,
       level: 'total',
     };
   }, [
+    medida,
     municipalCore,
     municipalCategoryMap,
+    municipalDeathsCore,
+    municipalDeathsCategoryMap,
     evento,
     tipo,
     categoria,
@@ -1864,7 +2016,29 @@ function App() {
 
   const errorMunicipalActivo =
     municipalError ??
-    (categoria !== 'TODAS' ? municipalCategoryError : null);
+    (
+      medida === 'mortalidad'
+        ? (
+            municipalDeathsError ??
+            (
+              categoria !== 'TODAS'
+                ? municipalDeathsCategoryError
+                : null
+            )
+          )
+        : (
+            categoria !== 'TODAS'
+              ? municipalCategoryError
+              : null
+          )
+    );
+
+  const loadingMunicipalActivo =
+    municipalLoading ||
+    (
+      medida === 'mortalidad' &&
+      municipalDeathsLoading
+    );
 
   // ===========================================================================
   // INDICADORES DESCRIPTIVOS
@@ -2579,7 +2753,11 @@ function App() {
 
               <div style={styles.mapModeNote}>
                 {nivelMapa === 'municipal'
-                  ? 'Municipal: conteo de casos'
+                  ? (
+                      medida === 'mortalidad'
+                        ? 'Municipal: conteo de defunciones'
+                        : 'Municipal: conteo de casos'
+                    )
                   : medida === 'incidencia'
                     ? 'Estatal: tasa de incidencia'
                     : 'Estatal: tasa de mortalidad'}
@@ -2616,8 +2794,18 @@ function App() {
                   values={valoresMunicipales}
                   entityCode={entidadCodigoMunicipal}
                   date={fecha}
-                  loading={municipalLoading}
+                  loading={loadingMunicipalActivo}
                   error={null}
+                  valueLabel={
+                    medida === 'mortalidad'
+                      ? 'Defunciones'
+                      : 'Casos'
+                  }
+                  valueNoun={
+                    medida === 'mortalidad'
+                      ? 'defunciones'
+                      : 'casos'
+                  }
                 />
               )
             ) : (
