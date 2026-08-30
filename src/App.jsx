@@ -143,7 +143,7 @@ function collectCoordinates(coords, target) {
   );
 }
 
-function createProjection(features) {
+function createProjection(features, padding = MAP_PADDING) {
   const points = [];
 
   features.forEach((feature) => {
@@ -182,9 +182,9 @@ function createProjection(features) {
   const rawHeight = maxY - minY;
 
   const usableWidth =
-    MAP_WIDTH - MAP_PADDING * 2;
+    MAP_WIDTH - padding * 2;
   const usableHeight =
-    MAP_HEIGHT - MAP_PADDING * 2;
+    MAP_HEIGHT - padding * 2;
 
   const scale = Math.min(
     usableWidth / rawWidth,
@@ -818,7 +818,7 @@ function MunicipalChoropleth({
   }, [allStateFeatures, entityCode]);
 
   const projection = useMemo(
-    () => createProjection(visibleMunicipalFeatures),
+    () => createProjection(visibleMunicipalFeatures, 8),
     [visibleMunicipalFeatures]
   );
 
@@ -922,8 +922,8 @@ function MunicipalChoropleth({
                 d={path}
                 fill={getMunicipalColor(value, scale)}
                 fillRule="evenodd"
-                stroke="#ffffff"
-                strokeWidth={0.45}
+                stroke="#f8fafc"
+                strokeWidth={0.2}
                 vectorEffect="non-scaling-stroke"
                 style={{
                   cursor: 'default',
@@ -962,8 +962,8 @@ function MunicipalChoropleth({
               }
               d={path}
               fill="none"
-              stroke="#344054"
-              strokeWidth={1.25}
+              stroke="#667085"
+              strokeWidth={0.8}
               vectorEffect="non-scaling-stroke"
               pointerEvents="none"
             />
@@ -3562,7 +3562,7 @@ const styles = {
   heroGrid: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(315px, 355px) minmax(520px, 1fr) 190px',
+      'minmax(300px, 330px) minmax(550px, 1fr) 180px',
     gap: '16px',
     alignItems: 'start',
     minWidth: '1060px',
@@ -4304,7 +4304,7 @@ const styles = {
   svgWrapper: {
     position: 'relative',
     width: '100%',
-    minHeight: '400px',
+    minHeight: '420px',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -4316,7 +4316,7 @@ const styles = {
     width: '100%',
     height: 'auto',
     display: 'block',
-    maxHeight: '500px',
+    maxHeight: '530px',
   },
 
   mapStatus: {
@@ -4373,9 +4373,9 @@ const styles = {
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '8px 14px',
-    padding: '9px 8px 4px',
-    borderTop: '1px solid #eeeeee',
+    gap: '6px 12px',
+    padding: '8px 8px 5px',
+    borderTop: '1px solid #f1f1f1',
   },
 
   legend: {
@@ -4386,8 +4386,8 @@ const styles = {
   },
 
   legendSwatch: {
-    width: '18px',
-    height: '9px',
+    width: '17px',
+    height: '8px',
     borderRadius: '2px',
     display: 'inline-block',
     border: '1px solid rgba(0,0,0,0.05)',
