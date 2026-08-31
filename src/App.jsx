@@ -24,6 +24,179 @@ import {
 } from './data/dashboardData';
 
 // =============================================================================
+// PERIODOS TEMPORALES - PROPUESTA VISUAL
+// =============================================================================
+//
+// Esta V8 únicamente prepara la interfaz.
+// Los cálculos por trimestre, mes y semana epidemiológica se conectarán
+// posteriormente a productos regenerados con FechaOcurrencia.
+//
+// Calendario epidemiológico oficial DGE 2026:
+// - SE 53: 28-dic-2025 a 03-ene-2026.
+// - SE 1 inicia el 04-ene-2026.
+// - Las semanas epidemiológicas corren de domingo a sábado.
+//
+const TEMPORAL_QUARTERS_2026 = [
+  {
+    value: 'T1',
+    label: '1.er trimestre',
+    detail: 'Acumulado: 01 ene – 31 mar',
+  },
+  {
+    value: 'T2',
+    label: '2.º trimestre',
+    detail: 'Acumulado: 01 ene – 30 jun',
+  },
+];
+
+const TEMPORAL_MONTHS_2026 = [
+  { value: '2026-01', label: 'Enero 2026' },
+  { value: '2026-02', label: 'Febrero 2026' },
+  { value: '2026-03', label: 'Marzo 2026' },
+  { value: '2026-04', label: 'Abril 2026' },
+  { value: '2026-05', label: 'Mayo 2026' },
+  { value: '2026-06', label: 'Junio 2026' },
+];
+
+const TEMPORAL_WEEKS_2026 = [
+  {
+    value: '53',
+    label: 'SE 53',
+    detail: '28 dic 2025 – 03 ene 2026',
+  },
+  {
+    value: '1',
+    label: 'SE 1',
+    detail: '04 – 10 ene',
+  },
+  {
+    value: '2',
+    label: 'SE 2',
+    detail: '11 – 17 ene',
+  },
+  {
+    value: '3',
+    label: 'SE 3',
+    detail: '18 – 24 ene',
+  },
+  {
+    value: '4',
+    label: 'SE 4',
+    detail: '25 – 31 ene',
+  },
+  {
+    value: '5',
+    label: 'SE 5',
+    detail: '01 – 07 feb',
+  },
+  {
+    value: '6',
+    label: 'SE 6',
+    detail: '08 – 14 feb',
+  },
+  {
+    value: '7',
+    label: 'SE 7',
+    detail: '15 – 21 feb',
+  },
+  {
+    value: '8',
+    label: 'SE 8',
+    detail: '22 – 28 feb',
+  },
+  {
+    value: '9',
+    label: 'SE 9',
+    detail: '01 – 07 mar',
+  },
+  {
+    value: '10',
+    label: 'SE 10',
+    detail: '08 – 14 mar',
+  },
+  {
+    value: '11',
+    label: 'SE 11',
+    detail: '15 – 21 mar',
+  },
+  {
+    value: '12',
+    label: 'SE 12',
+    detail: '22 – 28 mar',
+  },
+  {
+    value: '13',
+    label: 'SE 13',
+    detail: '29 mar – 04 abr',
+  },
+  {
+    value: '14',
+    label: 'SE 14',
+    detail: '05 – 11 abr',
+  },
+  {
+    value: '15',
+    label: 'SE 15',
+    detail: '12 – 18 abr',
+  },
+  {
+    value: '16',
+    label: 'SE 16',
+    detail: '19 – 25 abr',
+  },
+  {
+    value: '17',
+    label: 'SE 17',
+    detail: '26 abr – 02 may',
+  },
+  {
+    value: '18',
+    label: 'SE 18',
+    detail: '03 – 09 may',
+  },
+  {
+    value: '19',
+    label: 'SE 19',
+    detail: '10 – 16 may',
+  },
+  {
+    value: '20',
+    label: 'SE 20',
+    detail: '17 – 23 may',
+  },
+  {
+    value: '21',
+    label: 'SE 21',
+    detail: '24 – 30 may',
+  },
+  {
+    value: '22',
+    label: 'SE 22',
+    detail: '31 may – 06 jun',
+  },
+  {
+    value: '23',
+    label: 'SE 23',
+    detail: '07 – 13 jun',
+  },
+  {
+    value: '24',
+    label: 'SE 24',
+    detail: '14 – 20 jun',
+  },
+  {
+    value: '25',
+    label: 'SE 25',
+    detail: '21 – 27 jun',
+  },
+  {
+    value: '26',
+    label: 'SE 26',
+    detail: '28 jun – 04 jul',
+  },
+];
+
+// =============================================================================
 // GEOMETRÍA DEL MAPA
 // =============================================================================
 //
@@ -1054,6 +1227,21 @@ function App() {
     useState('incidencia');
   const [fecha, setFecha] =
     useState('');
+
+  // -------------------------------------------------------------------------
+  // PROPUESTA VISUAL DE RESOLUCIÓN TEMPORAL
+  // -------------------------------------------------------------------------
+  // Día conserva el comportamiento actual.
+  // Trimestre / mes / semana todavía NO modifican los datos de esta V8.
+  const [periodoConsulta, setPeriodoConsulta] =
+    useState('dia');
+  const [trimestreTemporal, setTrimestreTemporal] =
+    useState('T2');
+  const [mesTemporal, setMesTemporal] =
+    useState('2026-06');
+  const [semanaTemporal, setSemanaTemporal] =
+    useState('26');
+
   const [nivelMapa, setNivelMapa] =
     useState('estatal');
 
@@ -1393,6 +1581,28 @@ function App() {
       );
     }
   }, [fechas, fecha]);
+
+  const trimestreSeleccionado = useMemo(
+    () =>
+      TEMPORAL_QUARTERS_2026.find(
+        (item) =>
+          item.value ===
+          trimestreTemporal
+      ) ?? TEMPORAL_QUARTERS_2026[1],
+    [trimestreTemporal]
+  );
+
+  const semanaSeleccionada = useMemo(
+    () =>
+      TEMPORAL_WEEKS_2026.find(
+        (item) =>
+          item.value ===
+          semanaTemporal
+      ) ?? TEMPORAL_WEEKS_2026[
+        TEMPORAL_WEEKS_2026.length - 1
+      ],
+    [semanaTemporal]
+  );
 
   // ===========================================================================
   // EVENTOS
@@ -2933,41 +3143,261 @@ function App() {
             </div>
 
             <div style={styles.metricLabel}>
-              Fecha de corte
+              Periodo de consulta
+            </div>
+
+            <div style={styles.temporalModeGrid}>
+              <button
+                type="button"
+                onClick={() =>
+                  setPeriodoConsulta(
+                    'trimestre'
+                  )
+                }
+                style={
+                  periodoConsulta ===
+                  'trimestre'
+                    ? styles.temporalModeOptionActive
+                    : styles.temporalModeOption
+                }
+              >
+                Trimestre
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPeriodoConsulta(
+                    'mes'
+                  )
+                }
+                style={
+                  periodoConsulta === 'mes'
+                    ? styles.temporalModeOptionActive
+                    : styles.temporalModeOption
+                }
+              >
+                Mes
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPeriodoConsulta(
+                    'semana'
+                  )
+                }
+                style={
+                  periodoConsulta ===
+                  'semana'
+                    ? styles.temporalModeOptionActive
+                    : styles.temporalModeOption
+                }
+              >
+                Semana
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPeriodoConsulta(
+                    'dia'
+                  )
+                }
+                style={
+                  periodoConsulta === 'dia'
+                    ? styles.temporalModeOptionActive
+                    : styles.temporalModeOption
+                }
+              >
+                Día
+              </button>
             </div>
 
             <div style={styles.dateCard}>
-              <input
-                type="date"
-                value={fecha}
-                min={
-                  fechas.length > 0
-                    ? fechas[0]
-                    : undefined
-                }
-                max={
-                  fechas.length > 0
-                    ? fechas[
-                        fechas.length -
-                          1
-                      ]
-                    : undefined
-                }
-                onChange={(e) =>
-                  setFecha(
-                    e.target.value
-                  )
-                }
-                onClick={(e) => {
-                  if (
-                    typeof e.currentTarget.showPicker ===
-                    'function'
-                  ) {
-                    e.currentTarget.showPicker();
+              {periodoConsulta ===
+                'trimestre' && (
+                <>
+                  <select
+                    value={
+                      trimestreTemporal
+                    }
+                    onChange={(e) =>
+                      setTrimestreTemporal(
+                        e.target.value
+                      )
+                    }
+                    style={
+                      styles.temporalSelect
+                    }
+                  >
+                    {TEMPORAL_QUARTERS_2026.map(
+                      (item) => (
+                        <option
+                          key={item.value}
+                          value={item.value}
+                        >
+                          {item.label}
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <div
+                    style={
+                      styles.temporalDetail
+                    }
+                  >
+                    {
+                      trimestreSeleccionado.detail
+                    }
+                  </div>
+
+                  <div
+                    style={
+                      styles.temporalAccumulatedBadge
+                    }
+                  >
+                    Acumulado
+                  </div>
+                </>
+              )}
+
+              {periodoConsulta === 'mes' && (
+                <>
+                  <select
+                    value={mesTemporal}
+                    onChange={(e) =>
+                      setMesTemporal(
+                        e.target.value
+                      )
+                    }
+                    style={
+                      styles.temporalSelect
+                    }
+                  >
+                    {TEMPORAL_MONTHS_2026.map(
+                      (item) => (
+                        <option
+                          key={item.value}
+                          value={item.value}
+                        >
+                          {item.label}
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <div
+                    style={
+                      styles.temporalDetail
+                    }
+                  >
+                    Periodo mensual no
+                    acumulado.
+                  </div>
+                </>
+              )}
+
+              {periodoConsulta ===
+                'semana' && (
+                <>
+                  <select
+                    value={semanaTemporal}
+                    onChange={(e) =>
+                      setSemanaTemporal(
+                        e.target.value
+                      )
+                    }
+                    style={
+                      styles.temporalSelect
+                    }
+                  >
+                    {TEMPORAL_WEEKS_2026.map(
+                      (item) => (
+                        <option
+                          key={item.value}
+                          value={item.value}
+                        >
+                          {item.label}
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <div
+                    style={
+                      styles.temporalDetail
+                    }
+                  >
+                    {
+                      semanaSeleccionada.detail
+                    }
+                    <br />
+                    Semana epidemiológica
+                    oficial DGE 2026.
+                  </div>
+                </>
+              )}
+
+              {periodoConsulta === 'dia' && (
+                <>
+                  <input
+                    type="date"
+                    value={fecha}
+                    min={
+                      fechas.length > 0
+                        ? fechas[0]
+                        : undefined
+                    }
+                    max={
+                      fechas.length > 0
+                        ? fechas[
+                            fechas.length -
+                              1
+                          ]
+                        : undefined
+                    }
+                    onChange={(e) =>
+                      setFecha(
+                        e.target.value
+                      )
+                    }
+                    onClick={(e) => {
+                      if (
+                        typeof e.currentTarget.showPicker ===
+                        'function'
+                      ) {
+                        e.currentTarget.showPicker();
+                      }
+                    }}
+                    style={styles.dateInput}
+                  />
+
+                  <div
+                    style={
+                      styles.temporalDetail
+                    }
+                  >
+                    Periodo diario no
+                    acumulado.
+                  </div>
+                </>
+              )}
+
+              {periodoConsulta !== 'dia' && (
+                <div
+                  style={
+                    styles.temporalPreviewNote
                   }
-                }}
-                style={styles.dateInput}
-              />
+                >
+                  Vista preliminar del
+                  selector. La lógica se
+                  conectará al regenerar
+                  los datos con fecha de
+                  ocurrencia.
+                </div>
+              )}
 
               <div style={styles.dateRange}>
                 Periodo disponible:
@@ -3549,7 +3979,7 @@ const styles = {
     width: '100%',
     display: 'grid',
     gridTemplateColumns:
-      'clamp(290px, 19vw, 350px) minmax(620px, 1fr) clamp(190px, 13vw, 230px)',
+      'clamp(290px, 18vw, 350px) minmax(620px, 1fr) clamp(235px, 15vw, 285px)',
     gap: '18px',
     alignItems: 'start',
     minWidth: '1120px',
@@ -3833,6 +4263,83 @@ const styles = {
     fontSize: '9px',
     color: '#7d8590',
     textTransform: 'uppercase',
+  },
+
+  temporalModeGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '6px',
+  },
+
+  temporalModeOption: {
+    minHeight: '34px',
+    padding: '5px 7px',
+    border: '1px solid #a4a4a4',
+    borderRadius: '7px',
+    background: '#ffffff',
+    color: '#003b35',
+    fontSize: '10px',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+
+  temporalModeOptionActive: {
+    minHeight: '34px',
+    padding: '5px 7px',
+    border: '1px solid #003b35',
+    borderRadius: '7px',
+    background: '#003b35',
+    color: '#ffffff',
+    fontSize: '10px',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+
+  temporalSelect: {
+    width: '100%',
+    minHeight: '41px',
+    padding: '7px 9px',
+    border: '1px solid #8d8d8d',
+    borderRadius: '7px',
+    boxSizing: 'border-box',
+    background: '#ffffff',
+    color: '#003b35',
+    fontSize: '11px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+
+  temporalDetail: {
+    marginTop: '6px',
+    fontSize: '9px',
+    lineHeight: 1.35,
+    color: '#667085',
+  },
+
+  temporalAccumulatedBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    marginTop: '6px',
+    minHeight: '20px',
+    padding: '3px 7px',
+    borderRadius: '999px',
+    background: '#e8f2ef',
+    color: '#003b35',
+    fontSize: '8px',
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+  },
+
+  temporalPreviewNote: {
+    marginTop: '8px',
+    padding: '7px 8px',
+    border: '1px dashed #c7c7c7',
+    borderRadius: '7px',
+    background: '#fafafa',
+    color: '#777777',
+    fontSize: '8px',
+    lineHeight: 1.35,
   },
 
   dateCard: {
