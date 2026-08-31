@@ -213,7 +213,16 @@ const MAP_WIDTH = 900;
 const MAP_HEIGHT = 520;
 const MAP_PADDING = 20;
 
-const MAP_COLORS = [
+const MAP_COLORS_INCIDENCIA = [
+  '#f7f1e8',
+  '#eadcc5',
+  '#dcc49d',
+  '#cca971',
+  '#bc955b',
+  '#8f6c3e',
+];
+
+const MAP_COLORS_MORTALIDAD = [
   '#f4e9ec',
   '#e6c8d0',
   '#cf9fac',
@@ -223,6 +232,12 @@ const MAP_COLORS = [
 ];
 
 const NO_DATA_COLOR = '#e5e7eb';
+
+function getMapColors(measure) {
+  return measure === 'incidencia'
+    ? MAP_COLORS_INCIDENCIA
+    : MAP_COLORS_MORTALIDAD;
+}
 
 function normalizeText(value) {
   return String(value ?? '')
@@ -435,7 +450,8 @@ function geometryToPath(geometry, project) {
 function getColorIndex(
   value,
   minValue,
-  maxValue
+  maxValue,
+  colorCount
 ) {
   if (
     value === null ||
@@ -450,7 +466,7 @@ function getColorIndex(
     !Number.isFinite(maxValue) ||
     maxValue <= minValue
   ) {
-    return MAP_COLORS.length - 1;
+    return colorCount - 1;
   }
 
   const ratio =
@@ -461,13 +477,13 @@ function getColorIndex(
     Math.max(
       0,
       Math.min(0.999999, ratio)
-    ) * MAP_COLORS.length
+    ) * colorCount
   );
 
   return Math.max(
     0,
     Math.min(
-      MAP_COLORS.length - 1,
+      colorCount - 1,
       index
     )
   );
@@ -543,6 +559,11 @@ function MexicoChoropleth({
 
     return map;
   }, [countValues]);
+
+  const mapColors = useMemo(
+    () => getMapColors(measure),
+    [measure]
+  );
 
   const validRates = useMemo(() => {
     return rateValues
@@ -643,13 +664,14 @@ function MexicoChoropleth({
               getColorIndex(
                 rate,
                 minRate,
-                maxRate
+                maxRate,
+                mapColors.length
               );
 
             const fill =
               colorIndex === null
                 ? NO_DATA_COLOR
-                : MAP_COLORS[
+                : mapColors[
                     colorIndex
                   ];
 
@@ -820,7 +842,7 @@ function MexicoChoropleth({
             Menor tasa
           </span>
 
-          {MAP_COLORS.map(
+          {mapColors.map(
             (color, index) => (
               <span
                 key={color}
@@ -893,13 +915,13 @@ function quantile(sortedValues, q) {
   return sortedValues[base] + rest * (next - sortedValues[base]);
 }
 
-function buildMunicipalScale(values) {
+function buildMunicipalScale(values, measure) {
   const positive = values
     .map((item) => Number(item?.value ?? 0))
     .filter((value) => Number.isFinite(value) && value > 0)
     .sort((a, b) => a - b);
 
-  const colors = MAP_COLORS.slice(1);
+  const colors = getMapColors(measure).slice(1);
 
   if (positive.length === 0) {
     return {
@@ -956,6 +978,7 @@ function MunicipalChoropleth({
   error,
   valueLabel = 'Casos',
   valueNoun = 'casos',
+  measure = 'incidencia',
   temporalMode = 'acumulado',
 }) {
   const [tooltip, setTooltip] = useState(null);
@@ -1013,8 +1036,8 @@ function MunicipalChoropleth({
   }, [values]);
 
   const scale = useMemo(
-    () => buildMunicipalScale(values ?? []),
-    [values]
+    () => buildMunicipalScale(values ?? [], measure),
+    [values, measure]
   );
 
   const municipalPaths = useMemo(() => {
@@ -3076,6 +3099,7 @@ function App() {
                       ? 'defunciones'
                       : 'casos'
                   }
+                  measure={medida}
                   temporalMode={modoConsultaDatos}
                 />
               )
