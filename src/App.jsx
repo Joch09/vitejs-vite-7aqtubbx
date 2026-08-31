@@ -500,6 +500,7 @@ function MexicoChoropleth({
   onSelectEntity,
   measure,
   date,
+  temporalMode = 'acumulado',
 }) {
   const [tooltip, setTooltip] =
     useState(null);
@@ -853,7 +854,9 @@ function MexicoChoropleth({
         </div>
 
         <div style={styles.note}>
-          Tasa acumulada al{' '}
+          {temporalMode === 'dia'
+            ? 'Tasa correspondiente al día '
+            : 'Tasa acumulada al '}
           <strong>{date || '—'}</strong>.
           Selecciona una entidad en el mapa
           para actualizar el KPI.
@@ -953,6 +956,7 @@ function MunicipalChoropleth({
   error,
   valueLabel = 'Casos',
   valueNoun = 'casos',
+  temporalMode = 'acumulado',
 }) {
   const [tooltip, setTooltip] = useState(null);
 
@@ -1198,7 +1202,9 @@ function MunicipalChoropleth({
         </div>
 
         <div style={styles.note}>
-          Conteo acumulado de {valueNoun} georreferenciables al{' '}
+          {temporalMode === 'dia'
+            ? `Conteo de ${valueNoun} georreferenciables del día `
+            : `Conteo acumulado de ${valueNoun} georreferenciables al `}
           <strong>{date || '—'}</strong>. Sin tasa municipal.
         </div>
       </div>
@@ -2026,6 +2032,13 @@ function App() {
       ? 'casos'
       : 'defunciones';
 
+  // El modo Día consulta exclusivamente la fecha seleccionada.
+  // Trimestre/mes/semana continúan como interfaz preliminar en esta versión.
+  const modoConsultaDatos =
+    periodoConsulta === 'dia'
+      ? 'dia'
+      : 'acumulado';
+
   // ===========================================================================
   // VALORES DEL KPI
   // ===========================================================================
@@ -2050,7 +2063,7 @@ function App() {
         level: consulta.level,
         metric:
           metricaConteo,
-        mode: 'acumulado',
+        mode: modoConsultaDatos,
       });
     }, [
       consulta,
@@ -2060,7 +2073,8 @@ function App() {
       tipo,
       categoria,
       metricaConteo,
-    ]);
+      periodoConsulta,
+  ]);
 
   const valorTasa =
     useMemo(() => {
@@ -2081,7 +2095,7 @@ function App() {
         category: categoria,
         level: consulta.level,
         metric: metricaTasa,
-        mode: 'acumulado',
+        mode: modoConsultaDatos,
       });
     }, [
       consulta,
@@ -2091,7 +2105,8 @@ function App() {
       tipo,
       categoria,
       metricaTasa,
-    ]);
+      periodoConsulta,
+  ]);
 
   // ===========================================================================
   // VALORES POR ENTIDAD PARA MAPA
@@ -2115,7 +2130,7 @@ function App() {
         category: categoria,
         level: consulta.level,
         metric: metricaTasa,
-        mode: 'acumulado',
+        mode: modoConsultaDatos,
         includeNational: false,
       });
     }, [
@@ -2125,7 +2140,8 @@ function App() {
       tipo,
       categoria,
       metricaTasa,
-    ]);
+      periodoConsulta,
+  ]);
 
   const conteosMapa =
     useMemo(() => {
@@ -2146,7 +2162,7 @@ function App() {
         level: consulta.level,
         metric:
           metricaConteo,
-        mode: 'acumulado',
+        mode: modoConsultaDatos,
         includeNational: false,
       });
     }, [
@@ -2156,7 +2172,8 @@ function App() {
       tipo,
       categoria,
       metricaConteo,
-    ]);
+      periodoConsulta,
+  ]);
 
   // ===========================================================================
   // VALORES MUNICIPALES
@@ -2207,7 +2224,7 @@ function App() {
         type: tipo,
         category: categoria,
         level: consultaMunicipal.level,
-        mode: 'acumulado',
+        mode: modoConsultaDatos,
         entityCode: entidadCodigoMunicipal,
       });
     } catch (error) {
@@ -2226,6 +2243,7 @@ function App() {
     categoria,
     entidadCodigoMunicipal,
     nivelMapa,
+    periodoConsulta,
   ]);
 
   const errorMunicipalActivo =
@@ -2274,7 +2292,7 @@ function App() {
           date: fecha,
           entity: entidad,
           category: categoria,
-          mode: 'acumulado',
+          mode: modoConsultaDatos,
         });
 
       return Array.isArray(values)
@@ -2294,6 +2312,7 @@ function App() {
     fecha,
     entidad,
     categoria,
+    periodoConsulta,
   ]);
 
   const perfilEdadSexo = useMemo(() => {
@@ -2313,7 +2332,7 @@ function App() {
           date: fecha,
           entity: entidad,
           category: categoria,
-          mode: 'acumulado',
+          mode: modoConsultaDatos,
         });
 
       if (!Array.isArray(series)) {
@@ -2403,6 +2422,7 @@ function App() {
     fecha,
     entidad,
     categoria,
+    periodoConsulta,
   ]);
 
   const maxEdadSexo = useMemo(() => {
@@ -2436,7 +2456,7 @@ function App() {
           date: fecha,
           entity: entidad,
           category: categoria,
-          mode: 'acumulado',
+          mode: modoConsultaDatos,
         });
 
       if (!Array.isArray(series)) {
@@ -2478,6 +2498,7 @@ function App() {
     fecha,
     entidad,
     categoria,
+    periodoConsulta,
   ]);
 
   const perfilConsecuencia = useMemo(() => {
@@ -2497,7 +2518,7 @@ function App() {
           date: fecha,
           entity: entidad,
           category: categoria,
-          mode: 'acumulado',
+          mode: modoConsultaDatos,
         });
 
       if (!Array.isArray(series)) {
@@ -2539,6 +2560,7 @@ function App() {
     fecha,
     entidad,
     categoria,
+    periodoConsulta,
   ]);
 
   const distribucionesComplementarias = useMemo(() => {
@@ -2558,7 +2580,7 @@ function App() {
           date: fecha,
           entity: entidad,
           category: categoria,
-          mode: 'acumulado',
+          mode: modoConsultaDatos,
         });
 
       if (!Array.isArray(series)) {
@@ -2624,6 +2646,7 @@ function App() {
     fecha,
     entidad,
     categoria,
+    periodoConsulta,
   ]);
 
   // ===========================================================================
@@ -2777,7 +2800,9 @@ function App() {
         </h1>
 
         <div style={styles.titleDate}>
-          Datos acumulados al{' '}
+          {periodoConsulta === 'dia'
+            ? 'Datos del día '
+            : 'Datos acumulados al '}
           <strong>
             {fecha || '—'}
           </strong>
@@ -3029,6 +3054,7 @@ function App() {
                     onSelectEntity={setEntidad}
                     measure={medida}
                     date={fecha}
+                  temporalMode={modoConsultaDatos}
                   />
                 </div>
               ) : (
@@ -3050,6 +3076,7 @@ function App() {
                       ? 'defunciones'
                       : 'casos'
                   }
+                  temporalMode={modoConsultaDatos}
                 />
               )
             ) : (
@@ -3064,6 +3091,7 @@ function App() {
                 onSelectEntity={setEntidad}
                 measure={medida}
                 date={fecha}
+                  temporalMode={modoConsultaDatos}
               />
             )}
           </section>
@@ -3427,7 +3455,9 @@ function App() {
               </h2>
 
               <div style={styles.profileSectionSubtitle}>
-                Información acumulada para la selección actual.
+                {periodoConsulta === 'dia'
+                  ? 'Información correspondiente al día seleccionado.'
+                  : 'Información acumulada para la selección actual.'}
               </div>
             </div>
 
@@ -3449,7 +3479,9 @@ function App() {
                   </h3>
 
                   <div style={styles.profilePanelNote}>
-                    Casos acumulados.
+                    {periodoConsulta === 'dia'
+                      ? 'Casos del día seleccionado.'
+                      : 'Casos acumulados.'}
                   </div>
                 </div>
 
