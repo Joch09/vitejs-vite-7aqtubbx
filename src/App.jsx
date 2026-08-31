@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
+import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
+import logoVigilancia from './assets/logos/logo_vigilancia_epidemiologica.png';
+
 import { useDashboardData } from './hooks/useDashboardData';
 
 import {
@@ -2474,6 +2478,8 @@ function App() {
   return (
     <div style={styles.page}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap');
+
         html,
         body,
         #root {
@@ -2506,6 +2512,24 @@ function App() {
         *::after {
           box-sizing: border-box;
         }
+
+        html,
+        body,
+        #root,
+        #root *,
+        button,
+        input,
+        select,
+        textarea,
+        option,
+        svg,
+        svg text {
+          font-family:
+            'Noto Sans',
+            Arial,
+            Helvetica,
+            sans-serif !important;
+        }
       `}</style>
       {/* ============================================================= */}
       {/* ENCABEZADO INSTITUCIONAL */}
@@ -2513,51 +2537,27 @@ function App() {
 
       <header style={styles.institutionalHeader}>
         <div style={styles.brandLeft}>
-          <div style={styles.brandSymbol}>
-            IMSS
-          </div>
-
-          <div>
-            <div style={styles.brandName}>
-              IMSS BIENESTAR
-            </div>
-
-            <div style={styles.brandSub}>
-              SERVICIOS PÚBLICOS DE SALUD
-            </div>
-          </div>
+          <img
+            src={logoImssBienestar}
+            alt="IMSS Bienestar Servicios Públicos de Salud"
+            style={styles.logoImssBienestar}
+          />
         </div>
 
         <div style={styles.brandRight}>
-          <div style={styles.coordinationBrand}>
-            <div style={styles.coordinationIcon}>
-              ◉
-            </div>
-
-            <div>
-              <div style={styles.coordinationText}>
-                COORDINACIÓN DE
-              </div>
-
-              <div style={styles.coordinationText}>
-                EPIDEMIOLOGÍA
-              </div>
-            </div>
-          </div>
+          <img
+            src={logoCoordinacion}
+            alt="Coordinación de Epidemiología"
+            style={styles.logoCoordinacion}
+          />
 
           <div style={styles.verticalDivider} />
 
-          <div style={styles.surveillanceBrand}>
-            <div style={styles.surveillanceShield}>
-              VE
-            </div>
-
-            <div style={styles.surveillanceText}>
-              VIGILANCIA
-              <br />
-              EPIDEMIOLÓGICA
-            </div>
-          </div>
+          <img
+            src={logoVigilancia}
+            alt="Vigilancia Epidemiológica"
+            style={styles.logoVigilancia}
+          />
         </div>
       </header>
 
@@ -3455,116 +3455,60 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '28px',
+    gap: '32px',
     padding:
-      '12px clamp(28px, 3.2vw, 64px)',
+      '11px clamp(28px, 3.2vw, 64px)',
     boxSizing: 'border-box',
   },
 
   brandLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '13px',
+    minWidth: 0,
+    flexShrink: 0,
   },
 
-  brandSymbol: {
-    width: '44px',
-    height: '44px',
-    border: '2px solid #ffffff',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '11px',
-    fontWeight: 800,
-    letterSpacing: '0.03em',
-  },
-
-  brandName: {
-    fontSize: '21px',
-    lineHeight: 1,
-    fontWeight: 800,
-    letterSpacing: '0.01em',
-    whiteSpace: 'nowrap',
-  },
-
-  brandSub: {
-    marginTop: '7px',
-    color: '#d1a04f',
-    fontSize: '12px',
-    fontWeight: 800,
-    letterSpacing: '0.04em',
-    whiteSpace: 'nowrap',
+  logoImssBienestar: {
+    display: 'block',
+    width: 'clamp(245px, 21vw, 355px)',
+    height: 'auto',
+    maxHeight: '72px',
+    objectFit: 'contain',
+    objectPosition: 'left center',
   },
 
   brandRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
+    justifyContent: 'flex-end',
+    gap: '24px',
+    minWidth: 0,
+    flex: 1,
   },
 
-  coordinationBrand: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '11px',
-    color: '#d1a04f',
-  },
-
-  coordinationIcon: {
-    width: '47px',
-    height: '47px',
-    border: '2px solid #d1a04f',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '25px',
-    fontWeight: 700,
-  },
-
-  coordinationText: {
-    fontFamily: 'Georgia, serif',
-    fontSize: '18px',
-    lineHeight: 1.05,
-    fontWeight: 700,
-    letterSpacing: '0.01em',
-    textAlign: 'right',
-    whiteSpace: 'nowrap',
+  logoCoordinacion: {
+    display: 'block',
+    width: 'clamp(300px, 28vw, 475px)',
+    height: 'auto',
+    maxHeight: '65px',
+    objectFit: 'contain',
+    objectPosition: 'right center',
   },
 
   verticalDivider: {
     width: '1px',
-    alignSelf: 'stretch',
-    minHeight: '62px',
+    height: '62px',
+    flex: '0 0 1px',
     background: 'rgba(255,255,255,0.32)',
   },
 
-  surveillanceBrand: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minWidth: '96px',
-  },
-
-  surveillanceShield: {
-    width: '38px',
-    height: '38px',
-    border: '2px solid #ffffff',
-    borderRadius: '18px 18px 11px 11px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '10px',
-    fontWeight: 800,
-  },
-
-  surveillanceText: {
-    marginTop: '3px',
-    fontSize: '9px',
-    lineHeight: 1.05,
-    fontWeight: 800,
-    textAlign: 'center',
-    letterSpacing: '0.02em',
+  logoVigilancia: {
+    display: 'block',
+    width: 'clamp(145px, 12vw, 210px)',
+    height: 'auto',
+    maxHeight: '68px',
+    objectFit: 'contain',
+    objectPosition: 'right center',
   },
 
   titleStrip: {
