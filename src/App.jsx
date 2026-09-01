@@ -1308,8 +1308,10 @@ function App() {
   const [semanaTemporal, setSemanaTemporal] =
     useState('26');
 
-  const [nivelMapa, setNivelMapa] =
-    useState('estatal');
+  // Mapa único homologado: siempre utiliza la capa municipal.
+  // NACIONAL muestra todos los municipios; al seleccionar una entidad,
+  // el mismo mapa se enfoca automáticamente en sus municipios.
+  const nivelMapa = 'municipal';
 
   const [
     categoryMap,
@@ -1447,14 +1449,8 @@ function App() {
   useEffect(() => {
     let active = true;
 
-    // El tablero funcional inicia en mapa estatal.
-    // Los activos municipales sólo se cargan cuando el usuario solicita
-    // explícitamente la vista Municipal.
-    if (nivelMapa !== 'municipal') {
-      return () => {
-        active = false;
-      };
-    }
+    // El tablero usa un único mapa municipal. Los activos se cargan una sola
+    // vez y se reutilizan para NACIONAL y para el enfoque por entidad.
 
     // Evitar volver a descargar/parsear 6+ MB de geometría si ya se cargó.
     if (
@@ -3123,111 +3119,38 @@ function App() {
           {/* ----------------------------------------------------------- */}
 
           <section style={styles.mapStage}>
-            <div style={styles.mapModeBar}>
-              <div style={styles.mapModeSelector}>
-                <button
-                  type="button"
-                  onClick={() => setNivelMapa('estatal')}
-                  style={
-                    nivelMapa === 'estatal'
-                      ? styles.mapModeOptionActive
-                      : styles.mapModeOption
-                  }
-                >
-                  Estatal
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setNivelMapa('municipal')}
-                  style={
-                    nivelMapa === 'municipal'
-                      ? styles.mapModeOptionActive
-                      : styles.mapModeOption
-                  }
-                >
-                  Municipal
-                </button>
+            {errorMunicipalActivo ? (
+              <div style={styles.municipalFallbackNote}>
+                <strong>No fue posible cargar el mapa municipal.</strong>
+                <br />
+                {errorMunicipalActivo.message}
               </div>
-
-              <div style={styles.mapModeNote}>
-                {nivelMapa === 'municipal'
-                  ? (
-                      medida === 'mortalidad'
-                        ? 'Municipal: tasa de mortalidad'
-                        : 'Municipal: tasa de incidencia'
-                    )
-                  : medida === 'incidencia'
-                    ? 'Estatal: tasa de incidencia'
-                    : 'Estatal: tasa de mortalidad'}
-              </div>
-            </div>
-
-            {nivelMapa === 'municipal' ? (
-              errorMunicipalActivo ? (
-                <div>
-                  <div style={styles.municipalFallbackNote}>
-                    El mapa municipal no pudo cargarse. Se conserva abajo el
-                    mapa estatal funcional como respaldo.
-                    <br />
-                    {errorMunicipalActivo.message}
-                  </div>
-
-                  <MexicoChoropleth
-                    geoData={geoData}
-                    geoLoading={geoLoading}
-                    geoError={geoError}
-                    entities={entidades}
-                    rateValues={valoresMapa}
-                    countValues={conteosMapa}
-                    selectedEntity={entidad}
-                    onSelectEntity={setEntidad}
-                    measure={medida}
-                    date={periodoEtiquetaConsulta}
-                  temporalMode={modoConsultaDatos}
-                  />
-                </div>
-              ) : (
-                <MunicipalChoropleth
-                  municipiosGeo={municipiosGeo}
-                  estadosGeo={estadosMunicipalesGeo}
-                  values={valoresMunicipales}
-                  entityCode={entidadCodigoMunicipal}
-                  date={periodoEtiquetaConsulta}
-                  loading={loadingMunicipalActivo}
-                  error={null}
-                  valueLabel={
-                    medida === 'mortalidad'
-                      ? 'Tasa de mortalidad'
-                      : 'Tasa de incidencia'
-                  }
-                  countLabel={
-                    medida === 'mortalidad'
-                      ? 'Defunciones'
-                      : 'Casos'
-                  }
-                  valueNoun={
-                    medida === 'mortalidad'
-                      ? 'mortalidad'
-                      : 'incidencia'
-                  }
-                  measure={medida}
-                  temporalMode={modoConsultaDatos}
-                />
-              )
             ) : (
-              <MexicoChoropleth
-                geoData={geoData}
-                geoLoading={geoLoading}
-                geoError={geoError}
-                entities={entidades}
-                rateValues={valoresMapa}
-                countValues={conteosMapa}
-                selectedEntity={entidad}
-                onSelectEntity={setEntidad}
-                measure={medida}
+              <MunicipalChoropleth
+                municipiosGeo={municipiosGeo}
+                estadosGeo={estadosMunicipalesGeo}
+                values={valoresMunicipales}
+                entityCode={entidadCodigoMunicipal}
                 date={periodoEtiquetaConsulta}
-                  temporalMode={modoConsultaDatos}
+                loading={loadingMunicipalActivo}
+                error={null}
+                valueLabel={
+                  medida === 'mortalidad'
+                    ? 'Tasa de mortalidad'
+                    : 'Tasa de incidencia'
+                }
+                countLabel={
+                  medida === 'mortalidad'
+                    ? 'Defunciones'
+                    : 'Casos'
+                }
+                valueNoun={
+                  medida === 'mortalidad'
+                    ? 'mortalidad'
+                    : 'incidencia'
+                }
+                measure={medida}
+                temporalMode={modoConsultaDatos}
               />
             )}
           </section>
