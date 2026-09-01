@@ -1,0 +1,114 @@
+{
+  "schema": "accidentes_lesiones_bullets_manifest_ocurrencia_v1",
+  "version": "2026-08-31_PASO45_DESCRIPTIVOS_PERIODOS_OCURRENCIA_V1",
+  "period_index_source": "../01_catalogos.json",
+  "entities": [
+    "NACIONAL",
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "30",
+    "31",
+    "32"
+  ],
+  "tipos": [
+    {
+      "orden": 1,
+      "tipo": "Accidentes de transporte",
+      "tipo_id": "transporte",
+      "archivo": "01_transporte.json",
+      "indicadores": 4,
+      "categorias": 6
+    },
+    {
+      "orden": 2,
+      "tipo": "Caídas",
+      "tipo_id": "caidas",
+      "archivo": "02_caidas.json",
+      "indicadores": 4,
+      "categorias": 5
+    },
+    {
+      "orden": 3,
+      "tipo": "Fuerzas mecánicas y objetos",
+      "tipo_id": "fuerzas_mecanicas",
+      "archivo": "03_fuerzas_mecanicas.json",
+      "indicadores": 5,
+      "categorias": 5
+    },
+    {
+      "orden": 4,
+      "tipo": "Exposición a sustancias y energías",
+      "tipo_id": "sustancias_energias",
+      "archivo": "04_sustancias_energias.json",
+      "indicadores": 5,
+      "categorias": 4
+    },
+    {
+      "orden": 5,
+      "tipo": "Armas de fuego y punzocortantes",
+      "tipo_id": "armas_punzocortantes",
+      "archivo": "05_armas_punzocortantes.json",
+      "indicadores": 6,
+      "categorias": 3
+    },
+    {
+      "orden": 6,
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "tipo_id": "maltrato_negligencia",
+      "archivo": "06_maltrato_negligencia.json",
+      "indicadores": 5,
+      "categorias": 3
+    },
+    {
+      "orden": 7,
+      "tipo": "Violencia sexual",
+      "tipo_id": "violencia_sexual",
+      "archivo": "07_violencia_sexual.json",
+      "indicadores": 7,
+      "categorias": 2
+    },
+    {
+      "orden": 8,
+      "tipo": "Otros mecanismos específicos",
+      "tipo_id": "otros_mecanismos",
+      "archivo": "08_otros_mecanismos.json",
+      "indicadores": 4,
+      "categorias": 3
+    },
+    {
+      "orden": 9,
+      "tipo": "Lesiones autoinfligidas",
+      "tipo_id": "autoinfligidas",
+      "archivo": "09_autoinfligidas.json",
+      "indicadores": 5,
+      "categorias": 6
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "accidentes_lesiones_descriptivos_ocurrencia_manifest_v1",
+  "version": "2026-08-31_PASO45_DESCRIPTIVOS_PERIODOS_OCURRENCIA_V1",
+  "fuente": {
+    "base": "base_casos_tablero_2026_taxonomia28_ocurrencia.rds",
+    "fecha": "FechaOcurrencia",
+    "geografia": "cve_ent_ocurrencia",
+    "reglas_bullets": "29_regenerar_json_bullets_taxonomia28_RUTA_D_FIX2.R",
+    "reglas_perfiles": "30_regenerar_json_perfiles_taxonomia28_RUTA_D.R",
+    "reglas_bullets_md5": "94abbda61962259e430546ac4ed67cfc",
+    "reglas_perfiles_md5": "4551f600ded9bac05245061ec84589dc"
+  },
+  "periodos": {
+    "total": 216,
+    "dia": "excluyente",
+    "mes": "excluyente",
+    "semana": "excluyente",
+    "trimestre": "acumulado"
+  },
+  "geografia": {
+    "nacional": "calculado directamente sobre todos los casos",
+    "estatal": "cve_ent_ocurrencia",
+    "entidades": 32
+  },
+  "bullets": {
+    "manifest": "bullets/00_manifest.json",
+    "tipos": 9,
+    "indicadores": 45
+  },
+  "perfiles": {
+    "manifest": "perfiles/00_manifest.json",
+    "tipos": 9,
+    "componentes": ["edad_sexo", "area_anatomica", "consecuencia", "distribuciones"]
+  }
+}

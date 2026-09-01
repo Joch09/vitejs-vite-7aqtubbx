@@ -1,0 +1,105 @@
+{
+  "schema": "accidentes_lesiones_ocurrencia_manifest_v1",
+  "version": "2026-08-31_PASO44_JSON_PERIODOS_OCURRENCIA_V1",
+  "estado": "PREPRODUCCION_VALIDAR_ANTES_DE_FRONTEND",
+  "catalogos": "01_catalogos.json",
+  "estatal_core": "estatal/00_core.json",
+  "municipal_core": "municipal/00_core.json",
+  "periodos": {
+    "total": 216,
+    "dia": 181,
+    "mes": 6,
+    "semana": 27,
+    "trimestre": 2
+  },
+  "geografia": {
+    "estados": 32,
+    "municipios": 2478,
+    "entidades_con_denominador": 23,
+    "municipios_con_denominador": 1977
+  },
+  "taxonomia": {
+    "tipos": 9,
+    "categorias": 28,
+    "core_combos": 12
+  },
+  "tipos": [
+    {
+      "orden": 1,
+      "tipo": "Accidentes de transporte",
+      "tipo_id": "transporte",
+      "categorias": 5,
+      "estatal": "estatal/01_transporte.json",
+      "municipal": "municipal/01_transporte.json"
+    },
+    {
+      "orden": 2,
+      "tipo": "Caídas",
+      "tipo_id": "caidas",
+      "categorias": 4,
+      "estatal": "estatal/02_caidas.json",
+      "municipal": "municipal/02_caidas.json"
+    },
+    {
+      "orden": 3,
+      "tipo": "Fuerzas mecánicas y objetos",
+      "tipo_id": "fuerzas_mecanicas",
+      "categorias": 4,
+      "estatal": "estatal/03_fuerzas_mecanicas.json",
+      "municipal": "municipal/03_fuerzas_mecanicas.json"
+    },
+    {
+      "orden": 4,
+      "tipo": "Exposición a sustancias y energías",
+      "tipo_id": "sustancias_energias",
+      "categorias": 3,
+      "estatal": "estatal/04_sustancias_energias.json",
+      "municipal": "municipal/04_sustancias_energias.json"
+    },
+    {
+      "orden": 5,
+      "tipo": "Armas de fuego y punzocortantes",
+      "tipo_id": "armas_punzocortantes",
+      "categorias": 2,
+      "estatal": "estatal/05_armas_punzocortantes.json",
+      "municipal": "municipal/05_armas_punzocortantes.json"
+    },
+    {
+      "orden": 6,
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "tipo_id": "maltrato_negligencia",
+      "categorias": 2,
+      "estatal": "estatal/06_maltrato_negligencia.json",
+      "municipal": "municipal/06_maltrato_negligencia.json"
+    },
+    {
+      "orden": 7,
+      "tipo": "Violencia sexual",
+      "tipo_id": "violencia_sexual",
+      "categorias": 1,
+      "estatal": "estatal/07_violencia_sexual.json",
+      "municipal": "municipal/07_violencia_sexual.json"
+    },
+    {
+      "orden": 8,
+      "tipo": "Otros mecanismos específicos",
+      "tipo_id": "otros_mecanismos",
+      "categorias": 2,
+      "estatal": "estatal/08_otros_mecanismos.json",
+      "municipal": "municipal/08_otros_mecanismos.json"
+    },
+    {
+      "orden": 9,
+      "tipo": "Lesiones autoinfligidas",
+      "tipo_id": "autoinfligidas",
+      "categorias": 5,
+      "estatal": "estatal/09_autoinfligidas.json",
+      "municipal": "municipal/09_autoinfligidas.json"
+    }
+  ],
+  "pendiente": {
+    "bullets": true,
+    "perfiles": true,
+    "despliegue_frontend": true
+  }
+}

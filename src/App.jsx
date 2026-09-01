@@ -24,12 +24,11 @@ import {
 } from './data/dashboardData';
 
 // =============================================================================
-// PERIODOS TEMPORALES - PROPUESTA VISUAL
+// PERIODOS TEMPORALES - PRODUCCIÓN V9
 // =============================================================================
 //
-// Esta V8 únicamente prepara la interfaz.
-// Los cálculos por trimestre, mes y semana epidemiológica se conectarán
-// posteriormente a productos regenerados con FechaOcurrencia.
+// Los cuatro modos consultan directamente los productos regenerados por
+// FechaOcurrencia. Día, mes y semana son excluyentes; trimestre es acumulado.
 //
 // Calendario epidemiológico oficial DGE 2026:
 // - SE 53: 28-dic-2025 a 03-ene-2026.
@@ -463,10 +462,15 @@ function getColorIndex(
 
   if (
     !Number.isFinite(minValue) ||
-    !Number.isFinite(maxValue) ||
-    maxValue <= minValue
+    !Number.isFinite(maxValue)
   ) {
-    return colorCount - 1;
+    return null;
+  }
+
+  if (maxValue <= minValue) {
+    return Number(value) <= 0
+      ? 0
+      : colorCount - 1;
   }
 
   const ratio =
@@ -567,6 +571,11 @@ function MexicoChoropleth({
 
   const validRates = useMemo(() => {
     return rateValues
+      .filter(
+        (item) =>
+          item?.value !== null &&
+          item?.value !== undefined
+      )
       .map((item) => Number(item.value))
       .filter((value) =>
         Number.isFinite(value)
@@ -876,9 +885,9 @@ function MexicoChoropleth({
         </div>
 
         <div style={styles.note}>
-          {temporalMode === 'dia'
-            ? 'Tasa correspondiente al día '
-            : 'Tasa acumulada al '}
+          {temporalMode === 'trimestre'
+            ? 'Tasa acumulada · '
+            : 'Tasa del periodo · '}
           <strong>{date || '—'}</strong>.
           Selecciona una entidad en el mapa
           para actualizar el KPI.
@@ -941,11 +950,19 @@ function buildMunicipalScale(values, measure) {
   };
 }
 
-function getMunicipalColor(value, scale) {
-  const number = Number(value ?? 0);
-
-  if (!Number.isFinite(number) || number <= 0) {
+function getMunicipalColor(value, scale, measure) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(Number(value))
+  ) {
     return NO_DATA_COLOR;
+  }
+
+  const number = Number(value);
+
+  if (number <= 0) {
+    return getMapColors(measure)[0];
   }
 
   const [b1, b2, b3, b4] = scale.breaks;
@@ -962,10 +979,13 @@ function formatMunicipalBreak(value) {
   const number = Number(value);
 
   if (!Number.isFinite(number)) {
-    return '0';
+    return '0.00';
   }
 
-  return Math.max(1, Math.round(number)).toLocaleString('es-MX');
+  return new Intl.NumberFormat('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(number);
 }
 
 function MunicipalChoropleth({
@@ -976,8 +996,9 @@ function MunicipalChoropleth({
   date,
   loading,
   error,
-  valueLabel = 'Casos',
-  valueNoun = 'casos',
+  valueLabel = 'Tasa de incidencia',
+  countLabel = 'Casos',
+  valueNoun = 'incidencia',
   measure = 'incidencia',
   temporalMode = 'acumulado',
 }) {
@@ -1026,11 +1047,11 @@ function MunicipalChoropleth({
     [visibleMunicipalFeatures]
   );
 
-  const valueByCvegeo = useMemo(() => {
+  const recordByCvegeo = useMemo(() => {
     return new Map(
       (values ?? []).map((item) => [
         String(item.cvegeo),
-        Number(item.value ?? 0),
+        item,
       ])
     );
   }, [values]);
@@ -1098,12 +1119,13 @@ function MunicipalChoropleth({
   const [b1, b2, b3, b4] = scale.breaks;
 
   const legend = [
-    { color: NO_DATA_COLOR, label: '0' },
-    { color: scale.colors[0], label: `1–${formatMunicipalBreak(b1)}` },
+    { color: getMapColors(measure)[0], label: '0.00' },
+    { color: scale.colors[0], label: `> 0 – ${formatMunicipalBreak(b1)}` },
     { color: scale.colors[1], label: `≤ ${formatMunicipalBreak(b2)}` },
     { color: scale.colors[2], label: `≤ ${formatMunicipalBreak(b3)}` },
     { color: scale.colors[3], label: `≤ ${formatMunicipalBreak(b4)}` },
     { color: scale.colors[4], label: `> ${formatMunicipalBreak(b4)}` },
+    { color: NO_DATA_COLOR, label: 'Sin denominador' },
   ];
 
   return (
@@ -1116,7 +1138,9 @@ function MunicipalChoropleth({
           style={styles.mapSvg}
         >
           {municipalPaths.map(({ feature, cvegeo, path }) => {
-            const value = valueByCvegeo.get(cvegeo) ?? 0;
+            const record = recordByCvegeo.get(cvegeo);
+            const value = record?.value ?? null;
+            const count = Number(record?.count ?? 0);
             const municipio = feature?.properties?.municipio ?? 'Municipio';
             const entidadNombre = feature?.properties?.entidad ?? '';
 
@@ -1124,7 +1148,7 @@ function MunicipalChoropleth({
               <path
                 key={cvegeo}
                 d={path}
-                fill={getMunicipalColor(value, scale)}
+                fill={getMunicipalColor(value, scale, measure)}
                 fillRule="evenodd"
                 stroke="#f8fafc"
                 strokeWidth={0.2}
@@ -1144,14 +1168,17 @@ function MunicipalChoropleth({
                     municipio,
                     cvegeo,
                     value,
+                    count,
                   });
                 }}
                 onMouseLeave={() => setTooltip(null)}
               >
                 <title>
-                  {`${entidadNombre} · ${municipio} · ${Number(
-                    value
-                  ).toLocaleString('es-MX')} ${valueNoun}`}
+                  {`${entidadNombre} · ${municipio} · ${valueLabel}: ${
+                    value === null || value === undefined
+                      ? 'Sin denominador'
+                      : Number(value).toFixed(2)
+                  } · ${countLabel}: ${count.toLocaleString('es-MX')}`}
                 </title>
               </path>
             );
@@ -1197,9 +1224,18 @@ function MunicipalChoropleth({
             </div>
 
             <div style={styles.tooltipRow}>
+              <span>{countLabel}</span>
+              <strong>
+                {Number(tooltip.count ?? 0).toLocaleString('es-MX')}
+              </strong>
+            </div>
+
+            <div style={styles.tooltipRow}>
               <span>{valueLabel}</span>
               <strong>
-                {Number(tooltip.value).toLocaleString('es-MX')}
+                {tooltip.value === null || tooltip.value === undefined
+                  ? 'Sin denominador'
+                  : Number(tooltip.value).toFixed(2)}
               </strong>
             </div>
           </div>
@@ -1225,10 +1261,11 @@ function MunicipalChoropleth({
         </div>
 
         <div style={styles.note}>
-          {temporalMode === 'dia'
-            ? `Conteo de ${valueNoun} georreferenciables del día `
-            : `Conteo acumulado de ${valueNoun} georreferenciables al `}
-          <strong>{date || '—'}</strong>. Sin tasa municipal.
+          {temporalMode === 'trimestre'
+            ? `Tasa acumulada de ${valueNoun} · `
+            : `Tasa de ${valueNoun} del periodo · `}
+          <strong>{date || '—'}</strong>.
+          {' '}Gris = sin denominador poblacional disponible.
         </div>
       </div>
     </div>
@@ -1258,12 +1295,12 @@ function App() {
     useState('');
 
   // -------------------------------------------------------------------------
-  // PROPUESTA VISUAL DE RESOLUCIÓN TEMPORAL
+  // RESOLUCIÓN TEMPORAL DE PRODUCCIÓN
   // -------------------------------------------------------------------------
-  // Día conserva el comportamiento actual.
-  // Trimestre / mes / semana todavía NO modifican los datos de esta V8.
+  // Día, mes y semana = excluyentes.
+  // Trimestre = acumulado desde el 1 de enero.
   const [periodoConsulta, setPeriodoConsulta] =
-    useState('dia');
+    useState('trimestre');
   const [trimestreTemporal, setTrimestreTemporal] =
     useState('T2');
   const [mesTemporal, setMesTemporal] =
@@ -1632,6 +1669,74 @@ function App() {
       ],
     [semanaTemporal]
   );
+
+  const periodoIdConsulta = useMemo(() => {
+    if (periodoConsulta === 'trimestre') {
+      return `2026-${trimestreTemporal}-ACUM`;
+    }
+
+    if (periodoConsulta === 'mes') {
+      return mesTemporal;
+    }
+
+    if (periodoConsulta === 'semana') {
+      return `2026-SE${String(semanaTemporal).padStart(2, '0')}`;
+    }
+
+    return fecha;
+  }, [
+    periodoConsulta,
+    trimestreTemporal,
+    mesTemporal,
+    semanaTemporal,
+    fecha,
+  ]);
+
+  const periodoEtiquetaConsulta = useMemo(() => {
+    if (periodoConsulta === 'trimestre') {
+      return trimestreSeleccionado.label;
+    }
+
+    if (periodoConsulta === 'mes') {
+      return (
+        TEMPORAL_MONTHS_2026.find(
+          (item) => item.value === mesTemporal
+        )?.label ?? mesTemporal
+      );
+    }
+
+    if (periodoConsulta === 'semana') {
+      return semanaSeleccionada.label;
+    }
+
+    return fecha;
+  }, [
+    periodoConsulta,
+    trimestreSeleccionado,
+    mesTemporal,
+    semanaSeleccionada,
+    fecha,
+  ]);
+
+  const periodoDetalleConsulta = useMemo(() => {
+    if (periodoConsulta === 'trimestre') {
+      return trimestreSeleccionado.detail;
+    }
+
+    if (periodoConsulta === 'mes') {
+      return 'Periodo mensual no acumulado.';
+    }
+
+    if (periodoConsulta === 'semana') {
+      return `${semanaSeleccionada.detail}. Semana epidemiológica oficial DGE 2026.`;
+    }
+
+    return 'Periodo diario no acumulado.';
+  }, [
+    periodoConsulta,
+    trimestreSeleccionado,
+    semanaSeleccionada,
+  ]);
 
   // ===========================================================================
   // EVENTOS
@@ -2055,12 +2160,10 @@ function App() {
       ? 'casos'
       : 'defunciones';
 
-  // El modo Día consulta exclusivamente la fecha seleccionada.
-  // Trimestre/mes/semana continúan como interfaz preliminar en esta versión.
+  // La capa V9 usa un ID de periodo explícito. Se conserva esta variable
+  // únicamente para los textos/estilos de los componentes.
   const modoConsultaDatos =
-    periodoConsulta === 'dia'
-      ? 'dia'
-      : 'acumulado';
+    periodoConsulta;
 
   // ===========================================================================
   // VALORES DEL KPI
@@ -2078,7 +2181,7 @@ function App() {
       return getMapValue({
         mapData:
           consulta.mapData,
-        date: fecha,
+        date: periodoIdConsulta,
         entity: entidad,
         event: evento,
         type: tipo,
@@ -2096,7 +2199,7 @@ function App() {
       tipo,
       categoria,
       metricaConteo,
-      periodoConsulta,
+      periodoIdConsulta,
   ]);
 
   const valorTasa =
@@ -2111,7 +2214,7 @@ function App() {
       return getMapValue({
         mapData:
           consulta.mapData,
-        date: fecha,
+        date: periodoIdConsulta,
         entity: entidad,
         event: evento,
         type: tipo,
@@ -2128,7 +2231,7 @@ function App() {
       tipo,
       categoria,
       metricaTasa,
-      periodoConsulta,
+      periodoIdConsulta,
   ]);
 
   // ===========================================================================
@@ -2147,7 +2250,7 @@ function App() {
       return getMapEntityValues({
         mapData:
           consulta.mapData,
-        date: fecha,
+        date: periodoIdConsulta,
         event: evento,
         type: tipo,
         category: categoria,
@@ -2163,7 +2266,7 @@ function App() {
       tipo,
       categoria,
       metricaTasa,
-      periodoConsulta,
+      periodoIdConsulta,
   ]);
 
   const conteosMapa =
@@ -2178,7 +2281,7 @@ function App() {
       return getMapEntityValues({
         mapData:
           consulta.mapData,
-        date: fecha,
+        date: periodoIdConsulta,
         event: evento,
         type: tipo,
         category: categoria,
@@ -2195,7 +2298,7 @@ function App() {
       tipo,
       categoria,
       metricaConteo,
-      periodoConsulta,
+      periodoIdConsulta,
   ]);
 
   // ===========================================================================
@@ -2242,12 +2345,14 @@ function App() {
     try {
       return getMunicipalValues({
         mapData: consultaMunicipal.mapData,
-        date: fecha,
+        date: periodoIdConsulta,
         event: evento,
         type: tipo,
         category: categoria,
         level: consultaMunicipal.level,
         mode: modoConsultaDatos,
+        metric: metricaTasa,
+        countMetric: metricaConteo,
         entityCode: entidadCodigoMunicipal,
       });
     } catch (error) {
@@ -2266,7 +2371,9 @@ function App() {
     categoria,
     entidadCodigoMunicipal,
     nivelMapa,
-    periodoConsulta,
+    metricaTasa,
+    metricaConteo,
+    periodoIdConsulta,
   ]);
 
   const errorMunicipalActivo =
@@ -2312,7 +2419,7 @@ function App() {
       const values =
         getBulletValues({
           bulletData,
-          date: fecha,
+          date: periodoIdConsulta,
           entity: entidad,
           category: categoria,
           mode: modoConsultaDatos,
@@ -2335,7 +2442,7 @@ function App() {
     fecha,
     entidad,
     categoria,
-    periodoConsulta,
+    periodoIdConsulta,
   ]);
 
   const perfilEdadSexo = useMemo(() => {
@@ -2352,7 +2459,7 @@ function App() {
         getProfileSeries({
           profileData,
           profileId: 'edad_sexo',
-          date: fecha,
+          date: periodoIdConsulta,
           entity: entidad,
           category: categoria,
           mode: modoConsultaDatos,
@@ -2445,7 +2552,7 @@ function App() {
     fecha,
     entidad,
     categoria,
-    periodoConsulta,
+    periodoIdConsulta,
   ]);
 
   const maxEdadSexo = useMemo(() => {
@@ -2476,7 +2583,7 @@ function App() {
         getProfileSeries({
           profileData,
           profileId: 'area_anatomica',
-          date: fecha,
+          date: periodoIdConsulta,
           entity: entidad,
           category: categoria,
           mode: modoConsultaDatos,
@@ -2521,7 +2628,7 @@ function App() {
     fecha,
     entidad,
     categoria,
-    periodoConsulta,
+    periodoIdConsulta,
   ]);
 
   const perfilConsecuencia = useMemo(() => {
@@ -2538,7 +2645,7 @@ function App() {
         getProfileSeries({
           profileData,
           profileId: 'consecuencia',
-          date: fecha,
+          date: periodoIdConsulta,
           entity: entidad,
           category: categoria,
           mode: modoConsultaDatos,
@@ -2583,7 +2690,7 @@ function App() {
     fecha,
     entidad,
     categoria,
-    periodoConsulta,
+    periodoIdConsulta,
   ]);
 
   const distribucionesComplementarias = useMemo(() => {
@@ -2600,7 +2707,7 @@ function App() {
         getProfileSeries({
           profileData,
           profileId: 'distribuciones',
-          date: fecha,
+          date: periodoIdConsulta,
           entity: entidad,
           category: categoria,
           mode: modoConsultaDatos,
@@ -2669,7 +2776,7 @@ function App() {
     fecha,
     entidad,
     categoria,
-    periodoConsulta,
+    periodoIdConsulta,
   ]);
 
   // ===========================================================================
@@ -2823,11 +2930,11 @@ function App() {
         </h1>
 
         <div style={styles.titleDate}>
-          {periodoConsulta === 'dia'
-            ? 'Datos del día '
-            : 'Datos acumulados al '}
+          {periodoConsulta === 'trimestre'
+            ? 'Datos acumulados · '
+            : 'Datos del periodo · '}
           <strong>
-            {fecha || '—'}
+            {periodoEtiquetaConsulta || '—'}
           </strong>
         </div>
       </div>
@@ -3047,8 +3154,8 @@ function App() {
                 {nivelMapa === 'municipal'
                   ? (
                       medida === 'mortalidad'
-                        ? 'Municipal: conteo de defunciones'
-                        : 'Municipal: conteo de casos'
+                        ? 'Municipal: tasa de mortalidad'
+                        : 'Municipal: tasa de incidencia'
                     )
                   : medida === 'incidencia'
                     ? 'Estatal: tasa de incidencia'
@@ -3076,7 +3183,7 @@ function App() {
                     selectedEntity={entidad}
                     onSelectEntity={setEntidad}
                     measure={medida}
-                    date={fecha}
+                    date={periodoEtiquetaConsulta}
                   temporalMode={modoConsultaDatos}
                   />
                 </div>
@@ -3086,18 +3193,23 @@ function App() {
                   estadosGeo={estadosMunicipalesGeo}
                   values={valoresMunicipales}
                   entityCode={entidadCodigoMunicipal}
-                  date={fecha}
+                  date={periodoEtiquetaConsulta}
                   loading={loadingMunicipalActivo}
                   error={null}
                   valueLabel={
+                    medida === 'mortalidad'
+                      ? 'Tasa de mortalidad'
+                      : 'Tasa de incidencia'
+                  }
+                  countLabel={
                     medida === 'mortalidad'
                       ? 'Defunciones'
                       : 'Casos'
                   }
                   valueNoun={
                     medida === 'mortalidad'
-                      ? 'defunciones'
-                      : 'casos'
+                      ? 'mortalidad'
+                      : 'incidencia'
                   }
                   measure={medida}
                   temporalMode={modoConsultaDatos}
@@ -3114,7 +3226,7 @@ function App() {
                 selectedEntity={entidad}
                 onSelectEntity={setEntidad}
                 measure={medida}
-                date={fecha}
+                date={periodoEtiquetaConsulta}
                   temporalMode={modoConsultaDatos}
               />
             )}
@@ -3437,20 +3549,6 @@ function App() {
                 </>
               )}
 
-              {periodoConsulta !== 'dia' && (
-                <div
-                  style={
-                    styles.temporalPreviewNote
-                  }
-                >
-                  Vista preliminar del
-                  selector. La lógica se
-                  conectará al regenerar
-                  los datos con fecha de
-                  ocurrencia.
-                </div>
-              )}
-
               <div style={styles.dateRange}>
                 Periodo disponible:
                 <br />
@@ -3479,9 +3577,9 @@ function App() {
               </h2>
 
               <div style={styles.profileSectionSubtitle}>
-                {periodoConsulta === 'dia'
-                  ? 'Información correspondiente al día seleccionado.'
-                  : 'Información acumulada para la selección actual.'}
+                {periodoConsulta === 'trimestre'
+                  ? 'Información acumulada para el trimestre seleccionado.'
+                  : `Información correspondiente a ${periodoEtiquetaConsulta}.`}
               </div>
             </div>
 
@@ -3503,9 +3601,9 @@ function App() {
                   </h3>
 
                   <div style={styles.profilePanelNote}>
-                    {periodoConsulta === 'dia'
-                      ? 'Casos del día seleccionado.'
-                      : 'Casos acumulados.'}
+                    {periodoConsulta === 'trimestre'
+                      ? 'Casos acumulados.'
+                      : `Casos de ${periodoEtiquetaConsulta}.`}
                   </div>
                 </div>
 

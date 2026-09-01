@@ -1,0 +1,288 @@
+{
+  "schema": "accidentes_lesiones_perfiles_manifest_ocurrencia_v1",
+  "version": "2026-08-31_PASO45_DESCRIPTIVOS_PERIODOS_OCURRENCIA_V1",
+  "period_index_source": "../01_catalogos.json",
+  "entities": [
+    "NACIONAL",
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "30",
+    "31",
+    "32"
+  ],
+  "tipos": [
+    {
+      "orden": 1,
+      "tipo": "Accidentes de transporte",
+      "tipo_id": "transporte",
+      "archivo": "01_transporte.json",
+      "categorias": 6,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 7
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 7
+        }
+      ]
+    },
+    {
+      "orden": 2,
+      "tipo": "Caídas",
+      "tipo_id": "caidas",
+      "archivo": "02_caidas.json",
+      "categorias": 5,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 7
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 3
+        }
+      ]
+    },
+    {
+      "orden": 3,
+      "tipo": "Fuerzas mecánicas y objetos",
+      "tipo_id": "fuerzas_mecanicas",
+      "archivo": "03_fuerzas_mecanicas.json",
+      "categorias": 5,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 3
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 4
+        }
+      ]
+    },
+    {
+      "orden": 4,
+      "tipo": "Exposición a sustancias y energías",
+      "tipo_id": "sustancias_energias",
+      "archivo": "04_sustancias_energias.json",
+      "categorias": 4,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "series": 8
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 3
+        }
+      ]
+    },
+    {
+      "orden": 5,
+      "tipo": "Armas de fuego y punzocortantes",
+      "tipo_id": "armas_punzocortantes",
+      "archivo": "05_armas_punzocortantes.json",
+      "categorias": 3,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "series": 8
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 5
+        }
+      ]
+    },
+    {
+      "orden": 6,
+      "tipo": "Fuerza/contundente, maltrato y negligencia",
+      "tipo_id": "maltrato_negligencia",
+      "archivo": "06_maltrato_negligencia.json",
+      "categorias": 3,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 7
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 8
+        }
+      ]
+    },
+    {
+      "orden": 7,
+      "tipo": "Violencia sexual",
+      "tipo_id": "violencia_sexual",
+      "archivo": "07_violencia_sexual.json",
+      "categorias": 2,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 5
+        }
+      ]
+    },
+    {
+      "orden": 8,
+      "tipo": "Otros mecanismos específicos",
+      "tipo_id": "otros_mecanismos",
+      "archivo": "08_otros_mecanismos.json",
+      "categorias": 3,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 7
+        }
+      ]
+    },
+    {
+      "orden": 9,
+      "tipo": "Lesiones autoinfligidas",
+      "tipo_id": "autoinfligidas",
+      "archivo": "09_autoinfligidas.json",
+      "categorias": 6,
+      "perfiles": [
+        {
+          "id": "edad_sexo",
+          "componente": "Edad-sexo",
+          "series": 42
+        },
+        {
+          "id": "area_anatomica",
+          "componente": "Área anatómica",
+          "series": 7
+        },
+        {
+          "id": "consecuencia",
+          "componente": "Consecuencia",
+          "series": 5
+        },
+        {
+          "id": "distribuciones",
+          "componente": "Distribución complementaria",
+          "series": 6
+        }
+      ]
+    }
+  ]
+}

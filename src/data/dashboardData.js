@@ -1,23 +1,29 @@
 // =============================================================================
 // dashboardData.js
 // Proyecto: Tablero accidentes y lesiones
+// V9 - integración de ocurrencia + periodos + tasas municipales
+// =============================================================================
 //
-// Capa única de acceso a los JSON de producción.
-// NO contiene cálculos epidemiológicos.
+// Capa única de acceso a la rama de producción generada por los Pasos 44/45.
+// React NO calcula epidemiología: sólo recupera valores precomputados en R.
 //
-// Compatibilidad:
-// Los JSON compactos generados por R pueden serializar algunos arreglos
-// como objetos con claves numéricas. asArray() normaliza ambas formas.
+// Fuente frontend esperada:
+//   public/data/ocurrencia/
+//
+// Mantiene asArray() porque algunos arreglos compactos serializados por R
+// pueden llegar como objetos con claves numéricas.
 // =============================================================================
 
 const DATA_ROOT = `${import.meta.env.BASE_URL}data`.replace(/\/+$/, '');
+const OCCURRENCE_ROOT = 'ocurrencia';
+const MUNICIPAL_GEOMETRY_ROOT = 'municipal';
 
 const jsonCache = new Map();
 const indexCache = new WeakMap();
 
 function joinUrl(...parts) {
   return parts
-    .filter(Boolean)
+    .filter((part) => part !== null && part !== undefined && part !== '')
     .map((part, index) => {
       const text = String(part);
       if (index === 0) return text.replace(/\/+$/, '');
@@ -52,97 +58,112 @@ async function fetchJson(relativePath) {
   }
 }
 
+function occurrencePath(...parts) {
+  return joinUrl(OCCURRENCE_ROOT, ...parts);
+}
+
 function asArray(value) {
   if (Array.isArray(value)) {
     return value;
   }
 
-  if (
-    value &&
-    typeof value === 'object'
-  ) {
+  if (value && typeof value === 'object') {
     return Object.values(value);
   }
 
   return [];
 }
 
-function buildLookup(values) {
+function buildLookup(values, getKey = (value) => value) {
   return new Map(
-    asArray(values).map(
-      (value, index) => [
-        String(value),
-        index,
-      ]
-    )
+    asArray(values).map((value, index) => [String(getKey(value)), index])
   );
 }
 
-function getCompactIndexes(data) {
-  if (indexCache.has(data)) {
-    return indexCache.get(data);
-  }
-
-  const indexes = {
-    dates: buildLookup(data?.indexes?.dates ?? []),
-    entities: buildLookup(data?.indexes?.entities ?? []),
-    categories: buildLookup(data?.indexes?.categories ?? []),
-  };
-
-  indexCache.set(data, indexes);
-  return indexes;
+function normalizeEntityKey(value) {
+  return String(value ?? '').trim().toUpperCase();
 }
 
-function getRecordLookup(data, keys) {
-  const existing = indexCache.get(data) ?? {};
-  const cacheKey = `records:${keys.join(',')}`;
+function getPeriodCatalog(catalogs) {
+  return asArray(catalogs?.periods);
+}
 
-  if (existing[cacheKey]) {
-    return existing[cacheKey];
-  }
+function getStateCatalog(catalogs) {
+  return asArray(catalogs?.states);
+}
 
-  const map = new Map();
+function getMunicipalityCatalog(catalogs) {
+  return asArray(catalogs?.municipalities);
+}
 
-  for (const record of asArray(data?.data)) {
-    const key = keys.map((k) => record[k]).join('|');
-    map.set(key, record);
-  }
+function getDailyPeriodIds(catalogs) {
+  return getPeriodCatalog(catalogs)
+    .filter((item) => String(item?.tipo) === 'dia')
+    .map((item) => String(item?.id));
+}
 
-  existing[cacheKey] = map;
-  indexCache.set(data, existing);
+function getStateNames(catalogs) {
+  return getStateCatalog(catalogs).map((item) => String(item?.nombre ?? item?.id));
+}
 
-  return map;
+function enrichMapData(raw, catalogs, geography) {
+  return {
+    ...raw,
+    indexes: {
+      ...(raw?.indexes ?? {}),
+      dates: getDailyPeriodIds(catalogs),
+      entities: getStateNames(catalogs),
+      municipalities: getMunicipalityCatalog(catalogs),
+    },
+    _catalogs: catalogs,
+    _geography: geography,
+  };
+}
+
+function enrichDescriptiveData(raw, catalogs) {
+  return {
+    ...raw,
+    _catalogs: catalogs,
+  };
 }
 
 export function clearDataCache() {
   jsonCache.clear();
 }
 
+// -----------------------------------------------------------------------------
+// CARGA BASE
+// -----------------------------------------------------------------------------
+
 export async function loadManifest() {
-  return fetchJson('00_manifest.json');
+  return fetchJson(occurrencePath('00_manifest.json'));
 }
 
 export async function loadMetadata() {
-  return fetchJson('00_metadatos.json');
+  return fetchJson(occurrencePath('02_descriptivos_manifest.json'));
 }
 
 export async function loadCatalogs() {
-  return fetchJson('01_catalogos.json');
+  return fetchJson(occurrencePath('01_catalogos.json'));
 }
 
 export async function loadCoreMap() {
-  return fetchJson('mapa/00_core.json');
+  const [catalogs, raw] = await Promise.all([
+    loadCatalogs(),
+    fetchJson(occurrencePath('estatal', '00_core.json')),
+  ]);
+
+  return enrichMapData(raw, catalogs, 'nacional_estatal');
 }
 
 export async function resolveType(typeOrId) {
   const manifest = await loadManifest();
-
   const wanted = String(typeOrId ?? '').trim().toLowerCase();
 
   const match = asArray(manifest?.tipos).find((item) => {
     return (
-      String(item.tipo_id).toLowerCase() === wanted ||
-      String(item.tipo).toLowerCase() === wanted
+      String(item?.tipo_id ?? '').toLowerCase() === wanted ||
+      String(item?.tipo ?? '').toLowerCase() === wanted
     );
   });
 
@@ -153,95 +174,181 @@ export async function resolveType(typeOrId) {
   return match;
 }
 
+function typeFileName(type) {
+  const candidate = String(type?.estatal ?? type?.municipal ?? '');
+  const parts = candidate.split('/');
+  return parts[parts.length - 1];
+}
+
 export async function loadTypeBundle(
   typeOrId,
   { includeCategoryMap = false } = {}
 ) {
   const type = await resolveType(typeOrId);
+  const fileName = typeFileName(type);
 
-  const [bullets, profiles, categoryMap] = await Promise.all([
-    fetchJson(type.bullets),
-    fetchJson(type.perfiles),
-    includeCategoryMap ? fetchJson(type.mapa_categoria) : Promise.resolve(null),
+  if (!fileName) {
+    throw new Error(`El tipo no tiene archivo asociado: ${typeOrId}`);
+  }
+
+  const [catalogs, bulletsRaw, profilesRaw, categoryRaw] = await Promise.all([
+    loadCatalogs(),
+    fetchJson(occurrencePath('bullets', fileName)),
+    fetchJson(occurrencePath('perfiles', fileName)),
+    includeCategoryMap
+      ? fetchJson(occurrencePath(type.estatal))
+      : Promise.resolve(null),
   ]);
 
   return {
     type,
-    bullets,
-    profiles,
-    categoryMap,
+    bullets: enrichDescriptiveData(bulletsRaw, catalogs),
+    profiles: enrichDescriptiveData(profilesRaw, catalogs),
+    categoryMap: categoryRaw
+      ? enrichMapData(categoryRaw, catalogs, 'nacional_estatal')
+      : null,
   };
 }
 
 export async function loadCategoryMap(typeOrId) {
   const type = await resolveType(typeOrId);
-  return fetchJson(type.mapa_categoria);
+  const [catalogs, raw] = await Promise.all([
+    loadCatalogs(),
+    fetchJson(occurrencePath(type.estatal)),
+  ]);
+
+  return enrichMapData(raw, catalogs, 'nacional_estatal');
 }
 
 // -----------------------------------------------------------------------------
-// MAPA
+// ESTRUCTURAS COMPACTAS COMUNES
 // -----------------------------------------------------------------------------
 
-const MAP_METRIC_KEYS = {
-  casos: {
-    dia: 'cd',
-    acumulado: 'ca',
-  },
-  defunciones: {
-    dia: 'dd',
-    acumulado: 'da',
-  },
-  incidencia: {
-    dia: 'id',
-    acumulado: 'ia',
-  },
-  mortalidad: {
-    dia: 'md',
-    acumulado: 'ma',
-  },
-};
-
-function getMapStructures(mapData) {
+function getOccurrenceStructures(mapData) {
   const existing = indexCache.get(mapData) ?? {};
 
-  if (existing.mapStructures) {
-    return existing.mapStructures;
+  if (existing.occurrenceStructures) {
+    return existing.occurrenceStructures;
   }
 
-  const dates = buildLookup(mapData?.indexes?.dates ?? []);
-  const entities = buildLookup(mapData?.indexes?.entities ?? []);
+  const catalogs = mapData?._catalogs ?? {};
+  const periods = getPeriodCatalog(catalogs);
+  const states = getStateCatalog(catalogs);
+  const municipalities = getMunicipalityCatalog(catalogs);
+  const combos = asArray(mapData?.indexes?.combos);
+
+  const periodById = new Map();
+  periods.forEach((item, index) => {
+    periodById.set(String(item?.id), index);
+  });
+
+  const stateByKey = new Map();
+  states.forEach((item, index) => {
+    stateByKey.set(normalizeEntityKey(item?.id), index);
+    stateByKey.set(normalizeEntityKey(item?.nombre), index);
+  });
 
   const comboBySignature = new Map();
-  asArray(
-    mapData?.indexes?.combos
-  ).forEach((combo, index) => {
+  combos.forEach((combo, index) => {
     const signature = [
-      combo.evento,
-      combo.tipo,
-      combo.categoria,
-      combo.nivel,
+      combo?.nivel,
+      combo?.evento,
+      combo?.tipo,
+      combo?.categoria,
     ].join('|');
     comboBySignature.set(signature, index);
   });
 
-  const recordByEntityCombo = new Map();
-
-  for (const record of asArray(mapData?.data)) {
-    recordByEntityCombo.set(`${record.e}|${record.k}`, record);
+  const recordByGeoCombo = new Map();
+  for (const rawRecord of asArray(mapData?.data)) {
+    const record = asArray(rawRecord);
+    const geoIdx = Number(record?.[0]);
+    const comboIdx = Number(record?.[1]);
+    recordByGeoCombo.set(`${geoIdx}|${comboIdx}`, record);
   }
 
   const structures = {
-    dates,
-    entities,
+    periods,
+    states,
+    municipalities,
+    periodById,
+    stateByKey,
     comboBySignature,
-    recordByEntityCombo,
+    recordByGeoCombo,
   };
 
-  existing.mapStructures = structures;
+  existing.occurrenceStructures = structures;
   indexCache.set(mapData, existing);
 
   return structures;
 }
+
+function getSparsePoint(pointsRaw, periodIdx) {
+  const points = asArray(pointsRaw);
+
+  let low = 0;
+  let high = points.length - 1;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const point = asArray(points[mid]);
+    const pointPeriod = Number(point?.[0]);
+
+    if (pointPeriod === periodIdx) {
+      return point;
+    }
+
+    if (pointPeriod < periodIdx) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return null;
+}
+
+const METRIC_POINT_INDEX = {
+  casos: 1,
+  defunciones: 2,
+  incidencia: 3,
+  mortalidad: 4,
+};
+
+function missingMetricValue(metric, hasDenominator) {
+  if (metric === 'casos' || metric === 'defunciones') {
+    return 0;
+  }
+
+  return hasDenominator ? 0 : null;
+}
+
+function getPointMetric(point, metric, hasDenominator) {
+  if (!point) {
+    return missingMetricValue(metric, hasDenominator);
+  }
+
+  const position = METRIC_POINT_INDEX[metric];
+
+  if (position === undefined) {
+    throw new Error(`Métrica no reconocida: ${metric}`);
+  }
+
+  const raw = point?.[position];
+
+  if (raw === null || raw === undefined) {
+    return metric === 'casos' || metric === 'defunciones'
+      ? 0
+      : null;
+  }
+
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+// -----------------------------------------------------------------------------
+// MAPA NACIONAL / ESTATAL
+// -----------------------------------------------------------------------------
 
 export function getMapValue({
   mapData,
@@ -252,43 +359,37 @@ export function getMapValue({
   category = 'TODAS',
   level = 'total',
   metric = 'incidencia',
-  mode = 'acumulado',
 }) {
-  if (!mapData) return null;
-
-  const metricKey = MAP_METRIC_KEYS?.[metric]?.[mode];
-
-  if (!metricKey) {
-    throw new Error(`Métrica/modo no reconocido: ${metric}/${mode}`);
-  }
+  if (!mapData || !date) return null;
 
   const {
-    dates,
-    entities,
+    states,
+    periodById,
+    stateByKey,
     comboBySignature,
-    recordByEntityCombo,
-  } = getMapStructures(mapData);
+    recordByGeoCombo,
+  } = getOccurrenceStructures(mapData);
 
-  const dateIdx = dates.get(String(date));
-  const entityIdx = entities.get(String(entity));
+  const periodIdx = periodById.get(String(date));
+  const geoIdx = stateByKey.get(normalizeEntityKey(entity));
   const comboIdx = comboBySignature.get(
-    [event, type, category, level].join('|')
+    [level, event, type, category].join('|')
   );
 
   if (
-    dateIdx === undefined ||
-    entityIdx === undefined ||
+    periodIdx === undefined ||
+    geoIdx === undefined ||
     comboIdx === undefined
   ) {
     return null;
   }
 
-  const record = recordByEntityCombo.get(`${entityIdx}|${comboIdx}`);
-  if (!record) return null;
+  const state = states[geoIdx];
+  const hasDenominator = Boolean(state?.denominador);
+  const record = recordByGeoCombo.get(`${geoIdx}|${comboIdx}`);
+  const point = record ? getSparsePoint(record?.[2], periodIdx) : null;
 
-  const value = record?.[metricKey]?.[dateIdx];
-
-  return value ?? null;
+  return getPointMetric(point, metric, hasDenominator);
 }
 
 export function getMapEntityValues({
@@ -299,243 +400,86 @@ export function getMapEntityValues({
   category = 'TODAS',
   level = 'total',
   metric = 'incidencia',
-  mode = 'acumulado',
   includeNational = false,
 }) {
-  const entities = asArray(
-    mapData?.indexes?.entities
-  );
+  if (!mapData) return [];
 
-  return entities
-    .filter((entity) => includeNational || entity !== 'NACIONAL')
-    .map((entity) => ({
-      entity,
+  const states = getOccurrenceStructures(mapData).states;
+
+  return states
+    .filter((item) => includeNational || String(item?.id) !== 'NACIONAL')
+    .map((item) => ({
+      entity: String(item?.nombre ?? item?.id),
+      entityId: String(item?.id),
+      denominatorAvailable: Boolean(item?.denominador),
       value: getMapValue({
         mapData,
         date,
-        entity,
+        entity: item?.id,
         event,
         type,
         category,
         level,
         metric,
-        mode,
       }),
     }));
 }
 
-
 // -----------------------------------------------------------------------------
-// MAPA MUNICIPAL - PASO 39
+// MAPA MUNICIPAL
 // -----------------------------------------------------------------------------
-//
-// Los JSON municipales usan series SPARSE:
-//   p = [[indice_fecha, casos_dia, casos_acumulados], ...]
-//
-// Aquí NO se calcula epidemiología. Sólo se recuperan valores ya
-// precomputados por R en el Paso 38.
-// -----------------------------------------------------------------------------
-
-const MUNICIPAL_ROOT = 'municipal';
-const MUNICIPAL_DYNAMIC_ROOT = `${MUNICIPAL_ROOT}/dinamico`;
-const MUNICIPAL_DEATHS_DYNAMIC_ROOT =
-  `${MUNICIPAL_ROOT}/defunciones/dinamico`;
 
 export async function loadMunicipalManifest() {
-  return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/00_manifest.json`);
+  return loadManifest();
 }
 
 export async function loadMunicipalCore() {
-  return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/00_core.json`);
+  const [catalogs, raw] = await Promise.all([
+    loadCatalogs(),
+    fetchJson(occurrencePath('municipal', '00_core.json')),
+  ]);
+
+  return enrichMapData(raw, catalogs, 'municipal');
 }
 
 export async function loadMunicipalGeometry() {
-  return fetchJson(`${MUNICIPAL_ROOT}/municipios.geojson`);
+  return fetchJson(joinUrl(MUNICIPAL_GEOMETRY_ROOT, 'municipios.geojson'));
 }
 
 export async function loadMunicipalStatesGeometry() {
-  return fetchJson(`${MUNICIPAL_ROOT}/estados.geojson`);
+  return fetchJson(joinUrl(MUNICIPAL_GEOMETRY_ROOT, 'estados.geojson'));
 }
 
 export async function resolveMunicipalType(typeOrId) {
-  const manifest = await loadMunicipalManifest();
-  const wanted = String(typeOrId ?? '').trim().toLowerCase();
-
-  const match = asArray(manifest?.tipos).find((item) => {
-    return (
-      String(item?.tipo_id ?? '').toLowerCase() === wanted ||
-      String(item?.tipo ?? '').toLowerCase() === wanted
-    );
-  });
-
-  if (!match) {
-    throw new Error(`Tipo municipal no reconocido: ${typeOrId}`);
-  }
-
-  return match;
+  return resolveType(typeOrId);
 }
 
 export async function loadMunicipalCategoryMap(typeOrId) {
-  const type = await resolveMunicipalType(typeOrId);
+  const type = await resolveType(typeOrId);
+  const [catalogs, raw] = await Promise.all([
+    loadCatalogs(),
+    fetchJson(occurrencePath(type.municipal)),
+  ]);
 
-  if (!type?.archivo) {
-    throw new Error(`El tipo municipal no tiene archivo: ${typeOrId}`);
-  }
-
-  return fetchJson(`${MUNICIPAL_DYNAMIC_ROOT}/${type.archivo}`);
+  return enrichMapData(raw, catalogs, 'municipal');
 }
 
-
-// -----------------------------------------------------------------------------
-// MAPA MUNICIPAL DE DEFUNCIONES - PASOS 40 Y 41
-// -----------------------------------------------------------------------------
-//
-// Mismo formato sparse que la capa municipal de casos, pero almacenado bajo:
-//   public/data/municipal/defunciones/dinamico/
-// -----------------------------------------------------------------------------
-
+// Compatibilidad con la V8.2: en la rama nueva casos, defunciones y tasas
+// comparten el mismo cubo municipal, así que estas funciones son alias.
 export async function loadMunicipalDeathsManifest() {
-  return fetchJson(
-    `${MUNICIPAL_DEATHS_DYNAMIC_ROOT}/00_manifest.json`
-  );
+  return loadMunicipalManifest();
 }
 
 export async function loadMunicipalDeathsCore() {
-  return fetchJson(
-    `${MUNICIPAL_DEATHS_DYNAMIC_ROOT}/00_core.json`
-  );
+  return loadMunicipalCore();
 }
 
 export async function resolveMunicipalDeathsType(typeOrId) {
-  const manifest = await loadMunicipalDeathsManifest();
-  const wanted = String(typeOrId ?? '').trim().toLowerCase();
-
-  const match = asArray(manifest?.tipos).find((item) => {
-    return (
-      String(item?.tipo_id ?? '').toLowerCase() === wanted ||
-      String(item?.tipo ?? '').toLowerCase() === wanted
-    );
-  });
-
-  if (!match) {
-    throw new Error(
-      `Tipo municipal de defunciones no reconocido: ${typeOrId}`
-    );
-  }
-
-  return match;
+  return resolveType(typeOrId);
 }
 
 export async function loadMunicipalDeathsCategoryMap(typeOrId) {
-  const type = await resolveMunicipalDeathsType(typeOrId);
-
-  if (!type?.archivo) {
-    throw new Error(
-      `El tipo municipal de defunciones no tiene archivo: ${typeOrId}`
-    );
-  }
-
-  return fetchJson(
-    `${MUNICIPAL_DEATHS_DYNAMIC_ROOT}/${type.archivo}`
-  );
-}
-
-function getMunicipalStructures(mapData) {
-  const existing = indexCache.get(mapData) ?? {};
-
-  if (existing.municipalStructures) {
-    return existing.municipalStructures;
-  }
-
-  const dates = buildLookup(mapData?.indexes?.dates ?? []);
-  const municipalities = asArray(mapData?.indexes?.municipalities);
-
-  const comboBySignature = new Map();
-
-  asArray(mapData?.indexes?.combos).forEach((combo, index) => {
-    const signature = [
-      combo.nivel,
-      combo.evento,
-      combo.tipo,
-      combo.categoria,
-    ].join('|');
-
-    comboBySignature.set(signature, index);
-  });
-
-  const recordByMunicipalityCombo = new Map();
-
-  for (const record of asArray(mapData?.data)) {
-    recordByMunicipalityCombo.set(`${record.m}|${record.k}`, record);
-  }
-
-  const structures = {
-    dates,
-    municipalities,
-    comboBySignature,
-    recordByMunicipalityCombo,
-  };
-
-  existing.municipalStructures = structures;
-  indexCache.set(mapData, existing);
-
-  return structures;
-}
-
-function getSparseMunicipalValue(pointsRaw, dateIdx, mode) {
-  const points = asArray(pointsRaw);
-
-  if (points.length === 0) {
-    return 0;
-  }
-
-  if (mode === 'dia') {
-    let low = 0;
-    let high = points.length - 1;
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      const point = asArray(points[mid]);
-      const pointDate = Number(point[0]);
-
-      if (pointDate === dateIdx) {
-        return Number(point[1] ?? 0);
-      }
-
-      if (pointDate < dateIdx) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-
-    return 0;
-  }
-
-  // Acumulado: último punto cuya fecha sea <= a la fecha solicitada.
-  let low = 0;
-  let high = points.length - 1;
-  let found = -1;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const point = asArray(points[mid]);
-    const pointDate = Number(point[0]);
-
-    if (pointDate <= dateIdx) {
-      found = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  if (found < 0) {
-    return 0;
-  }
-
-  const point = asArray(points[found]);
-  return Number(point[2] ?? 0);
+  return loadMunicipalCategoryMap(typeOrId);
 }
 
 export function getMunicipalValues({
@@ -545,65 +489,57 @@ export function getMunicipalValues({
   type = 'TODOS',
   category = 'TODAS',
   level = 'total',
-  mode = 'acumulado',
+  metric = 'incidencia',
+  countMetric = 'casos',
   entityCode = null,
 }) {
-  if (!mapData || !date) {
-    return [];
-  }
+  if (!mapData || !date) return [];
 
   const {
-    dates,
     municipalities,
+    periodById,
     comboBySignature,
-    recordByMunicipalityCombo,
-  } = getMunicipalStructures(mapData);
+    recordByGeoCombo,
+  } = getOccurrenceStructures(mapData);
 
-  const dateIdx = dates.get(String(date));
+  const periodIdx = periodById.get(String(date));
   const comboIdx = comboBySignature.get(
     [level, event, type, category].join('|')
   );
 
-  if (dateIdx === undefined || comboIdx === undefined) {
+  if (periodIdx === undefined || comboIdx === undefined) {
     return [];
   }
 
   const wantedEntity =
-    entityCode === null ||
-    entityCode === undefined ||
-    entityCode === ''
+    entityCode === null || entityCode === undefined || entityCode === ''
       ? null
       : String(entityCode).padStart(2, '0');
 
   return municipalities
-    .map((municipality, municipalityIdx) => ({
-      municipality,
-      municipalityIdx,
-    }))
+    .map((municipality, geoIdx) => ({ municipality, geoIdx }))
     .filter(({ municipality }) => {
-      if (!wantedEntity) {
-        return true;
-      }
-
-      return (
-        String(municipality?.cve_ent ?? '').padStart(2, '0') ===
-        wantedEntity
-      );
+      if (!wantedEntity) return true;
+      return String(municipality?.cve_ent ?? '').padStart(2, '0') === wantedEntity;
     })
-    .map(({ municipality, municipalityIdx }) => {
-      const record = recordByMunicipalityCombo.get(
-        `${municipalityIdx}|${comboIdx}`
-      );
+    .map(({ municipality, geoIdx }) => {
+      const hasDenominator = Boolean(municipality?.denominador);
+      const record = recordByGeoCombo.get(`${geoIdx}|${comboIdx}`);
+      const point = record ? getSparsePoint(record?.[2], periodIdx) : null;
 
       return {
-        index: municipalityIdx,
+        index: geoIdx,
         cvegeo: String(municipality?.cvegeo ?? ''),
         cve_ent: String(municipality?.cve_ent ?? '').padStart(2, '0'),
         cve_mun: String(municipality?.cve_mun ?? '').padStart(3, '0'),
         municipio: municipality?.municipio ?? '',
-        value: record
-          ? getSparseMunicipalValue(record.p, dateIdx, mode)
-          : 0,
+        denominatorAvailable: hasDenominator,
+        population:
+          municipality?.poblacion === null || municipality?.poblacion === undefined
+            ? null
+            : Number(municipality.poblacion),
+        value: getPointMetric(point, metric, hasDenominator),
+        count: getPointMetric(point, countMetric, hasDenominator),
       };
     });
 }
@@ -619,36 +555,47 @@ function getBulletStructures(data) {
     return existing.bulletStructures;
   }
 
-  const dates = buildLookup(data?.indexes?.dates ?? []);
-  const entities = buildLookup(data?.indexes?.entities ?? []);
-  const categories = buildLookup(data?.indexes?.categories ?? []);
+  const catalogs = data?._catalogs ?? {};
+  const periodById = buildLookup(getPeriodCatalog(catalogs), (item) => item?.id);
+  const entities = asArray(data?.indexes?.entities);
+  const categories = asArray(data?.indexes?.categories);
+  const indicators = asArray(data?.indexes?.indicators);
 
-  const indicators = asArray(
-    data?.indexes?.indicators
-  );
+  const entityByValue = buildLookup(entities);
 
-  const indicatorsByIndex = indicators.map((item, index) => ({
-    ...item,
-    index,
-  }));
+  // Los descriptivos del Paso 45 indexan entidades por clave (01..32),
+  // mientras que la interfaz trabaja con nombres. Se registran ambas formas.
+  getStateCatalog(catalogs).forEach((state) => {
+    const stateId = String(state?.id ?? '');
+    const stateName = String(state?.nombre ?? '');
+    const idx = entities.findIndex((value) => String(value) === stateId);
+
+    if (idx >= 0) {
+      entityByValue.set(stateId, idx);
+      entityByValue.set(stateName, idx);
+    }
+  });
+
+  const categoryByValue = buildLookup(categories);
 
   const records = new Map();
-
-  for (const record of asArray(data?.data)) {
-    records.set(`${record.e}|${record.c}|${record.i}`, record);
+  for (const rawRecord of asArray(data?.data)) {
+    const record = asArray(rawRecord);
+    records.set(`${record?.[0]}|${record?.[1]}|${record?.[2]}`, record);
   }
 
   const structures = {
-    dates,
+    periodById,
     entities,
     categories,
-    indicatorsByIndex,
+    indicators,
+    entityByValue,
+    categoryByValue,
     records,
   };
 
   existing.bulletStructures = structures;
   indexCache.set(data, existing);
-
   return structures;
 }
 
@@ -657,51 +604,52 @@ export function getBulletValues({
   date,
   entity = 'NACIONAL',
   category = 'TODAS',
-  mode = 'acumulado',
 }) {
-  if (!bulletData) return [];
+  if (!bulletData || !date) return [];
 
   const {
-    dates,
-    entities,
-    categories,
-    indicatorsByIndex,
+    periodById,
+    indicators,
+    entityByValue,
+    categoryByValue,
     records,
   } = getBulletStructures(bulletData);
 
-  const dateIdx = dates.get(String(date));
-  const entityIdx = entities.get(String(entity));
-  const categoryIdx = categories.get(String(category));
+  const periodIdx = periodById.get(String(date));
+  const entityIdx = entityByValue.get(String(entity));
+  const categoryIdx = categoryByValue.get(String(category));
 
   if (
-    dateIdx === undefined ||
+    periodIdx === undefined ||
     entityIdx === undefined ||
     categoryIdx === undefined
   ) {
     return [];
   }
 
-  return indicatorsByIndex.map((indicator) => {
-    const record = records.get(
-      `${entityIdx}|${categoryIdx}|${indicator.index}`
-    );
+  return indicators.map((indicator, indicatorIdx) => {
+    const record = records.get(`${entityIdx}|${categoryIdx}|${indicatorIdx}`);
+    const point = record ? getSparsePoint(record?.[3], periodIdx) : null;
 
-    if (!record) {
+    if (!point) {
       return {
         ...indicator,
+        index: indicatorIdx,
         value: null,
         numerator: 0,
         denominator: 0,
       };
     }
 
-    const isAccumulated = mode === 'acumulado';
-
     return {
       ...indicator,
-      value: (isAccumulated ? record.va : record.vd)?.[dateIdx] ?? null,
-      numerator: (isAccumulated ? record.na : record.nd)?.[dateIdx] ?? 0,
-      denominator: (isAccumulated ? record.da : record.dd)?.[dateIdx] ?? 0,
+      index: indicatorIdx,
+      value:
+        point?.[1] === null || point?.[1] === undefined
+          ? null
+          : Number(point[1]),
+      numerator: Number(point?.[2] ?? 0),
+      denominator: Number(point?.[3] ?? 0),
     };
   });
 }
@@ -719,33 +667,45 @@ function getProfileStructures(profileData, profileId) {
   }
 
   const profile = profileData?.profiles?.[profileId];
+  if (!profile) return null;
 
-  if (!profile) {
-    return null;
-  }
+  const catalogs = profileData?._catalogs ?? {};
+  const periodById = buildLookup(getPeriodCatalog(catalogs), (item) => item?.id);
+  const entities = asArray(profileData?.indexes?.entities);
+  const categories = asArray(profileData?.indexes?.categories);
+  const entityByValue = buildLookup(entities);
 
-  const dates = buildLookup(profileData?.indexes?.dates ?? []);
-  const entities = buildLookup(profileData?.indexes?.entities ?? []);
-  const categories = buildLookup(profileData?.indexes?.categories ?? []);
+  getStateCatalog(catalogs).forEach((state) => {
+    const stateId = String(state?.id ?? '');
+    const stateName = String(state?.nombre ?? '');
+    const idx = entities.findIndex((value) => String(value) === stateId);
+
+    if (idx >= 0) {
+      entityByValue.set(stateId, idx);
+      entityByValue.set(stateName, idx);
+    }
+  });
+
+  const categoryByValue = buildLookup(categories);
+  const series = asArray(profile?.series);
 
   const records = new Map();
-
-  for (const record of asArray(profile?.data)) {
-    const [e, c, s] = record;
-    records.set(`${e}|${c}|${s}`, record);
+  for (const rawRecord of asArray(profile?.data)) {
+    const record = asArray(rawRecord);
+    records.set(`${record?.[0]}|${record?.[1]}|${record?.[2]}`, record);
   }
 
   const structures = {
     profile,
-    dates,
-    entities,
-    categories,
+    series,
+    periodById,
+    entityByValue,
+    categoryByValue,
     records,
   };
 
   existing[cacheKey] = structures;
   indexCache.set(profileData, existing);
-
   return structures;
 }
 
@@ -755,52 +715,51 @@ export function getProfileSeries({
   date,
   entity = 'NACIONAL',
   category = 'TODAS',
-  mode = 'acumulado',
 }) {
   const structures = getProfileStructures(profileData, profileId);
-
-  if (!structures) return [];
+  if (!structures || !date) return [];
 
   const {
-    profile,
-    dates,
-    entities,
-    categories,
+    series,
+    periodById,
+    entityByValue,
+    categoryByValue,
     records,
   } = structures;
 
-  const dateIdx = dates.get(String(date));
-  const entityIdx = entities.get(String(entity));
-  const categoryIdx = categories.get(String(category));
+  const periodIdx = periodById.get(String(date));
+  const entityIdx = entityByValue.get(String(entity));
+  const categoryIdx = categoryByValue.get(String(category));
 
   if (
-    dateIdx === undefined ||
+    periodIdx === undefined ||
     entityIdx === undefined ||
     categoryIdx === undefined
   ) {
     return [];
   }
 
-  return asArray(
-    profile?.series
-  ).map((series, seriesIdx) => {
+  return series.map((seriesItem, seriesIdx) => {
     const record = records.get(`${entityIdx}|${categoryIdx}|${seriesIdx}`);
+    const point = record ? getSparsePoint(record?.[3], periodIdx) : null;
 
-    if (!record) {
+    if (!point) {
       return {
-        ...series,
-        value: null,
+        ...seriesItem,
+        value: String(seriesItem?.modo) === 'conteo' ? 0 : undefined,
       };
     }
 
-    const dayValues = record[3];
-    const accumulatedValues = record[4];
+    const raw = point?.[1];
 
     return {
-      ...series,
+      ...seriesItem,
       value:
-        (mode === 'acumulado' ? accumulatedValues : dayValues)?.[dateIdx] ??
-        null,
+        raw === null || raw === undefined
+          ? String(seriesItem?.modo) === 'conteo'
+            ? 0
+            : undefined
+          : Number(raw),
     };
   });
 }

@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-28_JSON_PERFILES_TAXONOMIA28_D_V1",
+  "version": "2026-08-28_JSON_PERFILES_COMPACTOS_FIX1",
   "periodo": {
     "inicio": "2026-01-01",
     "fin": "2026-06-30"
@@ -22,11 +22,11 @@
       "tipo_id": "transporte",
       "archivo": "01_transporte.json",
       "categorias": [
-        "Vehículos de motor",
-        "Motocicletas",
-        "Peatones",
-        "Bicicletas",
-        "Otros tipos de vehículos"
+        "Bicicleta",
+        "Motocicleta",
+        "Otros y secuelas",
+        "Peatón",
+        "Vehículo de motor (ocupante)"
       ],
       "perfiles": [
         {
@@ -57,10 +57,9 @@
       "tipo_id": "caidas",
       "archivo": "02_caidas.json",
       "categorias": [
-        "Desde mismo nivel",
-        "De bajo nivel",
-        "Desde o en escaleras y rampas",
-        "Desde alturas"
+        "Baja altura (mobiliario)",
+        "Diferente nivel (escaleras/alturas)",
+        "Mismo nivel (propia altura)"
       ],
       "perfiles": [
         {
@@ -91,10 +90,10 @@
       "tipo_id": "fuerzas_mecanicas",
       "archivo": "03_fuerzas_mecanicas.json",
       "categorias": [
-        "Armas de fuego",
-        "Por herramientas manuales y objetos cortantes",
-        "Por objetos proyectados, lanzados o que caen",
-        "Atrapamiento o aplastamiento"
+        "Armas de fuego (accidental)",
+        "Atrapamiento/aplastamiento",
+        "Cortantes o punzantes",
+        "Golpe por objeto"
       ],
       "perfiles": [
         {
@@ -125,9 +124,9 @@
       "tipo_id": "sustancias_energias",
       "archivo": "04_sustancias_energias.json",
       "categorias": [
-        "Contacto con calor y sustancias calientes",
-        "Envenenamiento",
-        "Ahogamiento, sofocación y asfixia"
+        "Asfixia/sofocación/sumersión",
+        "Intoxicación/envenenamiento accidental",
+        "Quemaduras"
       ],
       "perfiles": [
         {
@@ -158,8 +157,7 @@
       "tipo_id": "armas_punzocortantes",
       "archivo": "05_armas_punzocortantes.json",
       "categorias": [
-        "Armas de fuego",
-        "Objetos Punzocortantes"
+        "Armas de fuego o punzocortante"
       ],
       "perfiles": [
         {
@@ -185,8 +183,7 @@
       "tipo_id": "maltrato_negligencia",
       "archivo": "06_maltrato_negligencia.json",
       "categorias": [
-        "Agresiones de fuerza corporal",
-        "Negligencia y otros tipos de maltrato"
+        "Fuerza/contundente + maltrato/negligencia"
       ],
       "perfiles": [
         {
@@ -238,8 +235,7 @@
       "tipo_id": "otros_mecanismos",
       "archivo": "08_otros_mecanismos.json",
       "categorias": [
-        "Sustancias (drogas, químicos, corrosivos, pesticidas y gases)",
-        "Energías (explosivos, humo, fuego, vapor y objetos calientes)"
+        "Otros mecanismos específicos"
       ],
       "perfiles": [
         {
@@ -270,11 +266,11 @@
       "tipo_id": "autoinfligidas",
       "archivo": "09_autoinfligidas.json",
       "categorias": [
+        "Ahorcamiento/sofocación",
+        "Arma de fuego",
         "Intoxicación",
-        "Ahorcamiento o sofocación",
-        "Por arma de fuego",
-        "Por colisión",
-        "Otros y los no especificados"
+        "Otros mecanismos autoinfligidos",
+        "Salto/objeto en movimiento/colisión"
       ],
       "perfiles": [
         {
