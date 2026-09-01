@@ -2572,6 +2572,97 @@ function App() {
     periodoIdConsulta,
   ]);
 
+  // ===========================================================================
+  // PRESENTACIÓN ESPECÍFICA - ACCIDENTES DE TRANSPORTE
+  // ===========================================================================
+  //
+  // Para Transporte, el nuevo producto tiene 5 series internas pero sólo
+  // 3 indicadores visuales:
+  //
+  //   1) Rol de la persona lesionada
+  //        - Conductor
+  //        - Ocupante
+  //        - Peatón
+  //      Únicamente para Vehículos de motor y Motocicletas.
+  //
+  //   2) % de personas que NO usaron equipo de seguridad
+  //   3) Sospecha de consumo de alcohol
+  //
+  // Para los demás tipos se conserva exactamente el comportamiento actual.
+
+  const esTransporte =
+    tipo === 'Accidentes de transporte';
+
+  const categoriaConRolTransporte =
+    categoria === 'Vehículos de motor' ||
+    categoria === 'Motocicletas';
+
+  const bulletsVisibles = useMemo(() => {
+    if (!esTransporte) {
+      return bullets;
+    }
+
+    return bullets.filter((item) => {
+      if (
+        item?.grupo ===
+        'rol_persona_lesionada'
+      ) {
+        return categoriaConRolTransporte;
+      }
+
+      const aplica =
+        Array.isArray(
+          item?.aplica_categorias
+        )
+          ? item.aplica_categorias
+          : [];
+
+      return (
+        aplica.length === 0 ||
+        aplica.includes(categoria)
+      );
+    });
+  }, [
+    bullets,
+    esTransporte,
+    categoriaConRolTransporte,
+    categoria,
+  ]);
+
+  const rolTransporte = useMemo(() => {
+    if (
+      !esTransporte ||
+      !categoriaConRolTransporte
+    ) {
+      return [];
+    }
+
+    return bulletsVisibles.filter(
+      (item) =>
+        item?.grupo ===
+        'rol_persona_lesionada'
+    );
+  }, [
+    bulletsVisibles,
+    esTransporte,
+    categoriaConRolTransporte,
+  ]);
+
+  const bulletsSimples = useMemo(() => {
+    if (!esTransporte) {
+      return bulletsVisibles;
+    }
+
+    return bulletsVisibles.filter(
+      (item) =>
+        item?.grupo !==
+        'rol_persona_lesionada'
+    );
+  }, [
+    bulletsVisibles,
+    esTransporte,
+  ]);
+
   const perfilEdadSexo = useMemo(() => {
     if (
       tipo === 'TODOS' ||
@@ -3208,16 +3299,67 @@ function App() {
               <div style={styles.sidebarError}>
                 {bulletError.message}
               </div>
-            ) : bullets.length === 0 ? (
+            ) : bulletsVisibles.length === 0 ? (
               <div style={styles.sidebarEmpty}>
                 No hay indicadores para la selección actual.
               </div>
             ) : (
               <div style={styles.sidebarBulletGrid}>
-                {bullets.map(
+                {rolTransporte.length > 0 && (
+                  <div
+                    style={styles.sidebarRoleCard}
+                  >
+                    <div
+                      style={styles.sidebarRoleTitle}
+                    >
+                      Rol de la persona lesionada
+                    </div>
+
+                    <div
+                      style={styles.sidebarRoleGrid}
+                    >
+                      {rolTransporte.map(
+                        (item, index) => (
+                          <div
+                            key={
+                              item.id ??
+                              item.indicador_id ??
+                              item.indicador ??
+                              index
+                            }
+                            style={
+                              styles.sidebarRoleItem
+                            }
+                          >
+                            <div
+                              style={
+                                styles.sidebarRoleLabel
+                              }
+                            >
+                              {item.indicador}
+                            </div>
+
+                            <div
+                              style={
+                                styles.sidebarRoleValue
+                              }
+                            >
+                              {formatBulletValue(
+                                item.value
+                              )}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {bulletsSimples.map(
                   (item, index) => (
                     <div
                       key={
+                        item.id ??
                         item.indicador_id ??
                         item.indicador ??
                         index
@@ -4254,6 +4396,57 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '10px',
+  },
+
+  sidebarRoleCard: {
+    gridColumn: '1 / -1',
+    border: '1px solid #8d8d8d',
+    borderRadius: '15px',
+    padding: '12px 13px',
+    background: '#ffffff',
+    boxSizing: 'border-box',
+  },
+
+  sidebarRoleTitle: {
+    marginBottom: '10px',
+    fontSize: '11px',
+    lineHeight: 1.2,
+    fontWeight: 800,
+    color: '#003b35',
+  },
+
+  sidebarRoleGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: '7px',
+  },
+
+  sidebarRoleItem: {
+    minWidth: 0,
+    borderRadius: '10px',
+    padding: '8px 5px',
+    background: '#f8f6f2',
+    textAlign: 'center',
+  },
+
+  sidebarRoleLabel: {
+    minHeight: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '9px',
+    lineHeight: 1.15,
+    fontWeight: 700,
+    color: '#5f5f5f',
+  },
+
+  sidebarRoleValue: {
+    marginTop: '5px',
+    fontSize: '18px',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#7b1e3a',
+    fontVariantNumeric: 'tabular-nums',
   },
 
   sidebarBulletCard: {
