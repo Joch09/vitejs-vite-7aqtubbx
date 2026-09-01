@@ -1201,7 +1201,67 @@ function MunicipalChoropleth({
 
   return (
     <div style={styles.mapBlock}>
+      <div style={styles.mapHeader}>
+        <div>
+          <div style={styles.mapTitle}>{mapTitle}</div>
+          <div style={styles.mapSubtitle}>
+            {mapScope}
+            {date ? ` · ${date}` : ''}
+          </div>
+        </div>
+      </div>
+
       <div style={styles.svgWrapper}>
+        <div
+          style={styles.compassRose}
+          aria-hidden="true"
+          title="Rosa de los vientos"
+        >
+          <svg
+            viewBox="0 0 88 88"
+            width="100%"
+            height="100%"
+          >
+            <circle
+              cx="44"
+              cy="44"
+              r="27"
+              fill="rgba(255,255,255,0.92)"
+              stroke="#0b4f47"
+              strokeWidth="1.2"
+            />
+
+            <line x1="44" y1="18" x2="44" y2="70" stroke="#98a2b3" strokeWidth="0.9" />
+            <line x1="18" y1="44" x2="70" y2="44" stroke="#98a2b3" strokeWidth="0.9" />
+            <line x1="26" y1="26" x2="62" y2="62" stroke="#d0d5dd" strokeWidth="0.7" />
+            <line x1="62" y1="26" x2="26" y2="62" stroke="#d0d5dd" strokeWidth="0.7" />
+
+            <polygon
+              points="44,20 39.5,44 44,40.5 48.5,44"
+              fill="#0b4f47"
+            />
+            <polygon
+              points="44,68 39.5,44 44,47.5 48.5,44"
+              fill="#BC955B"
+            />
+            <polygon
+              points="68,44 44,39.5 47.5,44 44,48.5"
+              fill="#667085"
+            />
+            <polygon
+              points="20,44 44,39.5 40.5,44 44,48.5"
+              fill="#667085"
+            />
+
+            <circle cx="44" cy="44" r="2.6" fill="#0b4f47" />
+
+            <text x="44" y="10" textAnchor="middle" style={styles.compassLetter}>N</text>
+            <text x="79" y="47" textAnchor="middle" style={styles.compassLetter}>E</text>
+            <text x="44" y="84" textAnchor="middle" style={styles.compassLetter}>S</text>
+            <text x="9" y="47" textAnchor="middle" style={styles.compassLetter}>O</text>
+          </svg>
+        </div>
+
         <svg
           viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
           role="img"
