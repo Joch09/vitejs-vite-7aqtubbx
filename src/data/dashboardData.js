@@ -1,7 +1,7 @@
 // =============================================================================
 // dashboardData.js
 // Proyecto: Tablero accidentes y lesiones
-// V9 - integración de ocurrencia + periodos + tasas municipales
+// V9.4.1 - ocurrencia + periodos + tasas + descriptivos sin cache
 // =============================================================================
 //
 // Capa única de acceso a la rama de producción generada por los Pasos 44/45.
@@ -56,6 +56,37 @@ async function fetchJson(relativePath) {
     jsonCache.delete(url);
     throw error;
   }
+}
+
+
+// -----------------------------------------------------------------------------
+// CARGA FRESCA DE DESCRIPTIVOS
+// -----------------------------------------------------------------------------
+//
+// Los JSON de Indicadores descriptivos se están actualizando tipo por tipo.
+// Vite/StackBlitz puede mantener vivo el módulo y, con él, jsonCache aun después
+// de reemplazar un archivo dentro de public/. Para evitar que se muestre una
+// versión anterior de los bullets, éstos se solicitan sin cache y con un
+// parámetro de versión único.
+//
+// Esto NO afecta mapas, tasas, catálogos ni perfiles.
+//
+async function fetchJsonFresh(relativePath) {
+  const baseUrl = joinUrl(DATA_ROOT, relativePath);
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  const url = `${baseUrl}${separator}_fresh=${Date.now()}`;
+
+  const response = await fetch(url, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `No fue posible cargar ${relativePath}: HTTP ${response.status}`
+    );
+  }
+
+  return response.json();
 }
 
 function occurrencePath(...parts) {
@@ -193,8 +224,16 @@ export async function loadTypeBundle(
 
   const [catalogs, bulletsRaw, profilesRaw, categoryRaw] = await Promise.all([
     loadCatalogs(),
-    fetchJson(occurrencePath('bullets', fileName)),
+
+    // IMPORTANTE:
+    // Los bullets se leen siempre frescos para que un reemplazo en
+    // public/data/ocurrencia/bullets/ se refleje inmediatamente en el tablero.
+    fetchJsonFresh(occurrencePath('bullets', fileName)),
+
+    // Perfiles no forman parte de las modificaciones actuales y conservan
+    // la carga cacheada normal.
     fetchJson(occurrencePath('perfiles', fileName)),
+
     includeCategoryMap
       ? fetchJson(occurrencePath(type.estatal))
       : Promise.resolve(null),
