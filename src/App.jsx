@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
+// V9.6: tarjeta de Principal mecanismo a ancho completo.
+
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
 import logoVigilancia from './assets/logos/logo_vigilancia_epidemiologica.png';
@@ -3364,7 +3366,16 @@ function App() {
                         item.indicador ??
                         index
                       }
-                      style={styles.sidebarBulletCard}
+                      style={{
+                        ...styles.sidebarBulletCard,
+                        ...(
+                          item?.id === 'principal_mecanismo_lesion_accidental' ||
+                          item?.indicador_id === 'principal_mecanismo_lesion_accidental' ||
+                          item?.indicador === 'Principal mecanismo de la lesión accidental'
+                            ? styles.sidebarBulletCardWide
+                            : {}
+                        ),
+                      }}
                     >
                       <div style={styles.sidebarBulletLabel}>
                         {item.indicador ??
@@ -4469,6 +4480,11 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
+  },
+
+  sidebarBulletCardWide: {
+    gridColumn: '1 / -1',
+    minHeight: '96px',
   },
 
   sidebarBulletLabel: {
