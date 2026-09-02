@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.13: perfil ultracompacto y distribuciones complementarias ocultas.
+// V9.13.1: corrige cierre JSX; perfil ultracompacto y complementarias ocultas sin eliminar código.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -4333,13 +4333,18 @@ function App() {
               )}
             </div>
 
-            {MOSTRAR_DISTRIBUCIONES_COMPLEMENTARIAS && (
-              <>
                 {/* --------------------------------------------------------- */}
             {/* DISTRIBUCIONES COMPLEMENTARIAS */}
             {/* --------------------------------------------------------- */}
 
-            <div style={styles.profilePanelWide}>
+            <div
+              style={{
+                ...styles.profilePanelWide,
+                display: MOSTRAR_DISTRIBUCIONES_COMPLEMENTARIAS
+                  ? 'block'
+                  : 'none',
+              }}
+            >
               <h3 style={styles.profilePanelTitle}>
                 Distribuciones complementarias
               </h3>
@@ -4423,9 +4428,6 @@ function App() {
                   )}
                 </div>
               )}
-              </>
-            )}
-
             </div>
           </div>
         </section>
