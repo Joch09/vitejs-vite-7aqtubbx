@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.8: en Armas/punzocortantes, alcohol + embarazo arriba y sitio ancho abajo.
+// V9.9: mantiene el ajuste de Armas/punzocortantes y agrega el mismo criterio visual para Fuerza/contundente, maltrato y negligencia: sitio de ocurrencia ancho abajo y agresión repetida arriba.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2598,6 +2598,9 @@ function App() {
   const esArmasPunzocortantes =
     tipo === 'Armas de fuego y punzocortantes';
 
+  const esMaltratoNegligencia =
+    tipo === 'Fuerza/contundente, maltrato y negligencia';
+
   const categoriaConRolTransporte =
     categoria === 'Vehículos de motor' ||
     categoria === 'Motocicletas';
@@ -2683,35 +2686,60 @@ function App() {
       return true;
     });
 
-    if (!esArmasPunzocortantes) {
-      return visibles;
+    if (esArmasPunzocortantes) {
+      const prioridad = {
+        sospecha_alcohol_agresor: 1,
+        embarazo_o_puerperio: 2,
+        principal_sitio_ocurrencia: 3,
+      };
+
+      return [...visibles].sort((a, b) => {
+        const idA =
+          a?.id ??
+          a?.indicador_id ??
+          '';
+        const idB =
+          b?.id ??
+          b?.indicador_id ??
+          '';
+
+        return (
+          (prioridad[idA] ?? 99) -
+          (prioridad[idB] ?? 99)
+        );
+      });
     }
 
-    const prioridad = {
-      sospecha_alcohol_agresor: 1,
-      embarazo_o_puerperio: 2,
-      principal_sitio_ocurrencia: 3,
-    };
+    if (esMaltratoNegligencia) {
+      const prioridad = {
+        sospecha_alcohol_agresor: 1,
+        agresion_repetida: 2,
+        principal_sitio_ocurrencia: 3,
+      };
 
-    return [...visibles].sort((a, b) => {
-      const idA =
-        a?.id ??
-        a?.indicador_id ??
-        '';
-      const idB =
-        b?.id ??
-        b?.indicador_id ??
-        '';
+      return [...visibles].sort((a, b) => {
+        const idA =
+          a?.id ??
+          a?.indicador_id ??
+          '';
+        const idB =
+          b?.id ??
+          b?.indicador_id ??
+          '';
 
-      return (
-        (prioridad[idA] ?? 99) -
-        (prioridad[idB] ?? 99)
-      );
-    });
+        return (
+          (prioridad[idA] ?? 99) -
+          (prioridad[idB] ?? 99)
+        );
+      });
+    }
+
+    return visibles;
   }, [
     bulletsVisibles,
     esTransporte,
     esArmasPunzocortantes,
+    esMaltratoNegligencia,
   ]);
 
   const perfilEdadSexo = useMemo(() => {
@@ -3473,7 +3501,7 @@ function App() {
                           item?.indicador_id === 'principal_mecanismo_lesion_accidental' ||
                           item?.indicador === 'Principal mecanismo de la lesión accidental' ||
                           (
-                            esArmasPunzocortantes &&
+                            (esArmasPunzocortantes || esMaltratoNegligencia) &&
                             (
                               item?.id === 'principal_sitio_ocurrencia' ||
                               item?.indicador_id === 'principal_sitio_ocurrencia' ||
@@ -4643,7 +4671,7 @@ const styles = {
 
   sidebarBulletCardWide: {
     gridColumn: '1 / -1',
-    minHeight: '96px',
+    minHeight: '104px',
   },
 
   sidebarBulletLabel: {
