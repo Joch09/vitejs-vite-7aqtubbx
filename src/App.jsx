@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.9: mantiene el ajuste de Armas/punzocortantes y agrega el mismo criterio visual para Fuerza/contundente, maltrato y negligencia: sitio de ocurrencia ancho abajo y agresión repetida arriba.
+// V9.10: mantiene los ajustes previos y agrega el mismo criterio visual para Otros mecanismos específicos: sitio de ocurrencia ancho abajo y embarazo/puerperio arriba.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2601,6 +2601,9 @@ function App() {
   const esMaltratoNegligencia =
     tipo === 'Fuerza/contundente, maltrato y negligencia';
 
+  const esOtrosMecanismos =
+    tipo === 'Otros mecanismos específicos';
+
   const categoriaConRolTransporte =
     categoria === 'Vehículos de motor' ||
     categoria === 'Motocicletas';
@@ -2734,12 +2737,37 @@ function App() {
       });
     }
 
+    if (esOtrosMecanismos) {
+      const prioridad = {
+        sospecha_alcohol_agresor: 1,
+        embarazo_o_puerperio: 2,
+        principal_sitio_ocurrencia: 3,
+      };
+
+      return [...visibles].sort((a, b) => {
+        const idA =
+          a?.id ??
+          a?.indicador_id ??
+          '';
+        const idB =
+          b?.id ??
+          b?.indicador_id ??
+          '';
+
+        return (
+          (prioridad[idA] ?? 99) -
+          (prioridad[idB] ?? 99)
+        );
+      });
+    }
+
     return visibles;
   }, [
     bulletsVisibles,
     esTransporte,
     esArmasPunzocortantes,
     esMaltratoNegligencia,
+    esOtrosMecanismos,
   ]);
 
   const perfilEdadSexo = useMemo(() => {
@@ -3501,7 +3529,7 @@ function App() {
                           item?.indicador_id === 'principal_mecanismo_lesion_accidental' ||
                           item?.indicador === 'Principal mecanismo de la lesión accidental' ||
                           (
-                            (esArmasPunzocortantes || esMaltratoNegligencia) &&
+                            (esArmasPunzocortantes || esMaltratoNegligencia || esOtrosMecanismos) &&
                             (
                               item?.id === 'principal_sitio_ocurrencia' ||
                               item?.indicador_id === 'principal_sitio_ocurrencia' ||
