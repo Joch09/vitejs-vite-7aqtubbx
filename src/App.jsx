@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.13.1: corrige cierre JSX; perfil ultracompacto y complementarias ocultas sin eliminar código.
+// V9.13.2: mantiene el perfil ultracompacto y aumenta la legibilidad de los valores numéricos de la pirámide.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -5208,7 +5208,7 @@ const styles = {
 
   pyramidWrap: {
     width: '100%',
-    maxWidth: '440px',
+    maxWidth: '520px',
     margin: '2px auto 0',
   },
 
@@ -5257,16 +5257,16 @@ const styles = {
   pyramidLeft: {
     display: 'grid',
     gridTemplateColumns:
-      '34px minmax(65px, 1fr)',
-    gap: '4px',
+      '46px minmax(65px, 1fr)',
+    gap: '5px',
     alignItems: 'center',
   },
 
   pyramidRight: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(65px, 1fr) 34px',
-    gap: '4px',
+      'minmax(65px, 1fr) 46px',
+    gap: '5px',
     alignItems: 'center',
   },
 
@@ -5310,14 +5310,16 @@ const styles = {
 
   pyramidValueLeft: {
     textAlign: 'right',
-    fontSize: '7px',
+    fontSize: '9px',
+    fontWeight: 600,
     color: '#667085',
     fontVariantNumeric: 'tabular-nums',
   },
 
   pyramidValueRight: {
     textAlign: 'left',
-    fontSize: '7px',
+    fontSize: '9px',
+    fontWeight: 600,
     color: '#667085',
     fontVariantNumeric: 'tabular-nums',
   },
