@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.11: ajustes visuales finales: logo de Coordinación más pequeño; Área anatómica y Consecuencia suben; Edad y sexo baja.
+// V9.12: perfil descriptivo final: pirámide compacta a la izquierda; área anatómica y consecuencia de mayor gravedad a la derecha; edades 100+ a 0-4; barras ordenadas de mayor a menor.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2860,8 +2860,33 @@ function App() {
         }
       });
 
+      const valorOrdenEdad = (grupo) => {
+        const texto = String(
+          grupo ?? ''
+        ).trim();
+
+        const coincidencia =
+          texto.match(/\d+/);
+
+        if (!coincidencia) {
+          return Number.NEGATIVE_INFINITY;
+        }
+
+        return Number(
+          coincidencia[0]
+        );
+      };
+
       return Array.from(
         grupos.values()
+      ).sort(
+        (a, b) =>
+          valorOrdenEdad(
+            b.grupo
+          ) -
+          valorOrdenEdad(
+            a.grupo
+          )
       );
     } catch (error) {
       console.error(
@@ -2938,6 +2963,10 @@ function App() {
             Number.isFinite(
               item.value
             )
+        )
+        .sort(
+          (a, b) =>
+            b.value - a.value
         );
     } catch (error) {
       console.error(
@@ -3000,6 +3029,10 @@ function App() {
             Number.isFinite(
               item.value
             )
+        )
+        .sort(
+          (a, b) =>
+            b.value - a.value
         );
     } catch (error) {
       console.error(
@@ -3972,163 +4005,15 @@ function App() {
 
           <div style={styles.profileGrid}>
             {/* --------------------------------------------------------- */}
-            {/* ÁREA ANATÓMICA */}
-            {/* --------------------------------------------------------- */}
-
-            <div style={styles.profilePanel}>
-              <h3 style={styles.profilePanelTitle}>
-                Área anatómica
-              </h3>
-
-              <div style={styles.profilePanelNote}>
-                Distribución porcentual acumulada.
-              </div>
-
-              {tipo === 'TODOS' ? (
-                <div style={styles.profileEmpty}>
-                  Selecciona un tipo para consultar el perfil por área anatómica.
-                </div>
-              ) : loadingBullets ? (
-                <div style={styles.profileEmpty}>
-                  Cargando perfil...
-                </div>
-              ) : perfilAreaAnatomica.length === 0 ? (
-                <div style={styles.profileEmpty}>
-                  No hay información de área anatómica para la selección actual.
-                </div>
-              ) : (
-                <div style={styles.areaList}>
-                  {perfilAreaAnatomica.map(
-                    (item) => {
-                      const ancho =
-                        `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            item.value
-                          )
-                        )}%`;
-
-                      return (
-                        <div
-                          key={item.id}
-                          style={styles.areaRow}
-                        >
-                          <div style={styles.areaTop}>
-                            <span style={styles.areaLabel}>
-                              {item.etiqueta}
-                            </span>
-
-                            <strong style={styles.areaValue}>
-                              {new Intl.NumberFormat(
-                                'es-MX',
-                                {
-                                  minimumFractionDigits:
-                                    0,
-                                  maximumFractionDigits:
-                                    1,
-                                }
-                              ).format(
-                                item.value
-                              )}
-                              %
-                            </strong>
-                          </div>
-
-                          <div style={styles.areaTrack}>
-                            <div
-                              style={{
-                                ...styles.areaBar,
-                                width: ancho,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    }
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* --------------------------------------------------------- */}
-            {/* CONSECUENCIA */}
-            {/* --------------------------------------------------------- */}
-
-            <div style={styles.profilePanel}>
-              <h3 style={styles.profilePanelTitle}>
-                Consecuencia
-              </h3>
-
-              <div style={styles.profilePanelNote}>
-                Distribución porcentual acumulada.
-              </div>
-
-              {tipo === 'TODOS' ? (
-                <div style={styles.profileEmpty}>
-                  Selecciona un tipo para consultar el perfil de consecuencia.
-                </div>
-              ) : loadingBullets ? (
-                <div style={styles.profileEmpty}>
-                  Cargando perfil...
-                </div>
-              ) : perfilConsecuencia.length === 0 ? (
-                <div style={styles.profileEmpty}>
-                  No hay información de consecuencia para la selección actual.
-                </div>
-              ) : (
-                <div style={styles.consequenceGrid}>
-                  {perfilConsecuencia.map(
-                    (item) => (
-                      <div
-                        key={item.id}
-                        style={styles.consequenceCard}
-                      >
-                        <div style={styles.consequenceValue}>
-                          {new Intl.NumberFormat(
-                            'es-MX',
-                            {
-                              minimumFractionDigits:
-                                0,
-                              maximumFractionDigits:
-                                1,
-                            }
-                          ).format(
-                            item.value
-                          )}
-                          %
-                        </div>
-
-                        <div style={styles.consequenceLabel}>
-                          {item.etiqueta}
-                        </div>
-
-                        <div style={styles.consequenceTrack}>
-                          <div
-                            style={{
-                              ...styles.consequenceBar,
-                              width: `${Math.max(
-                                0,
-                                Math.min(
-                                  100,
-                                  item.value
-                                )
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* --------------------------------------------------------- */}
             {/* EDAD Y SEXO */}
             {/* --------------------------------------------------------- */}
 
-            <div style={styles.profilePanelWide}>
+            <div
+              style={{
+                ...styles.profilePanel,
+                ...styles.profilePanelPyramid,
+              }}
+            >
               <div style={styles.profilePanelHeader}>
                 <div>
                   <h3 style={styles.profilePanelTitle}>
@@ -4275,6 +4160,166 @@ function App() {
                                 'es-MX'
                               )}
                             </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* --------------------------------------------------------- */}
+            {/* ÁREA ANATÓMICA */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanel}>
+              <h3 style={styles.profilePanelTitle}>
+                Área anatómica
+              </h3>
+
+              <div style={styles.profilePanelNote}>
+                Distribución porcentual acumulada.
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar el perfil por área anatómica.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfil...
+                </div>
+              ) : perfilAreaAnatomica.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay información de área anatómica para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.areaList}>
+                  {perfilAreaAnatomica.map(
+                    (item) => {
+                      const ancho =
+                        `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            item.value
+                          )
+                        )}%`;
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={styles.areaRow}
+                        >
+                          <div style={styles.areaTop}>
+                            <span style={styles.areaLabel}>
+                              {item.etiqueta}
+                            </span>
+
+                            <strong style={styles.areaValue}>
+                              {new Intl.NumberFormat(
+                                'es-MX',
+                                {
+                                  minimumFractionDigits:
+                                    0,
+                                  maximumFractionDigits:
+                                    1,
+                                }
+                              ).format(
+                                item.value
+                              )}
+                              %
+                            </strong>
+                          </div>
+
+                          <div style={styles.areaTrack}>
+                            <div
+                              style={{
+                                ...styles.areaBar,
+                                width: ancho,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* --------------------------------------------------------- */}
+            {/* CONSECUENCIA */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanel}>
+              <h3 style={styles.profilePanelTitle}>
+                Consecuencia de mayor gravedad
+              </h3>
+
+              <div style={styles.profilePanelNote}>
+                Distribución porcentual acumulada.
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar el perfil de consecuencia.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfil...
+                </div>
+              ) : perfilConsecuencia.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay información de consecuencia para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.areaList}>
+                  {perfilConsecuencia.map(
+                    (item) => {
+                      const ancho =
+                        `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            item.value
+                          )
+                        )}%`;
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={styles.areaRow}
+                        >
+                          <div style={styles.areaTop}>
+                            <span style={styles.areaLabel}>
+                              {item.etiqueta}
+                            </span>
+
+                            <strong style={styles.areaValue}>
+                              {new Intl.NumberFormat(
+                                'es-MX',
+                                {
+                                  minimumFractionDigits:
+                                    0,
+                                  maximumFractionDigits:
+                                    1,
+                                }
+                              ).format(
+                                item.value
+                              )}
+                              %
+                            </strong>
+                          </div>
+
+                          <div style={styles.areaTrack}>
+                            <div
+                              style={{
+                                ...styles.areaBar,
+                                width: ancho,
+                              }}
+                            />
                           </div>
                         </div>
                       );
@@ -5064,7 +5109,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '14px',
-    alignItems: 'start',
+    alignItems: 'stretch',
   },
 
   profilePanel: {
@@ -5073,6 +5118,12 @@ const styles = {
     borderRadius: '14px',
     padding: '16px',
     boxSizing: 'border-box',
+  },
+
+  profilePanelPyramid: {
+    gridColumn: '1',
+    gridRow: '1 / span 2',
+    alignSelf: 'stretch',
   },
 
   profilePanelWide: {
@@ -5146,14 +5197,14 @@ const styles = {
 
   pyramidWrap: {
     width: '100%',
-    maxWidth: '760px',
-    margin: '0 auto',
+    maxWidth: '500px',
+    margin: '4px auto 0',
   },
 
   pyramidHeader: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(170px, 1fr) 58px minmax(170px, 1fr)',
+      'minmax(120px, 1fr) 50px minmax(120px, 1fr)',
     gap: '7px',
     alignItems: 'center',
     marginBottom: '6px',
@@ -5185,17 +5236,17 @@ const styles = {
   pyramidRow: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(170px, 1fr) 58px minmax(170px, 1fr)',
+      'minmax(120px, 1fr) 50px minmax(120px, 1fr)',
     gap: '7px',
     alignItems: 'center',
-    minHeight: '22px',
-    marginBottom: '2px',
+    minHeight: '18px',
+    marginBottom: '1px',
   },
 
   pyramidLeft: {
     display: 'grid',
     gridTemplateColumns:
-      '52px minmax(90px, 1fr)',
+      '42px minmax(70px, 1fr)',
     gap: '6px',
     alignItems: 'center',
   },
@@ -5203,13 +5254,13 @@ const styles = {
   pyramidRight: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(90px, 1fr) 52px',
+      'minmax(70px, 1fr) 42px',
     gap: '6px',
     alignItems: 'center',
   },
 
   pyramidTrackLeft: {
-    height: '14px',
+    height: '10px',
     display: 'flex',
     justifyContent: 'flex-end',
     background: '#f0f1f3',
@@ -5218,7 +5269,7 @@ const styles = {
   },
 
   pyramidTrackRight: {
-    height: '14px',
+    height: '10px',
     display: 'flex',
     justifyContent: 'flex-start',
     background: '#f0f1f3',
@@ -5240,7 +5291,7 @@ const styles = {
 
   pyramidAge: {
     textAlign: 'center',
-    fontSize: '10px',
+    fontSize: '9px',
     fontWeight: 800,
     color: '#003b35',
     whiteSpace: 'nowrap',
@@ -5248,14 +5299,14 @@ const styles = {
 
   pyramidValueLeft: {
     textAlign: 'right',
-    fontSize: '9px',
+    fontSize: '8px',
     color: '#667085',
     fontVariantNumeric: 'tabular-nums',
   },
 
   pyramidValueRight: {
     textAlign: 'left',
-    fontSize: '9px',
+    fontSize: '8px',
     color: '#667085',
     fontVariantNumeric: 'tabular-nums',
   },
