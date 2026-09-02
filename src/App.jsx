@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.6: tarjeta de Principal mecanismo a ancho completo.
+// V9.7: soporte para tarjeta agrupada de Parentesco con el agresor.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2650,16 +2650,35 @@ function App() {
     categoriaConRolTransporte,
   ]);
 
-  const bulletsSimples = useMemo(() => {
-    if (!esTransporte) {
-      return bulletsVisibles;
-    }
-
+  const parentescoAgresor = useMemo(() => {
     return bulletsVisibles.filter(
       (item) =>
-        item?.grupo !==
-        'rol_persona_lesionada'
+        item?.grupo ===
+        'parentesco_agresor'
     );
+  }, [
+    bulletsVisibles,
+  ]);
+
+  const bulletsSimples = useMemo(() => {
+    return bulletsVisibles.filter((item) => {
+      if (
+        item?.grupo ===
+        'parentesco_agresor'
+      ) {
+        return false;
+      }
+
+      if (
+        esTransporte &&
+        item?.grupo ===
+        'rol_persona_lesionada'
+      ) {
+        return false;
+      }
+
+      return true;
+    });
   }, [
     bulletsVisibles,
     esTransporte,
@@ -3344,6 +3363,57 @@ function App() {
                             <div
                               style={
                                 styles.sidebarRoleValue
+                              }
+                            >
+                              {formatBulletValue(
+                                item.value
+                              )}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {parentescoAgresor.length > 0 && (
+                  <div
+                    style={styles.sidebarKinshipCard}
+                  >
+                    <div
+                      style={styles.sidebarKinshipTitle}
+                    >
+                      {parentescoAgresor?.[0]?.grupo_titulo ??
+                        'Parentesco con el agresor'}
+                    </div>
+
+                    <div
+                      style={styles.sidebarKinshipGrid}
+                    >
+                      {parentescoAgresor.map(
+                        (item, index) => (
+                          <div
+                            key={
+                              item.id ??
+                              item.indicador_id ??
+                              item.indicador ??
+                              index
+                            }
+                            style={
+                              styles.sidebarKinshipItem
+                            }
+                          >
+                            <div
+                              style={
+                                styles.sidebarKinshipLabel
+                              }
+                            >
+                              {item.indicador}
+                            </div>
+
+                            <div
+                              style={
+                                styles.sidebarKinshipValue
                               }
                             >
                               {formatBulletValue(
@@ -4462,6 +4532,57 @@ const styles = {
   },
 
   sidebarRoleValue: {
+    marginTop: '5px',
+    fontSize: '18px',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#7b1e3a',
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  sidebarKinshipCard: {
+    gridColumn: '1 / -1',
+    border: '1px solid #8d8d8d',
+    borderRadius: '15px',
+    padding: '12px 13px',
+    background: '#ffffff',
+    boxSizing: 'border-box',
+  },
+
+  sidebarKinshipTitle: {
+    marginBottom: '10px',
+    fontSize: '11px',
+    lineHeight: 1.2,
+    fontWeight: 800,
+    color: '#003b35',
+  },
+
+  sidebarKinshipGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '7px',
+  },
+
+  sidebarKinshipItem: {
+    minWidth: 0,
+    borderRadius: '10px',
+    padding: '8px 7px',
+    background: '#f8f6f2',
+    textAlign: 'center',
+  },
+
+  sidebarKinshipLabel: {
+    minHeight: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '9px',
+    lineHeight: 1.15,
+    fontWeight: 700,
+    color: '#5f5f5f',
+  },
+
+  sidebarKinshipValue: {
     marginTop: '5px',
     fontSize: '18px',
     lineHeight: 1,
