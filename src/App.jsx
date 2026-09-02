@@ -3371,14 +3371,24 @@ function App() {
                           'Indicador'}
                       </div>
 
-                      <div style={styles.sidebarBulletValue}>
-                        {formatBulletValue(
-                          item.value
-                        )}
+                      <div
+                        style={
+                          item?.modo === 'nominal'
+                            ? styles.sidebarBulletValueNominal
+                            : styles.sidebarBulletValue
+                        }
+                      >
+                        {item?.modo === 'nominal'
+                          ? item?.text ?? '—'
+                          : formatBulletValue(
+                              item.value
+                            )}
                       </div>
 
                       <div style={styles.sidebarBulletCaption}>
-                        de los registros seleccionados
+                        {item?.modo === 'nominal'
+                          ? 'para la selección actual'
+                          : 'de los registros seleccionados'}
                       </div>
                     </div>
                   )
@@ -4475,6 +4485,15 @@ const styles = {
     fontWeight: 800,
     color: '#7b1e3a',
     fontVariantNumeric: 'tabular-nums',
+  },
+
+  sidebarBulletValueNominal: {
+    marginTop: '7px',
+    fontSize: '19px',
+    lineHeight: 1.15,
+    fontWeight: 800,
+    color: '#7b1e3a',
+    overflowWrap: 'anywhere',
   },
 
   sidebarBulletCaption: {
