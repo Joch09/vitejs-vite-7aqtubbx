@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.13.2: mantiene el perfil ultracompacto y aumenta la legibilidad de los valores numéricos de la pirámide.
+// V9.13.3: corrección exclusiva del autozoom municipal de Colima.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -340,26 +340,44 @@ function collectCoordinates(coords, target) {
   );
 }
 
-function createProjection(features, padding = MAP_PADDING) {
-  const points = [];
+function createProjection(
+  features,
+  padding = MAP_PADDING,
+  entityCode = null
+) {
+  const allPoints = [];
 
   features.forEach((feature) => {
     collectCoordinates(
       feature?.geometry?.coordinates,
-      points
+      allPoints
     );
   });
 
-  if (points.length === 0) {
+  if (allPoints.length === 0) {
     return null;
   }
+
+  // Colima (06) incluye geometrías insulares muy alejadas del territorio
+  // continental. Esas coordenadas deforman el autozoom municipal y hacen que
+  // el estado se vea diminuto. Para el ENCUADRE únicamente, usamos los puntos
+  // del territorio continental. Las geometrías y los datos permanecen intactos.
+  const points =
+    entityCode === '06'
+      ? allPoints.filter(([lon]) => lon > -106)
+      : allPoints;
+
+  const projectionPoints =
+    points.length > 0
+      ? points
+      : allPoints;
 
   let minLon = Infinity;
   let maxLon = -Infinity;
   let minLat = Infinity;
   let maxLat = -Infinity;
 
-  points.forEach(([lon, lat]) => {
+  projectionPoints.forEach(([lon, lat]) => {
     minLon = Math.min(minLon, lon);
     maxLon = Math.max(maxLon, lon);
     minLat = Math.min(minLat, lat);
@@ -1110,8 +1128,16 @@ function MunicipalChoropleth({
   }, [allStateFeatures, entityCode]);
 
   const projection = useMemo(
-    () => createProjection(visibleMunicipalFeatures, 8),
-    [visibleMunicipalFeatures]
+    () =>
+      createProjection(
+        visibleMunicipalFeatures,
+        8,
+        entityCode
+      ),
+    [
+      visibleMunicipalFeatures,
+      entityCode,
+    ]
   );
 
   const recordByCvegeo = useMemo(() => {
