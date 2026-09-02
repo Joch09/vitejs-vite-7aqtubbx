@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.7: soporte para tarjeta agrupada de Parentesco con el agresor.
+// V9.8: en Armas/punzocortantes, alcohol + embarazo arriba y sitio ancho abajo.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2595,6 +2595,9 @@ function App() {
   const esTransporte =
     tipo === 'Accidentes de transporte';
 
+  const esArmasPunzocortantes =
+    tipo === 'Armas de fuego y punzocortantes';
+
   const categoriaConRolTransporte =
     categoria === 'Vehículos de motor' ||
     categoria === 'Motocicletas';
@@ -2661,7 +2664,7 @@ function App() {
   ]);
 
   const bulletsSimples = useMemo(() => {
-    return bulletsVisibles.filter((item) => {
+    const visibles = bulletsVisibles.filter((item) => {
       if (
         item?.grupo ===
         'parentesco_agresor'
@@ -2679,9 +2682,36 @@ function App() {
 
       return true;
     });
+
+    if (!esArmasPunzocortantes) {
+      return visibles;
+    }
+
+    const prioridad = {
+      sospecha_alcohol_agresor: 1,
+      embarazo_o_puerperio: 2,
+      principal_sitio_ocurrencia: 3,
+    };
+
+    return [...visibles].sort((a, b) => {
+      const idA =
+        a?.id ??
+        a?.indicador_id ??
+        '';
+      const idB =
+        b?.id ??
+        b?.indicador_id ??
+        '';
+
+      return (
+        (prioridad[idA] ?? 99) -
+        (prioridad[idB] ?? 99)
+      );
+    });
   }, [
     bulletsVisibles,
     esTransporte,
+    esArmasPunzocortantes,
   ]);
 
   const perfilEdadSexo = useMemo(() => {
@@ -3441,7 +3471,15 @@ function App() {
                         ...(
                           item?.id === 'principal_mecanismo_lesion_accidental' ||
                           item?.indicador_id === 'principal_mecanismo_lesion_accidental' ||
-                          item?.indicador === 'Principal mecanismo de la lesión accidental'
+                          item?.indicador === 'Principal mecanismo de la lesión accidental' ||
+                          (
+                            esArmasPunzocortantes &&
+                            (
+                              item?.id === 'principal_sitio_ocurrencia' ||
+                              item?.indicador_id === 'principal_sitio_ocurrencia' ||
+                              item?.indicador === 'Principal sitio de ocurrencia'
+                            )
+                          )
                             ? styles.sidebarBulletCardWide
                             : {}
                         ),
