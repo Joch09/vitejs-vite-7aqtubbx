@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.13.3: corrección exclusiva del autozoom municipal de Colima.
+// V9.14: ajustes editoriales finales solicitados en indicadores, mapa y perfil.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -531,6 +531,86 @@ function formatBulletValue(value) {
       maximumFractionDigits: 1,
     }
   ).format(number)}%`;
+}
+
+function getBulletId(item) {
+  return (
+    item?.id ??
+    item?.indicador_id ??
+    ''
+  );
+}
+
+function getBulletDisplayLabel(item, tipo) {
+  const id = getBulletId(item);
+  const indicador = item?.indicador ?? '';
+
+  if (
+    id === 'principal_sitio_ocurrencia' ||
+    indicador === 'Principal sitio de ocurrencia'
+  ) {
+    return 'Principal sitio de ocurrencia:';
+  }
+
+  if (
+    id === 'principal_mecanismo_lesion_accidental' ||
+    indicador === 'Principal mecanismo de la lesión accidental'
+  ) {
+    return 'Principal mecanismo de lesión accidental:';
+  }
+
+  if (
+    id === 'embarazo_o_puerperio' ||
+    indicador === 'Embarazo o puerperio'
+  ) {
+    return 'Personas que se encontraban embarazadas o en puerperio:';
+  }
+
+  if (
+    id === 'sospecha_alcohol_agresor' ||
+    indicador === 'Sospecha de consumo de alcohol del agresor'
+  ) {
+    return 'Casos en los que el agresor estaba bajo los efectos del alcohol';
+  }
+
+  if (
+    id === 'sospecha_consumo_sustancias_drogas'
+  ) {
+    return 'Consumo de otras drogas';
+  }
+
+  if (
+    id === 'sospecha_consumo_alcohol' &&
+    tipo === 'Lesiones autoinfligidas'
+  ) {
+    return 'Consumo de alcohol';
+  }
+
+  if (
+    indicador === 'Discapacidad preexistente'
+  ) {
+    return 'Personas con discapacidad preexistente:';
+  }
+
+  return indicador || 'Indicador';
+}
+
+function isEquipmentSentence(item) {
+  return getBulletId(item) === 'no_uso_equipo_seguridad';
+}
+
+function isAccidentAlcoholSentence(item, tipo) {
+  const accidentTypes = new Set([
+    'Accidentes de transporte',
+    'Caídas',
+    'Fuerzas mecánicas y objetos',
+    'Exposición a sustancias y energías',
+  ]);
+
+  return (
+    getBulletId(item) === 'sospecha_consumo_alcohol' &&
+    accidentTypes.has(tipo)
+  );
 }
 
 function MexicoChoropleth({
@@ -1223,8 +1303,8 @@ function MunicipalChoropleth({
 
   const mapTitle =
     measure === 'mortalidad'
-      ? 'Distribución municipal de la mortalidad'
-      : 'Distribución municipal de la incidencia';
+      ? 'Distribución de la mortalidad'
+      : 'Distribución de la incidencia';
 
   const mapScope =
     !entityName || entityName === 'NACIONAL'
@@ -2634,6 +2714,9 @@ function App() {
   const esOtrosMecanismos =
     tipo === 'Otros mecanismos específicos';
 
+  const esAutoinfligidas =
+    tipo === 'Lesiones autoinfligidas';
+
   const categoriaConRolTransporte =
     categoria === 'Vehículos de motor' ||
     categoria === 'Motocicletas';
@@ -2791,6 +2874,31 @@ function App() {
       });
     }
 
+    if (esAutoinfligidas) {
+      const prioridad = {
+        principal_sitio_ocurrencia: 1,
+        embarazo_o_puerperio: 2,
+        sospecha_consumo_alcohol: 3,
+        sospecha_consumo_sustancias_drogas: 4,
+      };
+
+      return [...visibles].sort((a, b) => {
+        const idA =
+          a?.id ??
+          a?.indicador_id ??
+          '';
+        const idB =
+          b?.id ??
+          b?.indicador_id ??
+          '';
+
+        return (
+          (prioridad[idA] ?? 99) -
+          (prioridad[idB] ?? 99)
+        );
+      });
+    }
+
     return visibles;
   }, [
     bulletsVisibles,
@@ -2798,6 +2906,7 @@ function App() {
     esArmasPunzocortantes,
     esMaltratoNegligencia,
     esOtrosMecanismos,
+    esAutoinfligidas,
   ]);
 
   const perfilEdadSexo = useMemo(() => {
@@ -3453,10 +3562,6 @@ function App() {
 
             <div style={styles.filterDivider} />
 
-            <div style={styles.miniSectionTitle}>
-              Indicadores descriptivos
-            </div>
-
             {tipo === 'TODOS' ? (
               <div style={styles.sidebarEmpty}>
                 Selecciona un tipo para consultar sus indicadores.
@@ -3604,30 +3709,48 @@ function App() {
                         ),
                       }}
                     >
-                      <div style={styles.sidebarBulletLabel}>
-                        {item.indicador ??
-                          'Indicador'}
-                      </div>
+                      {isEquipmentSentence(item) ? (
+                        <div style={styles.sidebarSentenceBlock}>
+                          <span style={styles.sidebarSentenceValue}>
+                            {formatBulletValue(item.value)}
+                          </span>
+                          <span style={styles.sidebarSentenceText}>
+                            de las personas no usaban equipo de seguridad
+                          </span>
+                        </div>
+                      ) : isAccidentAlcoholSentence(item, tipo) ? (
+                        <div style={styles.sidebarSentenceBlock}>
+                          <span style={styles.sidebarSentenceText}>
+                            Consumo de alcohol en el
+                          </span>
+                          <span style={styles.sidebarSentenceValue}>
+                            {formatBulletValue(item.value)}
+                          </span>
+                          <span style={styles.sidebarSentenceText}>
+                            de los accidentados
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={styles.sidebarBulletLabel}>
+                            {getBulletDisplayLabel(item, tipo)}
+                          </div>
 
-                      <div
-                        style={
-                          item?.modo === 'nominal'
-                            ? styles.sidebarBulletValueNominal
-                            : styles.sidebarBulletValue
-                        }
-                      >
-                        {item?.modo === 'nominal'
-                          ? item?.text ?? '—'
-                          : formatBulletValue(
-                              item.value
-                            )}
-                      </div>
-
-                      <div style={styles.sidebarBulletCaption}>
-                        {item?.modo === 'nominal'
-                          ? 'para la selección actual'
-                          : 'de los registros seleccionados'}
-                      </div>
+                          <div
+                            style={
+                              item?.modo === 'nominal'
+                                ? styles.sidebarBulletValueNominal
+                                : styles.sidebarBulletValue
+                            }
+                          >
+                            {item?.modo === 'nominal'
+                              ? item?.text ?? '—'
+                              : formatBulletValue(
+                                  item.value
+                                )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )
                 )}
@@ -4047,7 +4170,7 @@ function App() {
               <div style={styles.profilePanelHeader}>
                 <div>
                   <h3 style={styles.profilePanelTitle}>
-                    Perfil por edad y sexo
+                    Grupo de edad y sexo
                   </h3>
 
                   <div style={styles.profilePanelNote}>
@@ -4205,12 +4328,8 @@ function App() {
 
             <div style={styles.profilePanel}>
               <h3 style={styles.profilePanelTitle}>
-                Área anatómica
+                Frecuencia de lesiones por área anatómica
               </h3>
-
-              <div style={styles.profilePanelNote}>
-                Distribución porcentual acumulada.
-              </div>
 
               {tipo === 'TODOS' ? (
                 <div style={styles.profileEmpty}>
@@ -4287,10 +4406,6 @@ function App() {
               <h3 style={styles.profilePanelTitle}>
                 Consecuencia de mayor gravedad
               </h3>
-
-              <div style={styles.profilePanelNote}>
-                Distribución porcentual acumulada.
-              </div>
 
               {tipo === 'TODOS' ? (
                 <div style={styles.profileEmpty}>
@@ -4755,7 +4870,7 @@ const styles = {
     fontSize: '9px',
     lineHeight: 1.15,
     fontWeight: 700,
-    color: '#5f5f5f',
+    color: '#000000',
   },
 
   sidebarKinshipValue: {
@@ -4768,7 +4883,7 @@ const styles = {
   },
 
   sidebarBulletCard: {
-    minHeight: '92px',
+    minHeight: '82px',
     border: '1px solid #8d8d8d',
     borderRadius: '15px',
     padding: '11px 13px',
@@ -4776,12 +4891,12 @@ const styles = {
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
 
   sidebarBulletCardWide: {
     gridColumn: '1 / -1',
-    minHeight: '104px',
+    minHeight: '88px',
   },
 
   sidebarBulletLabel: {
@@ -4809,11 +4924,25 @@ const styles = {
     overflowWrap: 'anywhere',
   },
 
-  sidebarBulletCaption: {
-    marginTop: '3px',
-    fontSize: '9px',
-    lineHeight: 1.15,
-    color: '#777777',
+  sidebarSentenceBlock: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    gap: '3px 4px',
+    lineHeight: 1.18,
+  },
+
+  sidebarSentenceValue: {
+    fontSize: '22px',
+    fontWeight: 800,
+    color: '#7b1e3a',
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  sidebarSentenceText: {
+    fontSize: '11px',
+    fontWeight: 800,
+    color: '#003b35',
   },
 
   sidebarEmpty: {
