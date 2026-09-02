@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.12: perfil descriptivo final: pirámide compacta a la izquierda; área anatómica y consecuencia de mayor gravedad a la derecha; edades 100+ a 0-4; barras ordenadas de mayor a menor.
+// V9.13: perfil ultracompacto y distribuciones complementarias ocultas.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -37,6 +37,10 @@ import {
 // - SE 1 inicia el 04-ene-2026.
 // - Las semanas epidemiológicas corren de domingo a sábado.
 //
+// Distribuciones complementarias conservadas en código, ocultas en UI.
+// Cambiar a true si se requiere reactivarlas posteriormente.
+const MOSTRAR_DISTRIBUCIONES_COMPLEMENTARIAS = false;
+
 const TEMPORAL_QUARTERS_2026 = [
   {
     value: 'T1',
@@ -4329,7 +4333,9 @@ function App() {
               )}
             </div>
 
-            {/* --------------------------------------------------------- */}
+            {MOSTRAR_DISTRIBUCIONES_COMPLEMENTARIAS && (
+              <>
+                {/* --------------------------------------------------------- */}
             {/* DISTRIBUCIONES COMPLEMENTARIAS */}
             {/* --------------------------------------------------------- */}
 
@@ -4417,6 +4423,9 @@ function App() {
                   )}
                 </div>
               )}
+              </>
+            )}
+
             </div>
           </div>
         </section>
@@ -5107,31 +5116,31 @@ const styles = {
 
   profileGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '14px',
-    alignItems: 'stretch',
+    gridTemplateColumns: '0.92fr 1.08fr',
+    gap: '10px',
+    alignItems: 'start',
   },
 
   profilePanel: {
     background: '#ffffff',
     border: '1px solid #d7d7d7',
-    borderRadius: '14px',
-    padding: '16px',
+    borderRadius: '12px',
+    padding: '12px 13px',
     boxSizing: 'border-box',
   },
 
   profilePanelPyramid: {
     gridColumn: '1',
     gridRow: '1 / span 2',
-    alignSelf: 'stretch',
+    alignSelf: 'start',
   },
 
   profilePanelWide: {
     gridColumn: '1 / -1',
     background: '#ffffff',
     border: '1px solid #d7d7d7',
-    borderRadius: '14px',
-    padding: '16px',
+    borderRadius: '12px',
+    padding: '12px 13px',
     boxSizing: 'border-box',
   },
 
@@ -5139,20 +5148,20 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: '14px',
-    marginBottom: '12px',
+    gap: '10px',
+    marginBottom: '7px',
   },
 
   profilePanelTitle: {
-    margin: '0 0 5px',
-    fontSize: '14px',
+    margin: '0 0 3px',
+    fontSize: '13px',
     fontWeight: 800,
     color: '#003b35',
   },
 
   profilePanelNote: {
-    marginBottom: '12px',
-    fontSize: '10px',
+    marginBottom: '7px',
+    fontSize: '9px',
     color: '#667085',
   },
 
@@ -5197,38 +5206,38 @@ const styles = {
 
   pyramidWrap: {
     width: '100%',
-    maxWidth: '500px',
-    margin: '4px auto 0',
+    maxWidth: '440px',
+    margin: '2px auto 0',
   },
 
   pyramidHeader: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(120px, 1fr) 50px minmax(120px, 1fr)',
-    gap: '7px',
+      'minmax(105px, 1fr) 44px minmax(105px, 1fr)',
+    gap: '5px',
     alignItems: 'center',
-    marginBottom: '6px',
-    paddingBottom: '7px',
+    marginBottom: '4px',
+    paddingBottom: '4px',
     borderBottom: '1px solid #eeeeee',
   },
 
   pyramidSideHeaderLeft: {
     textAlign: 'right',
-    fontSize: '10px',
+    fontSize: '9px',
     fontWeight: 700,
     color: '#667085',
   },
 
   pyramidSideHeaderRight: {
     textAlign: 'left',
-    fontSize: '10px',
+    fontSize: '9px',
     fontWeight: 700,
     color: '#667085',
   },
 
   pyramidAgeHeader: {
     textAlign: 'center',
-    fontSize: '10px',
+    fontSize: '9px',
     fontWeight: 700,
     color: '#667085',
   },
@@ -5236,31 +5245,31 @@ const styles = {
   pyramidRow: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(120px, 1fr) 50px minmax(120px, 1fr)',
-    gap: '7px',
+      'minmax(105px, 1fr) 44px minmax(105px, 1fr)',
+    gap: '5px',
     alignItems: 'center',
-    minHeight: '18px',
-    marginBottom: '1px',
+    minHeight: '14px',
+    marginBottom: 0,
   },
 
   pyramidLeft: {
     display: 'grid',
     gridTemplateColumns:
-      '42px minmax(70px, 1fr)',
-    gap: '6px',
+      '34px minmax(65px, 1fr)',
+    gap: '4px',
     alignItems: 'center',
   },
 
   pyramidRight: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(70px, 1fr) 42px',
-    gap: '6px',
+      'minmax(65px, 1fr) 34px',
+    gap: '4px',
     alignItems: 'center',
   },
 
   pyramidTrackLeft: {
-    height: '10px',
+    height: '7px',
     display: 'flex',
     justifyContent: 'flex-end',
     background: '#f0f1f3',
@@ -5269,7 +5278,7 @@ const styles = {
   },
 
   pyramidTrackRight: {
-    height: '10px',
+    height: '7px',
     display: 'flex',
     justifyContent: 'flex-start',
     background: '#f0f1f3',
@@ -5291,7 +5300,7 @@ const styles = {
 
   pyramidAge: {
     textAlign: 'center',
-    fontSize: '9px',
+    fontSize: '8px',
     fontWeight: 800,
     color: '#003b35',
     whiteSpace: 'nowrap',
@@ -5299,14 +5308,14 @@ const styles = {
 
   pyramidValueLeft: {
     textAlign: 'right',
-    fontSize: '8px',
+    fontSize: '7px',
     color: '#667085',
     fontVariantNumeric: 'tabular-nums',
   },
 
   pyramidValueRight: {
     textAlign: 'left',
-    fontSize: '8px',
+    fontSize: '7px',
     color: '#667085',
     fontVariantNumeric: 'tabular-nums',
   },
@@ -5314,7 +5323,7 @@ const styles = {
   areaList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '11px',
+    gap: '7px',
   },
 
   areaRow: {
@@ -5325,19 +5334,19 @@ const styles = {
     display: 'flex',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    gap: '14px',
-    marginBottom: '5px',
+    gap: '10px',
+    marginBottom: '3px',
   },
 
   areaLabel: {
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 700,
     color: '#003b35',
-    lineHeight: 1.3,
+    lineHeight: 1.2,
   },
 
   areaValue: {
-    fontSize: '10px',
+    fontSize: '9px',
     color: '#7b1e3a',
     fontVariantNumeric: 'tabular-nums',
     whiteSpace: 'nowrap',
@@ -5345,7 +5354,7 @@ const styles = {
 
   areaTrack: {
     width: '100%',
-    height: '10px',
+    height: '7px',
     background: '#f0f1f3',
     borderRadius: '999px',
     overflow: 'hidden',
