@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.10: mantiene los ajustes previos y agrega el mismo criterio visual para Otros mecanismos específicos: sitio de ocurrencia ancho abajo y embarazo/puerperio arriba.
+// V9.11: ajustes visuales finales: logo de Coordinación más pequeño; Área anatómica y Consecuencia suben; Edad y sexo baja.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -3972,6 +3972,159 @@ function App() {
 
           <div style={styles.profileGrid}>
             {/* --------------------------------------------------------- */}
+            {/* ÁREA ANATÓMICA */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanel}>
+              <h3 style={styles.profilePanelTitle}>
+                Área anatómica
+              </h3>
+
+              <div style={styles.profilePanelNote}>
+                Distribución porcentual acumulada.
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar el perfil por área anatómica.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfil...
+                </div>
+              ) : perfilAreaAnatomica.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay información de área anatómica para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.areaList}>
+                  {perfilAreaAnatomica.map(
+                    (item) => {
+                      const ancho =
+                        `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            item.value
+                          )
+                        )}%`;
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={styles.areaRow}
+                        >
+                          <div style={styles.areaTop}>
+                            <span style={styles.areaLabel}>
+                              {item.etiqueta}
+                            </span>
+
+                            <strong style={styles.areaValue}>
+                              {new Intl.NumberFormat(
+                                'es-MX',
+                                {
+                                  minimumFractionDigits:
+                                    0,
+                                  maximumFractionDigits:
+                                    1,
+                                }
+                              ).format(
+                                item.value
+                              )}
+                              %
+                            </strong>
+                          </div>
+
+                          <div style={styles.areaTrack}>
+                            <div
+                              style={{
+                                ...styles.areaBar,
+                                width: ancho,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* --------------------------------------------------------- */}
+            {/* CONSECUENCIA */}
+            {/* --------------------------------------------------------- */}
+
+            <div style={styles.profilePanel}>
+              <h3 style={styles.profilePanelTitle}>
+                Consecuencia
+              </h3>
+
+              <div style={styles.profilePanelNote}>
+                Distribución porcentual acumulada.
+              </div>
+
+              {tipo === 'TODOS' ? (
+                <div style={styles.profileEmpty}>
+                  Selecciona un tipo para consultar el perfil de consecuencia.
+                </div>
+              ) : loadingBullets ? (
+                <div style={styles.profileEmpty}>
+                  Cargando perfil...
+                </div>
+              ) : perfilConsecuencia.length === 0 ? (
+                <div style={styles.profileEmpty}>
+                  No hay información de consecuencia para la selección actual.
+                </div>
+              ) : (
+                <div style={styles.consequenceGrid}>
+                  {perfilConsecuencia.map(
+                    (item) => (
+                      <div
+                        key={item.id}
+                        style={styles.consequenceCard}
+                      >
+                        <div style={styles.consequenceValue}>
+                          {new Intl.NumberFormat(
+                            'es-MX',
+                            {
+                              minimumFractionDigits:
+                                0,
+                              maximumFractionDigits:
+                                1,
+                            }
+                          ).format(
+                            item.value
+                          )}
+                          %
+                        </div>
+
+                        <div style={styles.consequenceLabel}>
+                          {item.etiqueta}
+                        </div>
+
+                        <div style={styles.consequenceTrack}>
+                          <div
+                            style={{
+                              ...styles.consequenceBar,
+                              width: `${Math.max(
+                                0,
+                                Math.min(
+                                  100,
+                                  item.value
+                                )
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* --------------------------------------------------------- */}
             {/* EDAD Y SEXO */}
             {/* --------------------------------------------------------- */}
 
@@ -4126,159 +4279,6 @@ function App() {
                         </div>
                       );
                     }
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* --------------------------------------------------------- */}
-            {/* ÁREA ANATÓMICA */}
-            {/* --------------------------------------------------------- */}
-
-            <div style={styles.profilePanel}>
-              <h3 style={styles.profilePanelTitle}>
-                Área anatómica
-              </h3>
-
-              <div style={styles.profilePanelNote}>
-                Distribución porcentual acumulada.
-              </div>
-
-              {tipo === 'TODOS' ? (
-                <div style={styles.profileEmpty}>
-                  Selecciona un tipo para consultar el perfil por área anatómica.
-                </div>
-              ) : loadingBullets ? (
-                <div style={styles.profileEmpty}>
-                  Cargando perfil...
-                </div>
-              ) : perfilAreaAnatomica.length === 0 ? (
-                <div style={styles.profileEmpty}>
-                  No hay información de área anatómica para la selección actual.
-                </div>
-              ) : (
-                <div style={styles.areaList}>
-                  {perfilAreaAnatomica.map(
-                    (item) => {
-                      const ancho =
-                        `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            item.value
-                          )
-                        )}%`;
-
-                      return (
-                        <div
-                          key={item.id}
-                          style={styles.areaRow}
-                        >
-                          <div style={styles.areaTop}>
-                            <span style={styles.areaLabel}>
-                              {item.etiqueta}
-                            </span>
-
-                            <strong style={styles.areaValue}>
-                              {new Intl.NumberFormat(
-                                'es-MX',
-                                {
-                                  minimumFractionDigits:
-                                    0,
-                                  maximumFractionDigits:
-                                    1,
-                                }
-                              ).format(
-                                item.value
-                              )}
-                              %
-                            </strong>
-                          </div>
-
-                          <div style={styles.areaTrack}>
-                            <div
-                              style={{
-                                ...styles.areaBar,
-                                width: ancho,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    }
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* --------------------------------------------------------- */}
-            {/* CONSECUENCIA */}
-            {/* --------------------------------------------------------- */}
-
-            <div style={styles.profilePanel}>
-              <h3 style={styles.profilePanelTitle}>
-                Consecuencia
-              </h3>
-
-              <div style={styles.profilePanelNote}>
-                Distribución porcentual acumulada.
-              </div>
-
-              {tipo === 'TODOS' ? (
-                <div style={styles.profileEmpty}>
-                  Selecciona un tipo para consultar el perfil de consecuencia.
-                </div>
-              ) : loadingBullets ? (
-                <div style={styles.profileEmpty}>
-                  Cargando perfil...
-                </div>
-              ) : perfilConsecuencia.length === 0 ? (
-                <div style={styles.profileEmpty}>
-                  No hay información de consecuencia para la selección actual.
-                </div>
-              ) : (
-                <div style={styles.consequenceGrid}>
-                  {perfilConsecuencia.map(
-                    (item) => (
-                      <div
-                        key={item.id}
-                        style={styles.consequenceCard}
-                      >
-                        <div style={styles.consequenceValue}>
-                          {new Intl.NumberFormat(
-                            'es-MX',
-                            {
-                              minimumFractionDigits:
-                                0,
-                              maximumFractionDigits:
-                                1,
-                            }
-                          ).format(
-                            item.value
-                          )}
-                          %
-                        </div>
-
-                        <div style={styles.consequenceLabel}>
-                          {item.etiqueta}
-                        </div>
-
-                        <div style={styles.consequenceTrack}>
-                          <div
-                            style={{
-                              ...styles.consequenceBar,
-                              width: `${Math.max(
-                                0,
-                                Math.min(
-                                  100,
-                                  item.value
-                                )
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )
                   )}
                 </div>
               )}
@@ -4454,9 +4454,9 @@ const styles = {
 
   logoCoordinacion: {
     display: 'block',
-    width: 'clamp(300px, 28vw, 475px)',
+    width: 'clamp(250px, 23vw, 400px)',
     height: 'auto',
-    maxHeight: '65px',
+    maxHeight: '56px',
     objectFit: 'contain',
     objectPosition: 'right center',
   },
