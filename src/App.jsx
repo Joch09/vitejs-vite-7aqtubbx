@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.14: ajustes editoriales finales solicitados en indicadores, mapa y perfil.
+// V9.15: redacción narrativa global de bullets + etiquetas internas en negro.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -595,22 +595,98 @@ function getBulletDisplayLabel(item, tipo) {
   return indicador || 'Indicador';
 }
 
-function isEquipmentSentence(item) {
-  return getBulletId(item) === 'no_uso_equipo_seguridad';
-}
+function getBulletNarrative(item) {
+  if (item?.modo === 'nominal') {
+    return null;
+  }
 
-function isAccidentAlcoholSentence(item, tipo) {
-  const accidentTypes = new Set([
-    'Accidentes de transporte',
-    'Caídas',
-    'Fuerzas mecánicas y objetos',
-    'Exposición a sustancias y energías',
-  ]);
-
-  return (
-    getBulletId(item) === 'sospecha_consumo_alcohol' &&
-    accidentTypes.has(tipo)
+  const id = getBulletId(item);
+  const indicador = normalizeText(
+    item?.indicador ?? ''
   );
+
+  if (
+    id === 'no_uso_equipo_seguridad' ||
+    indicador.includes('equipo de seguridad')
+  ) {
+    return 'no usaban equipo de seguridad.';
+  }
+
+  if (
+    id === 'sospecha_alcohol_agresor' ||
+    (
+      indicador.includes('alcohol') &&
+      indicador.includes('agresor')
+    )
+  ) {
+    return 'el agresor consumió alcohol.';
+  }
+
+  if (
+    id === 'sospecha_consumo_alcohol' ||
+    indicador.includes('consumo de alcohol') ||
+    indicador.includes('alcohol')
+  ) {
+    return 'consumió alcohol.';
+  }
+
+  if (
+    indicador.includes('discapacidad preexistente')
+  ) {
+    return 'con discapacidad preexistente.';
+  }
+
+  if (
+    id === 'embarazo_o_puerperio' ||
+    indicador.includes('embarazo') ||
+    indicador.includes('puerperio')
+  ) {
+    return 'estaban embarazadas o en puerperio.';
+  }
+
+  if (
+    id === 'agresion_repetida' ||
+    indicador.includes('agresion repetida')
+  ) {
+    return 'fueron agresiones repetidas.';
+  }
+
+  if (
+    indicador.includes('profilaxis') &&
+    (
+      indicador.includes('vih') ||
+      indicador.includes('its')
+    )
+  ) {
+    return 'recibió profilaxis para VIH u otras ITS.';
+  }
+
+  if (
+    indicador.includes('anticoncepcion') &&
+    indicador.includes('emergencia')
+  ) {
+    return 'recibió anticoncepción de emergencia.';
+  }
+
+  if (
+    id === 'sospecha_consumo_sustancias_drogas' ||
+    indicador.includes('otras drogas') ||
+    indicador.includes('drogas')
+  ) {
+    return 'consumió otras sustancias.';
+  }
+
+  if (item?.indicador) {
+    const frase = String(item.indicador)
+      .trim()
+      .replace(/:$/, '');
+
+    if (frase) {
+      return `${frase.charAt(0).toLowerCase()}${frase.slice(1)}.`;
+    }
+  }
+
+  return null;
 }
 
 function MexicoChoropleth({
@@ -3709,47 +3785,26 @@ function App() {
                         ),
                       }}
                     >
-                      {isEquipmentSentence(item) ? (
-                        <div style={styles.sidebarSentenceBlock}>
-                          <span style={styles.sidebarSentenceValue}>
-                            {formatBulletValue(item.value)}
-                          </span>
-                          <span style={styles.sidebarSentenceText}>
-                            de las personas no usaban equipo de seguridad
-                          </span>
-                        </div>
-                      ) : isAccidentAlcoholSentence(item, tipo) ? (
-                        <div style={styles.sidebarSentenceBlock}>
-                          <span style={styles.sidebarSentenceText}>
-                            Consumo de alcohol en el
-                          </span>
-                          <span style={styles.sidebarSentenceValue}>
-                            {formatBulletValue(item.value)}
-                          </span>
-                          <span style={styles.sidebarSentenceText}>
-                            de los accidentados
-                          </span>
-                        </div>
-                      ) : (
+                      {item?.modo === 'nominal' ? (
                         <>
                           <div style={styles.sidebarBulletLabel}>
                             {getBulletDisplayLabel(item, tipo)}
                           </div>
 
-                          <div
-                            style={
-                              item?.modo === 'nominal'
-                                ? styles.sidebarBulletValueNominal
-                                : styles.sidebarBulletValue
-                            }
-                          >
-                            {item?.modo === 'nominal'
-                              ? item?.text ?? '—'
-                              : formatBulletValue(
-                                  item.value
-                                )}
+                          <div style={styles.sidebarBulletValueNominal}>
+                            {item?.text ?? '—'}
                           </div>
                         </>
+                      ) : (
+                        <div style={styles.sidebarNarrativeBlock}>
+                          <div style={styles.sidebarNarrativeValue}>
+                            {formatBulletValue(item.value)}
+                          </div>
+
+                          <div style={styles.sidebarNarrativeText}>
+                            {getBulletNarrative(item)}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )
@@ -4819,7 +4874,7 @@ const styles = {
     fontSize: '9px',
     lineHeight: 1.15,
     fontWeight: 700,
-    color: '#5f5f5f',
+    color: '#000000',
   },
 
   sidebarRoleValue: {
@@ -4924,25 +4979,27 @@ const styles = {
     overflowWrap: 'anywhere',
   },
 
-  sidebarSentenceBlock: {
+  sidebarNarrativeBlock: {
     display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    gap: '3px 4px',
-    lineHeight: 1.18,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    minHeight: '58px',
   },
 
-  sidebarSentenceValue: {
-    fontSize: '22px',
+  sidebarNarrativeValue: {
+    fontSize: '23px',
+    lineHeight: 1,
     fontWeight: 800,
     color: '#7b1e3a',
     fontVariantNumeric: 'tabular-nums',
   },
 
-  sidebarSentenceText: {
+  sidebarNarrativeText: {
+    marginTop: '7px',
     fontSize: '11px',
-    fontWeight: 800,
-    color: '#003b35',
+    lineHeight: 1.22,
+    fontWeight: 700,
+    color: '#000000',
   },
 
   sidebarEmpty: {
