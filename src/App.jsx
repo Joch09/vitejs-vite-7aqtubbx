@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.15: redacción narrativa global de bullets + etiquetas internas en negro.
+// V9.16: ajuste fino de bullets según diapositivas 6-8 + fuentes en cursiva Noto Sans Italic.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -593,6 +593,25 @@ function getBulletDisplayLabel(item, tipo) {
   }
 
   return indicador || 'Indicador';
+}
+
+function getBulletNarrativePrefix(item) {
+  const id = getBulletId(item);
+  const indicador = normalizeText(
+    item?.indicador ?? ''
+  );
+
+  if (
+    id === 'sospecha_alcohol_agresor' ||
+    (
+      indicador.includes('alcohol') &&
+      indicador.includes('agresor')
+    )
+  ) {
+    return 'En el';
+  }
+
+  return null;
 }
 
 function getBulletNarrative(item) {
@@ -3414,7 +3433,7 @@ function App() {
   return (
     <div style={styles.page}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap');
 
         html,
         body,
@@ -3797,6 +3816,12 @@ function App() {
                         </>
                       ) : (
                         <div style={styles.sidebarNarrativeBlock}>
+                          {getBulletNarrativePrefix(item) && (
+                            <div style={styles.sidebarNarrativePrefix}>
+                              {getBulletNarrativePrefix(item)}
+                            </div>
+                          )}
+
                           <div style={styles.sidebarNarrativeValue}>
                             {formatBulletValue(item.value)}
                           </div>
@@ -4634,13 +4659,13 @@ function App() {
           Fuentes:
         </div>
 
-        <div>
+        <div style={styles.sourcesLine}>
           Secretaría de Salud. Dirección General de Información en Salud (DGIS).
           Cubos dinámicos de Accidentes y Lesiones (información preliminar).
           Casos acumulados del 01 de enero al 30 de junio de 2026.
         </div>
 
-        <div>
+        <div style={styles.sourcesLine}>
           Secretaría de Salud. Subsistema Epidemiológico y Estadístico de
           Defunciones (SEED).
         </div>
@@ -4986,6 +5011,14 @@ const styles = {
     minHeight: '58px',
   },
 
+  sidebarNarrativePrefix: {
+    marginBottom: '4px',
+    fontSize: '11px',
+    lineHeight: 1.05,
+    fontWeight: 800,
+    color: '#003b35',
+  },
+
   sidebarNarrativeValue: {
     fontSize: '23px',
     lineHeight: 1,
@@ -4998,8 +5031,8 @@ const styles = {
     marginTop: '7px',
     fontSize: '11px',
     lineHeight: 1.22,
-    fontWeight: 700,
-    color: '#000000',
+    fontWeight: 800,
+    color: '#003b35',
   },
 
   sidebarEmpty: {
@@ -5705,6 +5738,8 @@ const styles = {
     margin: '8px 28px 14px',
     paddingTop: '5px',
     borderTop: '1px solid #bdbdbd',
+    fontFamily:
+      '"Noto Sans", Arial, Helvetica, sans-serif',
     fontSize: '8px',
     lineHeight: 1.35,
     color: '#222222',
@@ -5712,7 +5747,16 @@ const styles = {
   },
 
   sourcesTitle: {
+    fontFamily:
+      '"Noto Sans", Arial, Helvetica, sans-serif',
     fontWeight: 800,
+    fontStyle: 'italic',
+  },
+
+  sourcesLine: {
+    fontFamily:
+      '"Noto Sans", Arial, Helvetica, sans-serif',
+    fontStyle: 'italic',
   },
 
   // -------------------------------------------------------------------
