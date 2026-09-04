@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17.5.2: nota metodológica para incidencia y mortalidad bajo la leyenda de tasa.
+// V9.17.5.3: nota metodológica en cursiva para incidencia y mortalidad.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -6275,9 +6275,12 @@ const styles = {
 
   incidenceMapNote: {
     maxWidth: '760px',
+    fontFamily:
+      '"Noto Sans", Arial, Helvetica, sans-serif',
     fontSize: '8.5px',
     color: '#667085',
     lineHeight: 1.3,
+    fontStyle: 'italic',
   },
 
   estado: {
