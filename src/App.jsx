@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17.4: treemap adaptativo mejorado, tipografía mayor y márgenes preservados.
+// V9.17.5: treemap legible en todas las categorías + Entidad movida a columna derecha.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -622,32 +622,31 @@ function buildTreemapLayout(
   height = 100
 ) {
   const validItems = Array.isArray(items)
-    ? items.filter(
-        (item) =>
-          Number.isFinite(Number(item?.value)) &&
-          Number(item?.value) > 0
-      )
+    ? items
+        .filter(
+          (item) =>
+            Number.isFinite(
+              Number(item?.value)
+            ) &&
+            Number(item?.value) > 0
+        )
+        .map((item) => ({
+          ...item,
+          value: Number(item.value),
+        }))
+        .sort(
+          (a, b) =>
+            b.value - a.value
+        )
     : [];
 
   if (validItems.length === 0) {
     return [];
   }
 
-  if (validItems.length === 1) {
-    return [
-      {
-        ...validItems[0],
-        x,
-        y,
-        width,
-        height,
-      },
-    ];
-  }
-
   const total = validItems.reduce(
     (sum, item) =>
-      sum + Number(item.value),
+      sum + item.value,
     0
   );
 
@@ -655,87 +654,108 @@ function buildTreemapLayout(
     return [];
   }
 
-  let acumulado = 0;
-  let mejorIndice = 1;
-  let mejorDiferencia = Infinity;
+  // Para favorecer la legibilidad, distribuimos el treemap en filas
+  // de 2 o 3 elementos. El área de cada bloque sigue siendo exactamente
+  // proporcional a su porcentaje, pero evitamos las tiras ultradelgadas
+  // que dificultaban mostrar nombre y valor.
+  const rowSizes = [];
+  let remaining =
+    validItems.length;
 
-  for (
-    let i = 1;
-    i < validItems.length;
-    i += 1
-  ) {
-    acumulado += Number(
-      validItems[i - 1].value
-    );
+  if (remaining <= 3) {
+    rowSizes.push(remaining);
+  } else {
+    rowSizes.push(2);
+    remaining -= 2;
 
-    const diferencia = Math.abs(
-      total / 2 - acumulado
-    );
-
-    if (diferencia < mejorDiferencia) {
-      mejorDiferencia = diferencia;
-      mejorIndice = i;
+    while (remaining > 0) {
+      if (remaining <= 3) {
+        rowSizes.push(remaining);
+        remaining = 0;
+      } else if (remaining === 4) {
+        rowSizes.push(2, 2);
+        remaining = 0;
+      } else if (remaining === 5) {
+        rowSizes.push(2, 3);
+        remaining = 0;
+      } else {
+        rowSizes.push(3);
+        remaining -= 3;
+      }
     }
   }
 
-  const grupoA = validItems.slice(
-    0,
-    mejorIndice
+  const rows = [];
+  let cursor = 0;
+
+  rowSizes.forEach(
+    (size) => {
+      if (size > 0) {
+        rows.push(
+          validItems.slice(
+            cursor,
+            cursor + size
+          )
+        );
+        cursor += size;
+      }
+    }
   );
-  const grupoB = validItems.slice(
-    mejorIndice
+
+  const result = [];
+  let currentY = y;
+
+  rows.forEach(
+    (row, rowIndex) => {
+      const rowTotal =
+        row.reduce(
+          (sum, item) =>
+            sum + item.value,
+          0
+        );
+
+      const isLastRow =
+        rowIndex ===
+        rows.length - 1;
+
+      const rowHeight =
+        isLastRow
+          ? y + height - currentY
+          : height *
+            (rowTotal / total);
+
+      let currentX = x;
+
+      row.forEach(
+        (item, itemIndex) => {
+          const isLastItem =
+            itemIndex ===
+            row.length - 1;
+
+          const itemWidth =
+            isLastItem
+              ? x + width - currentX
+              : width *
+                (item.value /
+                  rowTotal);
+
+          result.push({
+            ...item,
+            x: currentX,
+            y: currentY,
+            width: itemWidth,
+            height: rowHeight,
+          });
+
+          currentX += itemWidth;
+        }
+      );
+
+      currentY += rowHeight;
+    }
   );
 
-  const totalA = grupoA.reduce(
-    (sum, item) =>
-      sum + Number(item.value),
-    0
-  );
-
-  const proporcionA =
-    totalA / total;
-
-  if (width >= height) {
-    const widthA =
-      width * proporcionA;
-
-    return [
-      ...buildTreemapLayout(
-        grupoA,
-        x,
-        y,
-        widthA,
-        height
-      ),
-      ...buildTreemapLayout(
-        grupoB,
-        x + widthA,
-        y,
-        width - widthA,
-        height
-      ),
-    ];
-  }
-
-  const heightA =
-    height * proporcionA;
-
-  return [
-    ...buildTreemapLayout(
-      grupoA,
-      x,
-      y,
-      width,
-      heightA
-    ),
-    ...buildTreemapLayout(
-      grupoB,
-      x,
-      y + heightA,
-      width,
-      height - heightA
-    ),
-  ];
+  return result;
 }
 
 function getBulletNarrative(item) {
@@ -3777,29 +3797,6 @@ function App() {
               </div>
             )}
 
-            <label style={styles.filterLabel}>
-              Entidad
-            </label>
-
-            <select
-              value={entidad}
-              onChange={(e) =>
-                setEntidad(
-                  e.target.value
-                )
-              }
-              style={styles.filterSelect}
-            >
-              {entidades.map((x) => (
-                <option
-                  key={x}
-                  value={x}
-                >
-                  {x}
-                </option>
-              ))}
-            </select>
-
             <div style={styles.filterDivider} />
 
             {tipo === 'TODOS' ? (
@@ -4030,6 +4027,31 @@ function App() {
           {/* ----------------------------------------------------------- */}
 
           <aside style={styles.metricRail}>
+            <div style={styles.metricLabel}>
+              Entidad
+            </div>
+
+            <select
+              value={entidad}
+              onChange={(e) =>
+                setEntidad(
+                  e.target.value
+                )
+              }
+              style={styles.metricEntitySelect}
+            >
+              {entidades.map((x) => (
+                <option
+                  key={x}
+                  value={x}
+                >
+                  {x}
+                </option>
+              ))}
+            </select>
+
+            <div style={styles.metricDivider} />
+
             <div style={styles.metricLabel}>
               Medida
             </div>
@@ -4650,36 +4672,40 @@ function App() {
                     {treemapConsecuencia.map(
                       (item) => {
                         const modoCompacto =
-                          item.height < 11 ||
-                          item.width < 9;
+                          item.height < 12 ||
+                          item.width < 16;
 
                         const mostrarEtiqueta =
-                          item.width >= 5 &&
-                          item.height >= 5;
+                          true;
 
                         const mostrarValor =
-                          item.width >= 3.5 &&
-                          item.height >= 4.5;
+                          true;
 
                         const fuenteEtiqueta =
-                          modoCompacto
-                            ? '7.5px'
-                            : item.width < 16 ||
-                              item.height < 16
-                            ? '8.5px'
-                            : '10px';
+                          item.height < 9
+                            ? '7px'
+                            : modoCompacto
+                            ? '8px'
+                            : item.width < 24 ||
+                              item.height < 20
+                            ? '9px'
+                            : '10.5px';
 
                         const fuenteValor =
-                          modoCompacto
-                            ? '9.5px'
-                            : item.width < 12 ||
-                              item.height < 12
-                            ? '11.5px'
+                          item.height < 9
+                            ? '9px'
+                            : modoCompacto
+                            ? '10.5px'
+                            : item.width < 18 ||
+                              item.height < 18
+                            ? '12.5px'
                             : '15px';
 
                         const paddingTile =
-                          modoCompacto
-                            ? '4px 5px'
+                          item.height < 9
+                            ? '3px 5px'
+                            : modoCompacto
+                            ? '4px 6px'
                             : '7px';
 
                         const porcentaje =
@@ -5368,6 +5394,27 @@ const styles = {
     color: '#808080',
   },
 
+  metricEntitySelect: {
+    width: '100%',
+    minHeight: '41px',
+    padding: '7px 10px',
+    border: '1px solid #8d8d8d',
+    borderRadius: '7px',
+    boxSizing: 'border-box',
+    background: '#ffffff',
+    color: '#003b35',
+    fontSize: '13px',
+    fontWeight: 700,
+    outline: 'none',
+    cursor: 'pointer',
+  },
+
+  metricDivider: {
+    height: '1px',
+    background: '#d7d7d7',
+    margin: '2px 0 0',
+  },
+
   measureSelector: {
     display: 'flex',
     flexDirection: 'column',
@@ -5899,7 +5946,6 @@ const styles = {
     fontWeight: 700,
     color: '#ffffff',
     overflow: 'hidden',
-    textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
 
