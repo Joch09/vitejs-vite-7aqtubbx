@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17.3: treemap sin leyenda inferior y con mayor área útil.
+// V9.17.4: treemap adaptativo mejorado, tipografía mayor y márgenes preservados.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -4649,25 +4649,38 @@ function App() {
                   <div style={styles.consequenceTreemap}>
                     {treemapConsecuencia.map(
                       (item) => {
-                        const mostrarEtiqueta =
-                          item.width >= 8 &&
-                          item.height >= 7;
+                        const modoCompacto =
+                          item.height < 11 ||
+                          item.width < 9;
 
-                        const mostrarValor =
-                          item.width >= 4 &&
+                        const mostrarEtiqueta =
+                          item.width >= 5 &&
                           item.height >= 5;
 
+                        const mostrarValor =
+                          item.width >= 3.5 &&
+                          item.height >= 4.5;
+
                         const fuenteEtiqueta =
-                          item.width < 15 ||
-                          item.height < 14
-                            ? '7px'
-                            : '9px';
+                          modoCompacto
+                            ? '7.5px'
+                            : item.width < 16 ||
+                              item.height < 16
+                            ? '8.5px'
+                            : '10px';
 
                         const fuenteValor =
-                          item.width < 10 ||
-                          item.height < 10
-                            ? '10px'
-                            : '14px';
+                          modoCompacto
+                            ? '9.5px'
+                            : item.width < 12 ||
+                              item.height < 12
+                            ? '11.5px'
+                            : '15px';
+
+                        const paddingTile =
+                          modoCompacto
+                            ? '4px 5px'
+                            : '7px';
 
                         const porcentaje =
                           new Intl.NumberFormat(
@@ -4692,28 +4705,61 @@ function App() {
                               top: `${item.y}%`,
                               width: `${item.width}%`,
                               height: `${item.height}%`,
+                              padding: paddingTile,
                             }}
                           >
-                            {mostrarValor && (
+                            {modoCompacto ? (
                               <div
-                                style={{
-                                  ...styles.consequenceTreemapValue,
-                                  fontSize: fuenteValor,
-                                }}
+                                style={
+                                  styles.consequenceTreemapCompact
+                                }
                               >
-                                {porcentaje}%
-                              </div>
-                            )}
+                                {mostrarValor && (
+                                  <strong
+                                    style={{
+                                      ...styles.consequenceTreemapCompactValue,
+                                      fontSize: fuenteValor,
+                                    }}
+                                  >
+                                    {porcentaje}%
+                                  </strong>
+                                )}
 
-                            {mostrarEtiqueta && (
-                              <div
-                                style={{
-                                  ...styles.consequenceTreemapLabel,
-                                  fontSize: fuenteEtiqueta,
-                                }}
-                              >
-                                {item.etiqueta}
+                                {mostrarEtiqueta && (
+                                  <span
+                                    style={{
+                                      ...styles.consequenceTreemapCompactLabel,
+                                      fontSize: fuenteEtiqueta,
+                                    }}
+                                  >
+                                    {item.etiqueta}
+                                  </span>
+                                )}
                               </div>
+                            ) : (
+                              <>
+                                {mostrarValor && (
+                                  <div
+                                    style={{
+                                      ...styles.consequenceTreemapValue,
+                                      fontSize: fuenteValor,
+                                    }}
+                                  >
+                                    {porcentaje}%
+                                  </div>
+                                )}
+
+                                {mostrarEtiqueta && (
+                                  <div
+                                    style={{
+                                      ...styles.consequenceTreemapLabel,
+                                      fontSize: fuenteEtiqueta,
+                                    }}
+                                  >
+                                    {item.etiqueta}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         );
@@ -5790,7 +5836,7 @@ const styles = {
   consequenceTreemap: {
     position: 'relative',
     width: '100%',
-    height: '250px',
+    height: '270px',
     borderRadius: '9px',
     overflow: 'hidden',
     background: '#f8f6f2',
@@ -5821,10 +5867,40 @@ const styles = {
   consequenceTreemapLabel: {
     marginTop: '5px',
     fontSize: '9px',
-    lineHeight: 1.15,
+    lineHeight: 1.12,
     fontWeight: 700,
     color: '#ffffff',
     overflow: 'hidden',
+    overflowWrap: 'anywhere',
+    wordBreak: 'normal',
+  },
+
+  consequenceTreemapCompact: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '4px',
+    minWidth: 0,
+    width: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+
+  consequenceTreemapCompactValue: {
+    flex: '0 0 auto',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#ffffff',
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  consequenceTreemapCompactLabel: {
+    minWidth: 0,
+    lineHeight: 1,
+    fontWeight: 700,
+    color: '#ffffff',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 
 
