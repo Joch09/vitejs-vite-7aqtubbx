@@ -1,7 +1,7 @@
 // =============================================================================
 // dashboardData.js
 // Proyecto: Tablero accidentes y lesiones
-// V9.4.3 - perfiles 06/07 con rutas versionadas + bullets/perfiles sin cache
+// V9.4.4 - restaura texto nominal de bullets + perfiles 06/07 versionados
 // =============================================================================
 //
 // Capa única de acceso a la rama de producción generada por los Pasos 44/45.
@@ -713,6 +713,7 @@ export function getBulletValues({
         value: null,
         numerator: 0,
         denominator: 0,
+        text: null,
       };
     }
 
@@ -725,6 +726,15 @@ export function getBulletValues({
           : Number(point[1]),
       numerator: Number(point?.[2] ?? 0),
       denominator: Number(point?.[3] ?? 0),
+      // Los indicadores nominales del Paso 45 codifican:
+      // [period_idx, null, numerador, denominador, texto]
+      // El quinto campo debe preservarse para tarjetas como:
+      // - Principal sitio de ocurrencia
+      // - Principal mecanismo de lesión accidental
+      text:
+        point?.[4] === null || point?.[4] === undefined
+          ? null
+          : String(point[4]),
     };
   });
 }
