@@ -1,7 +1,7 @@
 // =============================================================================
 // dashboardData.js
 // Proyecto: Tablero accidentes y lesiones
-// V9.4.2 - ocurrencia + periodos + tasas + bullets y perfiles sin cache
+// V9.4.3 - perfiles 06/07 con rutas versionadas + bullets/perfiles sin cache
 // =============================================================================
 //
 // Capa única de acceso a la rama de producción generada por los Pasos 44/45.
@@ -17,6 +17,19 @@
 const DATA_ROOT = `${import.meta.env.BASE_URL}data`.replace(/\/+$/, '');
 const OCCURRENCE_ROOT = 'ocurrencia';
 const MUNICIPAL_GEOMETRY_ROOT = 'municipal';
+
+// -----------------------------------------------------------------------------
+// PERFILES VERSIONADOS 06 / 07
+// -----------------------------------------------------------------------------
+// Estos dos archivos fueron regenerados el 04-sep-2026 para incorporar
+// area_anatomica. Se usan nombres nuevos para evitar que cualquier capa de
+// StackBlitz/Vite/CDN entregue una copia previa con el mismo URL.
+const PROFILE_FILE_OVERRIDES = {
+  '06_maltrato_negligencia.json':
+    '06_maltrato_negligencia_v2.json',
+  '07_violencia_sexual.json':
+    '07_violencia_sexual_v2.json',
+};
 
 const jsonCache = new Map();
 const indexCache = new WeakMap();
@@ -217,6 +230,9 @@ export async function loadTypeBundle(
 ) {
   const type = await resolveType(typeOrId);
   const fileName = typeFileName(type);
+  const profileFileName =
+    PROFILE_FILE_OVERRIDES[fileName] ??
+    fileName;
 
   if (!fileName) {
     throw new Error(`El tipo no tiene archivo asociado: ${typeOrId}`);
@@ -233,12 +249,31 @@ export async function loadTypeBundle(
     // Los perfiles también se leen siempre frescos. Esto evita que
     // StackBlitz/Vite conserve en memoria una versión anterior después de
     // reemplazar archivos en public/data/ocurrencia/perfiles/.
-    fetchJsonFresh(occurrencePath('perfiles', fileName)),
+    fetchJsonFresh(
+      occurrencePath(
+        'perfiles',
+        profileFileName
+      )
+    ),
 
     includeCategoryMap
       ? fetchJson(occurrencePath(type.estatal))
       : Promise.resolve(null),
   ]);
+
+  if (
+    (
+      fileName ===
+        '06_maltrato_negligencia.json' ||
+      fileName ===
+        '07_violencia_sexual.json'
+    ) &&
+    !profilesRaw?.profiles?.area_anatomica
+  ) {
+    throw new Error(
+      `El perfil versionado ${profileFileName} no contiene profiles.area_anatomica.`
+    );
+  }
 
   return {
     type,
