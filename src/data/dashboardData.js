@@ -1,7 +1,7 @@
 // =============================================================================
 // dashboardData.js
 // Proyecto: Tablero accidentes y lesiones
-// V9 - integración de ocurrencia + periodos + tasas municipales
+// V9.4.2 - ocurrencia + periodos + tasas + bullets y perfiles sin cache
 // =============================================================================
 //
 // Capa única de acceso a la rama de producción generada por los Pasos 44/45.
@@ -56,6 +56,37 @@ async function fetchJson(relativePath) {
     jsonCache.delete(url);
     throw error;
   }
+}
+
+
+// -----------------------------------------------------------------------------
+// CARGA FRESCA DE DESCRIPTIVOS
+// -----------------------------------------------------------------------------
+//
+// Los JSON de Indicadores descriptivos se están actualizando tipo por tipo.
+// Vite/StackBlitz puede mantener vivo el módulo y, con él, jsonCache aun después
+// de reemplazar un archivo dentro de public/. Para evitar que se muestre una
+// versión anterior de los bullets o perfiles, éstos se solicitan sin cache y con un
+// parámetro de versión único.
+//
+// Esto NO afecta mapas, tasas ni catálogos.
+//
+async function fetchJsonFresh(relativePath) {
+  const baseUrl = joinUrl(DATA_ROOT, relativePath);
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  const url = `${baseUrl}${separator}_fresh=${Date.now()}`;
+
+  const response = await fetch(url, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `No fue posible cargar ${relativePath}: HTTP ${response.status}`
+    );
+  }
+
+  return response.json();
 }
 
 function occurrencePath(...parts) {
@@ -193,8 +224,17 @@ export async function loadTypeBundle(
 
   const [catalogs, bulletsRaw, profilesRaw, categoryRaw] = await Promise.all([
     loadCatalogs(),
-    fetchJson(occurrencePath('bullets', fileName)),
-    fetchJson(occurrencePath('perfiles', fileName)),
+
+    // IMPORTANTE:
+    // Los bullets se leen siempre frescos para que un reemplazo en
+    // public/data/ocurrencia/bullets/ se refleje inmediatamente en el tablero.
+    fetchJsonFresh(occurrencePath('bullets', fileName)),
+
+    // Los perfiles también se leen siempre frescos. Esto evita que
+    // StackBlitz/Vite conserve en memoria una versión anterior después de
+    // reemplazar archivos en public/data/ocurrencia/perfiles/.
+    fetchJsonFresh(occurrencePath('perfiles', fileName)),
+
     includeCategoryMap
       ? fetchJson(occurrencePath(type.estatal))
       : Promise.resolve(null),
@@ -636,7 +676,6 @@ export function getBulletValues({
         ...indicator,
         index: indicatorIdx,
         value: null,
-        text: null,
         numerator: 0,
         denominator: 0,
       };
@@ -649,15 +688,6 @@ export function getBulletValues({
         point?.[1] === null || point?.[1] === undefined
           ? null
           : Number(point[1]),
-
-      // Los bullets nominales agregan un quinto elemento al punto:
-      // [period_idx, null, conteo, denominador, texto].
-      // Los bullets porcentuales históricos continúan usando 4 elementos.
-      text:
-        point?.[4] === null || point?.[4] === undefined
-          ? null
-          : String(point[4]),
-
       numerator: Number(point?.[2] ?? 0),
       denominator: Number(point?.[3] ?? 0),
     };
