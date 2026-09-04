@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.16: ajuste fino de bullets según diapositivas 6-8 + fuentes en cursiva Noto Sans Italic.
+// V9.17: ajustes finales Pimpollo - peatones, pirámide y treemap de consecuencia.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -612,6 +612,130 @@ function getBulletNarrativePrefix(item) {
   }
 
   return null;
+}
+
+function buildTreemapLayout(
+  items,
+  x = 0,
+  y = 0,
+  width = 100,
+  height = 100
+) {
+  const validItems = Array.isArray(items)
+    ? items.filter(
+        (item) =>
+          Number.isFinite(Number(item?.value)) &&
+          Number(item?.value) > 0
+      )
+    : [];
+
+  if (validItems.length === 0) {
+    return [];
+  }
+
+  if (validItems.length === 1) {
+    return [
+      {
+        ...validItems[0],
+        x,
+        y,
+        width,
+        height,
+      },
+    ];
+  }
+
+  const total = validItems.reduce(
+    (sum, item) =>
+      sum + Number(item.value),
+    0
+  );
+
+  if (!(total > 0)) {
+    return [];
+  }
+
+  let acumulado = 0;
+  let mejorIndice = 1;
+  let mejorDiferencia = Infinity;
+
+  for (
+    let i = 1;
+    i < validItems.length;
+    i += 1
+  ) {
+    acumulado += Number(
+      validItems[i - 1].value
+    );
+
+    const diferencia = Math.abs(
+      total / 2 - acumulado
+    );
+
+    if (diferencia < mejorDiferencia) {
+      mejorDiferencia = diferencia;
+      mejorIndice = i;
+    }
+  }
+
+  const grupoA = validItems.slice(
+    0,
+    mejorIndice
+  );
+  const grupoB = validItems.slice(
+    mejorIndice
+  );
+
+  const totalA = grupoA.reduce(
+    (sum, item) =>
+      sum + Number(item.value),
+    0
+  );
+
+  const proporcionA =
+    totalA / total;
+
+  if (width >= height) {
+    const widthA =
+      width * proporcionA;
+
+    return [
+      ...buildTreemapLayout(
+        grupoA,
+        x,
+        y,
+        widthA,
+        height
+      ),
+      ...buildTreemapLayout(
+        grupoB,
+        x + widthA,
+        y,
+        width - widthA,
+        height
+      ),
+    ];
+  }
+
+  const heightA =
+    height * proporcionA;
+
+  return [
+    ...buildTreemapLayout(
+      grupoA,
+      x,
+      y,
+      width,
+      heightA
+    ),
+    ...buildTreemapLayout(
+      grupoB,
+      x,
+      y + heightA,
+      width,
+      height - heightA
+    ),
+  ];
 }
 
 function getBulletNarrative(item) {
@@ -2823,6 +2947,14 @@ function App() {
 
     return bullets.filter((item) => {
       if (
+        categoria === 'Peatones' &&
+        getBulletId(item) ===
+          'no_uso_equipo_seguridad'
+      ) {
+        return false;
+      }
+
+      if (
         item?.grupo ===
         'rol_persona_lesionada'
       ) {
@@ -3284,6 +3416,14 @@ function App() {
     categoria,
     periodoIdConsulta,
   ]);
+
+  const treemapConsecuencia = useMemo(
+    () =>
+      buildTreemapLayout(
+        perfilConsecuencia
+      ),
+    [perfilConsecuencia]
+  );
 
   const distribucionesComplementarias = useMemo(() => {
     if (
@@ -4270,7 +4410,7 @@ function App() {
                           style={{
                             ...styles.profileLegendDot,
                             background:
-                              '#667085',
+                              '#001D19',
                           }}
                         />
                         Hombres
@@ -4281,7 +4421,7 @@ function App() {
                           style={{
                             ...styles.profileLegendDot,
                             background:
-                              '#9b4a60',
+                              '#5B162B',
                           }}
                         />
                         Mujeres
@@ -4500,52 +4640,61 @@ function App() {
                   No hay información de consecuencia para la selección actual.
                 </div>
               ) : (
-                <div style={styles.areaList}>
-                  {perfilConsecuencia.map(
+                <div style={styles.consequenceTreemap}>
+                  {treemapConsecuencia.map(
                     (item) => {
-                      const ancho =
-                        `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            item.value
-                          )
-                        )}%`;
+                      const mostrarEtiqueta =
+                        item.width >= 15 &&
+                        item.height >= 14;
+
+                      const mostrarValor =
+                        item.width >= 7 &&
+                        item.height >= 7;
+
+                      const porcentaje =
+                        new Intl.NumberFormat(
+                          'es-MX',
+                          {
+                            minimumFractionDigits:
+                              0,
+                            maximumFractionDigits:
+                              1,
+                          }
+                        ).format(
+                          item.value
+                        );
 
                       return (
                         <div
                           key={item.id}
-                          style={styles.areaRow}
+                          title={`${item.etiqueta}: ${porcentaje}%`}
+                          style={{
+                            ...styles.consequenceTreemapTile,
+                            left: `${item.x}%`,
+                            top: `${item.y}%`,
+                            width: `${item.width}%`,
+                            height: `${item.height}%`,
+                          }}
                         >
-                          <div style={styles.areaTop}>
-                            <span style={styles.areaLabel}>
-                              {item.etiqueta}
-                            </span>
-
-                            <strong style={styles.areaValue}>
-                              {new Intl.NumberFormat(
-                                'es-MX',
-                                {
-                                  minimumFractionDigits:
-                                    0,
-                                  maximumFractionDigits:
-                                    1,
-                                }
-                              ).format(
-                                item.value
-                              )}
-                              %
-                            </strong>
-                          </div>
-
-                          <div style={styles.areaTrack}>
+                          {mostrarValor && (
                             <div
-                              style={{
-                                ...styles.areaBar,
-                                width: ancho,
-                              }}
-                            />
-                          </div>
+                              style={
+                                styles.consequenceTreemapValue
+                              }
+                            >
+                              {porcentaje}%
+                            </div>
+                          )}
+
+                          {mostrarEtiqueta && (
+                            <div
+                              style={
+                                styles.consequenceTreemapLabel
+                              }
+                            >
+                              {item.etiqueta}
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -5535,13 +5684,13 @@ const styles = {
 
   pyramidBarLeft: {
     height: '100%',
-    background: '#667085',
+    background: '#001D19',
     borderRadius: '3px 0 0 3px',
   },
 
   pyramidBarRight: {
     height: '100%',
-    background: '#9b4a60',
+    background: '#5B162B',
     borderRadius: '0 3px 3px 0',
   },
 
@@ -5549,7 +5698,7 @@ const styles = {
     textAlign: 'center',
     fontSize: '8px',
     fontWeight: 800,
-    color: '#003b35',
+    color: '#000000',
     whiteSpace: 'nowrap',
   },
 
@@ -5557,7 +5706,7 @@ const styles = {
     textAlign: 'right',
     fontSize: '9px',
     fontWeight: 600,
-    color: '#667085',
+    color: '#000000',
     fontVariantNumeric: 'tabular-nums',
   },
 
@@ -5565,7 +5714,7 @@ const styles = {
     textAlign: 'left',
     fontSize: '9px',
     fontWeight: 600,
-    color: '#667085',
+    color: '#000000',
     fontVariantNumeric: 'tabular-nums',
   },
 
@@ -5614,6 +5763,46 @@ const styles = {
     background: '#a54861',
     borderRadius: '999px',
     minWidth: '1px',
+  },
+
+  consequenceTreemap: {
+    position: 'relative',
+    width: '100%',
+    height: '220px',
+    borderRadius: '9px',
+    overflow: 'hidden',
+    background: '#f8f6f2',
+  },
+
+  consequenceTreemapTile: {
+    position: 'absolute',
+    boxSizing: 'border-box',
+    border: '2px solid #ffffff',
+    background: '#7B1E3A',
+    padding: '7px',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    color: '#ffffff',
+  },
+
+  consequenceTreemapValue: {
+    fontSize: '14px',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#ffffff',
+    fontVariantNumeric: 'tabular-nums',
+    whiteSpace: 'nowrap',
+  },
+
+  consequenceTreemapLabel: {
+    marginTop: '5px',
+    fontSize: '9px',
+    lineHeight: 1.15,
+    fontWeight: 700,
+    color: '#ffffff',
+    overflow: 'hidden',
   },
 
   consequenceGrid: {
