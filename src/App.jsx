@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17: ajustes finales Pimpollo - peatones, pirámide y treemap de consecuencia.
+// V9.17.1: discapacidad preexistente global + conservación de treemap y ajustes previos.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -774,7 +774,11 @@ function getBulletNarrative(item) {
   }
 
   if (
-    indicador.includes('discapacidad preexistente')
+    (
+      indicador.includes('discapacidad') &&
+      indicador.includes('preexistente')
+    ) ||
+    id === 'discapacidad_preexistente'
   ) {
     return 'con discapacidad preexistente.';
   }
