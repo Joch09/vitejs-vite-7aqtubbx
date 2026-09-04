@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17.5: treemap legible en todas las categorías + Entidad movida a columna derecha.
+// V9.17.6: treemap adaptativo prioriza legibilidad total + conserva Entidad a la derecha.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -633,6 +633,9 @@ function buildTreemapLayout(
         .map((item) => ({
           ...item,
           value: Number(item.value),
+          etiqueta: String(
+            item?.etiqueta ?? ''
+          ).trim(),
         }))
         .sort(
           (a, b) =>
@@ -644,118 +647,209 @@ function buildTreemapLayout(
     return [];
   }
 
-  const total = validItems.reduce(
-    (sum, item) =>
-      sum + item.value,
-    0
-  );
-
-  if (!(total > 0)) {
-    return [];
+  if (validItems.length === 1) {
+    return [
+      {
+        ...validItems[0],
+        x,
+        y,
+        width,
+        height,
+      },
+    ];
   }
 
-  // Para favorecer la legibilidad, distribuimos el treemap en filas
-  // de 2 o 3 elementos. El área de cada bloque sigue siendo exactamente
-  // proporcional a su porcentaje, pero evitamos las tiras ultradelgadas
-  // que dificultaban mostrar nombre y valor.
-  const rowSizes = [];
-  let remaining =
-    validItems.length;
+  // -------------------------------------------------------------------------
+  // V9.17.6 - TREEMAP "READABILITY FIRST"
+  // -------------------------------------------------------------------------
+  // El porcentaje mostrado SIEMPRE es el valor epidemiológico real.
+  //
+  // Para la geometría se aplica únicamente un piso visual a categorías muy
+  // pequeñas. Esto evita tiras de pocos píxeles en distribuciones muy
+  // concentradas (p. ej. 87% + varias categorías de 1–3%) y permite conservar
+  // nombre + porcentaje sin reducir la tipografía ni cortar etiquetas.
+  //
+  // Después se usa una partición binaria balanceada sobre el eje más largo,
+  // lo que genera rectángulos mucho más utilizables que filas residuales.
+  // -------------------------------------------------------------------------
+  const n = validItems.length;
 
-  if (remaining <= 3) {
-    rowSizes.push(remaining);
-  } else {
-    rowSizes.push(2);
-    remaining -= 2;
+  const baseFloor =
+    n <= 3
+      ? 12
+      : n <= 5
+      ? 8
+      : n <= 7
+      ? 6
+      : 5;
 
-    while (remaining > 0) {
-      if (remaining <= 3) {
-        rowSizes.push(remaining);
-        remaining = 0;
-      } else if (remaining === 4) {
-        rowSizes.push(2, 2);
-        remaining = 0;
-      } else if (remaining === 5) {
-        rowSizes.push(2, 3);
-        remaining = 0;
-      } else {
-        rowSizes.push(3);
-        remaining -= 3;
-      }
-    }
-  }
+  const layoutItems =
+    validItems.map((item) => {
+      const labelLength =
+        item.etiqueta.length;
 
-  const rows = [];
-  let cursor = 0;
-
-  rowSizes.forEach(
-    (size) => {
-      if (size > 0) {
-        rows.push(
-          validItems.slice(
-            cursor,
-            cursor + size
+      const textBonus =
+        Math.min(
+          4,
+          Math.max(
+            0,
+            (labelLength - 18) /
+              10
           )
         );
-        cursor += size;
-      }
-    }
-  );
+
+      return {
+        ...item,
+        layoutValue: Math.max(
+          item.value,
+          baseFloor + textBonus
+        ),
+      };
+    });
 
   const result = [];
-  let currentY = y;
 
-  rows.forEach(
-    (row, rowIndex) => {
-      const rowTotal =
-        row.reduce(
-          (sum, item) =>
-            sum + item.value,
-          0
-        );
+  const layoutRecursive = (
+    group,
+    rx,
+    ry,
+    rw,
+    rh
+  ) => {
+    if (group.length === 0) {
+      return;
+    }
 
-      const isLastRow =
-        rowIndex ===
-        rows.length - 1;
+    if (group.length === 1) {
+      const item = group[0];
 
-      const rowHeight =
-        isLastRow
-          ? y + height - currentY
-          : height *
-            (rowTotal / total);
+      result.push({
+        ...item,
+        x: rx,
+        y: ry,
+        width: rw,
+        height: rh,
+      });
 
-      let currentX = x;
+      return;
+    }
 
-      row.forEach(
-        (item, itemIndex) => {
-          const isLastItem =
-            itemIndex ===
-            row.length - 1;
+    const total = group.reduce(
+      (sum, item) =>
+        sum + item.layoutValue,
+      0
+    );
 
-          const itemWidth =
-            isLastItem
-              ? x + width - currentX
-              : width *
-                (item.value /
-                  rowTotal);
+    if (!(total > 0)) {
+      return;
+    }
 
-          result.push({
-            ...item,
-            x: currentX,
-            y: currentY,
-            width: itemWidth,
-            height: rowHeight,
-          });
+    let bestIndex = 1;
+    let running = 0;
+    let bestDiff = Infinity;
 
-          currentX += itemWidth;
-        }
+    for (
+      let i = 1;
+      i < group.length;
+      i += 1
+    ) {
+      running +=
+        group[i - 1]
+          .layoutValue;
+
+      const diff = Math.abs(
+        total / 2 - running
       );
 
-      currentY += rowHeight;
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestIndex = i;
+      }
     }
+
+    const first =
+      group.slice(
+        0,
+        bestIndex
+      );
+
+    const second =
+      group.slice(
+        bestIndex
+      );
+
+    const firstTotal =
+      first.reduce(
+        (sum, item) =>
+          sum +
+          item.layoutValue,
+        0
+      );
+
+    const firstShare =
+      Math.max(
+        0.08,
+        Math.min(
+          0.92,
+          firstTotal / total
+        )
+      );
+
+    if (rw >= rh) {
+      const firstWidth =
+        rw * firstShare;
+
+      layoutRecursive(
+        first,
+        rx,
+        ry,
+        firstWidth,
+        rh
+      );
+
+      layoutRecursive(
+        second,
+        rx + firstWidth,
+        ry,
+        rw - firstWidth,
+        rh
+      );
+    } else {
+      const firstHeight =
+        rh * firstShare;
+
+      layoutRecursive(
+        first,
+        rx,
+        ry,
+        rw,
+        firstHeight
+      );
+
+      layoutRecursive(
+        second,
+        rx,
+        ry + firstHeight,
+        rw,
+        rh - firstHeight
+      );
+    }
+  };
+
+  layoutRecursive(
+    layoutItems,
+    x,
+    y,
+    width,
+    height
   );
 
-  return result;
+  return result.map(
+    ({
+      layoutValue,
+      ...item
+    }) => item
+  );
 }
 
 function getBulletNarrative(item) {
@@ -3450,6 +3544,13 @@ function App() {
     [perfilConsecuencia]
   );
 
+  const alturaTreemapConsecuencia =
+    perfilConsecuencia.length <= 3
+      ? 270
+      : perfilConsecuencia.length <= 5
+      ? 285
+      : 305;
+
   const distribucionesComplementarias = useMemo(() => {
     if (
       tipo === 'TODOS' ||
@@ -4668,46 +4769,14 @@ function App() {
                 </div>
               ) : (
                 <>
-                  <div style={styles.consequenceTreemap}>
+                  <div
+                    style={{
+                      ...styles.consequenceTreemap,
+                      height: `${alturaTreemapConsecuencia}px`,
+                    }}
+                  >
                     {treemapConsecuencia.map(
                       (item) => {
-                        const modoCompacto =
-                          item.height < 12 ||
-                          item.width < 16;
-
-                        const mostrarEtiqueta =
-                          true;
-
-                        const mostrarValor =
-                          true;
-
-                        const fuenteEtiqueta =
-                          item.height < 9
-                            ? '7px'
-                            : modoCompacto
-                            ? '8px'
-                            : item.width < 24 ||
-                              item.height < 20
-                            ? '9px'
-                            : '10.5px';
-
-                        const fuenteValor =
-                          item.height < 9
-                            ? '9px'
-                            : modoCompacto
-                            ? '10.5px'
-                            : item.width < 18 ||
-                              item.height < 18
-                            ? '12.5px'
-                            : '15px';
-
-                        const paddingTile =
-                          item.height < 9
-                            ? '3px 5px'
-                            : modoCompacto
-                            ? '4px 6px'
-                            : '7px';
-
                         const porcentaje =
                           new Intl.NumberFormat(
                             'es-MX',
@@ -4731,62 +4800,23 @@ function App() {
                               top: `${item.y}%`,
                               width: `${item.width}%`,
                               height: `${item.height}%`,
-                              padding: paddingTile,
                             }}
                           >
-                            {modoCompacto ? (
-                              <div
-                                style={
-                                  styles.consequenceTreemapCompact
-                                }
-                              >
-                                {mostrarValor && (
-                                  <strong
-                                    style={{
-                                      ...styles.consequenceTreemapCompactValue,
-                                      fontSize: fuenteValor,
-                                    }}
-                                  >
-                                    {porcentaje}%
-                                  </strong>
-                                )}
+                            <div
+                              style={
+                                styles.consequenceTreemapValue
+                              }
+                            >
+                              {porcentaje}%
+                            </div>
 
-                                {mostrarEtiqueta && (
-                                  <span
-                                    style={{
-                                      ...styles.consequenceTreemapCompactLabel,
-                                      fontSize: fuenteEtiqueta,
-                                    }}
-                                  >
-                                    {item.etiqueta}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <>
-                                {mostrarValor && (
-                                  <div
-                                    style={{
-                                      ...styles.consequenceTreemapValue,
-                                      fontSize: fuenteValor,
-                                    }}
-                                  >
-                                    {porcentaje}%
-                                  </div>
-                                )}
-
-                                {mostrarEtiqueta && (
-                                  <div
-                                    style={{
-                                      ...styles.consequenceTreemapLabel,
-                                      fontSize: fuenteEtiqueta,
-                                    }}
-                                  >
-                                    {item.etiqueta}
-                                  </div>
-                                )}
-                              </>
-                            )}
+                            <div
+                              style={
+                                styles.consequenceTreemapLabel
+                              }
+                            >
+                              {item.etiqueta}
+                            </div>
                           </div>
                         );
                       }
@@ -5899,11 +5929,14 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'flex-start',
+    minWidth: 0,
+    minHeight: 0,
     color: '#ffffff',
   },
 
   consequenceTreemapValue: {
-    fontSize: '14px',
+    flex: '0 0 auto',
+    fontSize: '15px',
     lineHeight: 1,
     fontWeight: 800,
     color: '#ffffff',
@@ -5913,12 +5946,13 @@ const styles = {
 
   consequenceTreemapLabel: {
     marginTop: '5px',
-    fontSize: '9px',
+    minWidth: 0,
+    fontSize: '10.5px',
     lineHeight: 1.12,
     fontWeight: 700,
     color: '#ffffff',
-    overflow: 'hidden',
-    overflowWrap: 'anywhere',
+    whiteSpace: 'normal',
+    overflowWrap: 'break-word',
     wordBreak: 'normal',
   },
 
