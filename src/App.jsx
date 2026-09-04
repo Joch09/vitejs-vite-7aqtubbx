@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17.1: discapacidad preexistente global + conservación de treemap y ajustes previos.
+// V9.17.2: corrección narrativa global + treemap con leyenda completa.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -599,7 +599,7 @@ function getBulletNarrativePrefix(item) {
   const id = getBulletId(item);
   const indicador = normalizeText(
     item?.indicador ?? ''
-  );
+  ).toLowerCase();
 
   if (
     id === 'sospecha_alcohol_agresor' ||
@@ -746,7 +746,7 @@ function getBulletNarrative(item) {
   const id = getBulletId(item);
   const indicador = normalizeText(
     item?.indicador ?? ''
-  );
+  ).toLowerCase();
 
   if (
     id === 'no_uso_equipo_seguridad' ||
@@ -778,7 +778,8 @@ function getBulletNarrative(item) {
       indicador.includes('discapacidad') &&
       indicador.includes('preexistente')
     ) ||
-    id === 'discapacidad_preexistente'
+    id === 'discapacidad_preexistente' ||
+    id === 'discapacidad'
   ) {
     return 'con discapacidad preexistente.';
   }
@@ -4644,66 +4645,132 @@ function App() {
                   No hay información de consecuencia para la selección actual.
                 </div>
               ) : (
-                <div style={styles.consequenceTreemap}>
-                  {treemapConsecuencia.map(
-                    (item) => {
-                      const mostrarEtiqueta =
-                        item.width >= 15 &&
-                        item.height >= 14;
+                <>
+                  <div style={styles.consequenceTreemap}>
+                    {treemapConsecuencia.map(
+                      (item) => {
+                        const mostrarEtiqueta =
+                          item.width >= 10 &&
+                          item.height >= 9;
 
-                      const mostrarValor =
-                        item.width >= 7 &&
-                        item.height >= 7;
+                        const mostrarValor =
+                          item.width >= 4 &&
+                          item.height >= 5;
 
-                      const porcentaje =
-                        new Intl.NumberFormat(
-                          'es-MX',
-                          {
-                            minimumFractionDigits:
-                              0,
-                            maximumFractionDigits:
-                              1,
-                          }
-                        ).format(
-                          item.value
+                        const fuenteEtiqueta =
+                          item.width < 15 ||
+                          item.height < 14
+                            ? '7px'
+                            : '9px';
+
+                        const fuenteValor =
+                          item.width < 10 ||
+                          item.height < 10
+                            ? '10px'
+                            : '14px';
+
+                        const porcentaje =
+                          new Intl.NumberFormat(
+                            'es-MX',
+                            {
+                              minimumFractionDigits:
+                                0,
+                              maximumFractionDigits:
+                                1,
+                            }
+                          ).format(
+                            item.value
+                          );
+
+                        return (
+                          <div
+                            key={item.id}
+                            title={`${item.etiqueta}: ${porcentaje}%`}
+                            style={{
+                              ...styles.consequenceTreemapTile,
+                              left: `${item.x}%`,
+                              top: `${item.y}%`,
+                              width: `${item.width}%`,
+                              height: `${item.height}%`,
+                            }}
+                          >
+                            {mostrarValor && (
+                              <div
+                                style={{
+                                  ...styles.consequenceTreemapValue,
+                                  fontSize: fuenteValor,
+                                }}
+                              >
+                                {porcentaje}%
+                              </div>
+                            )}
+
+                            {mostrarEtiqueta && (
+                              <div
+                                style={{
+                                  ...styles.consequenceTreemapLabel,
+                                  fontSize: fuenteEtiqueta,
+                                }}
+                              >
+                                {item.etiqueta}
+                              </div>
+                            )}
+                          </div>
                         );
+                      }
+                    )}
+                  </div>
 
-                      return (
-                        <div
-                          key={item.id}
-                          title={`${item.etiqueta}: ${porcentaje}%`}
-                          style={{
-                            ...styles.consequenceTreemapTile,
-                            left: `${item.x}%`,
-                            top: `${item.y}%`,
-                            width: `${item.width}%`,
-                            height: `${item.height}%`,
-                          }}
-                        >
-                          {mostrarValor && (
-                            <div
+                  <div style={styles.consequenceTreemapLegend}>
+                    {perfilConsecuencia.map(
+                      (item) => {
+                        const porcentaje =
+                          new Intl.NumberFormat(
+                            'es-MX',
+                            {
+                              minimumFractionDigits:
+                                0,
+                              maximumFractionDigits:
+                                1,
+                            }
+                          ).format(
+                            item.value
+                          );
+
+                        return (
+                          <div
+                            key={`legend-${item.id}`}
+                            style={
+                              styles.consequenceTreemapLegendItem
+                            }
+                          >
+                            <span
                               style={
-                                styles.consequenceTreemapValue
+                                styles.consequenceTreemapLegendDot
                               }
-                            >
-                              {porcentaje}%
-                            </div>
-                          )}
+                            />
 
-                          {mostrarEtiqueta && (
-                            <div
+                            <span
                               style={
-                                styles.consequenceTreemapLabel
+                                styles.consequenceTreemapLegendLabel
                               }
                             >
                               {item.etiqueta}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                  )}
-                </div>
+                            </span>
+
+                            <strong
+                              style={
+                                styles.consequenceTreemapLegendValue
+                              }
+                            >
+                              {porcentaje}%
+                            </strong>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
@@ -5772,7 +5839,7 @@ const styles = {
   consequenceTreemap: {
     position: 'relative',
     width: '100%',
-    height: '220px',
+    height: '210px',
     borderRadius: '9px',
     overflow: 'hidden',
     background: '#f8f6f2',
@@ -5807,6 +5874,49 @@ const styles = {
     fontWeight: 700,
     color: '#ffffff',
     overflow: 'hidden',
+  },
+
+  consequenceTreemapLegend: {
+    display: 'grid',
+    gridTemplateColumns:
+      'repeat(2, minmax(0, 1fr))',
+    gap: '5px 14px',
+    marginTop: '8px',
+    padding: '0 2px',
+  },
+
+  consequenceTreemapLegendItem: {
+    display: 'grid',
+    gridTemplateColumns:
+      '8px minmax(0, 1fr) auto',
+    alignItems: 'center',
+    gap: '6px',
+    minWidth: 0,
+  },
+
+  consequenceTreemapLegendDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: '2px',
+    background: '#7B1E3A',
+  },
+
+  consequenceTreemapLegendLabel: {
+    minWidth: 0,
+    fontSize: '8px',
+    lineHeight: 1.15,
+    fontWeight: 700,
+    color: '#000000',
+    overflowWrap: 'anywhere',
+  },
+
+  consequenceTreemapLegendValue: {
+    fontSize: '8px',
+    lineHeight: 1,
+    fontWeight: 800,
+    color: '#7B1E3A',
+    fontVariantNumeric: 'tabular-nums',
+    whiteSpace: 'nowrap',
   },
 
   consequenceGrid: {
