@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17.2: corrección narrativa global + treemap con leyenda completa.
+// V9.17.3: treemap sin leyenda inferior y con mayor área útil.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -4650,8 +4650,8 @@ function App() {
                     {treemapConsecuencia.map(
                       (item) => {
                         const mostrarEtiqueta =
-                          item.width >= 10 &&
-                          item.height >= 9;
+                          item.width >= 8 &&
+                          item.height >= 7;
 
                         const mostrarValor =
                           item.width >= 4 &&
@@ -4721,55 +4721,6 @@ function App() {
                     )}
                   </div>
 
-                  <div style={styles.consequenceTreemapLegend}>
-                    {perfilConsecuencia.map(
-                      (item) => {
-                        const porcentaje =
-                          new Intl.NumberFormat(
-                            'es-MX',
-                            {
-                              minimumFractionDigits:
-                                0,
-                              maximumFractionDigits:
-                                1,
-                            }
-                          ).format(
-                            item.value
-                          );
-
-                        return (
-                          <div
-                            key={`legend-${item.id}`}
-                            style={
-                              styles.consequenceTreemapLegendItem
-                            }
-                          >
-                            <span
-                              style={
-                                styles.consequenceTreemapLegendDot
-                              }
-                            />
-
-                            <span
-                              style={
-                                styles.consequenceTreemapLegendLabel
-                              }
-                            >
-                              {item.etiqueta}
-                            </span>
-
-                            <strong
-                              style={
-                                styles.consequenceTreemapLegendValue
-                              }
-                            >
-                              {porcentaje}%
-                            </strong>
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
                 </>
               )}
             </div>
@@ -5839,7 +5790,7 @@ const styles = {
   consequenceTreemap: {
     position: 'relative',
     width: '100%',
-    height: '210px',
+    height: '250px',
     borderRadius: '9px',
     overflow: 'hidden',
     background: '#f8f6f2',
@@ -5876,48 +5827,10 @@ const styles = {
     overflow: 'hidden',
   },
 
-  consequenceTreemapLegend: {
-    display: 'grid',
-    gridTemplateColumns:
-      'repeat(2, minmax(0, 1fr))',
-    gap: '5px 14px',
-    marginTop: '8px',
-    padding: '0 2px',
-  },
 
-  consequenceTreemapLegendItem: {
-    display: 'grid',
-    gridTemplateColumns:
-      '8px minmax(0, 1fr) auto',
-    alignItems: 'center',
-    gap: '6px',
-    minWidth: 0,
-  },
 
-  consequenceTreemapLegendDot: {
-    width: '7px',
-    height: '7px',
-    borderRadius: '2px',
-    background: '#7B1E3A',
-  },
 
-  consequenceTreemapLegendLabel: {
-    minWidth: 0,
-    fontSize: '8px',
-    lineHeight: 1.15,
-    fontWeight: 700,
-    color: '#000000',
-    overflowWrap: 'anywhere',
-  },
 
-  consequenceTreemapLegendValue: {
-    fontSize: '8px',
-    lineHeight: 1,
-    fontWeight: 800,
-    color: '#7B1E3A',
-    fontVariantNumeric: 'tabular-nums',
-    whiteSpace: 'nowrap',
-  },
 
   consequenceGrid: {
     display: 'grid',
