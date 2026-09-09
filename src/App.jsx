@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.18.3: perfil de mortalidad + bullet CIE + ocupación agrupada y compacta.
+// V9.18.5: redacción institucional de bullets, perfiles sin subtítulos y barras ordenadas por porcentaje.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -1924,7 +1924,106 @@ function MunicipalChoropleth({
   );
 }
 
+function getMortalityBulletDisplayTitle(item, tipo, categoria) {
+  const origen = String(item?.origen ?? '').trim();
+
+  if (origen === 'lugar_cie') {
+    return 'Principal lugar de ocurrencia:';
+  }
+
+  if (origen === 'cie_secundaria') {
+    return 'Principal lesión asociada:';
+  }
+
+  if (tipo === 'Accidentes de transporte') {
+    if (categoria === 'Peatones') {
+      return 'Principal tipo de colisión:';
+    }
+    if (categoria === 'Bicicletas') {
+      return 'Principal tipo de accidente:';
+    }
+    if (categoria === 'Motocicletas') {
+      return 'Principal tipo de usuario:';
+    }
+    if (categoria === 'Vehículos de motor') {
+      return 'Principal tipo de usuario o vehículo:';
+    }
+    return 'Principal tipo de transporte:';
+  }
+
+  if (tipo === 'Caídas') {
+    return 'Principal mecanismo de caída:';
+  }
+
+  if (tipo === 'Fuerzas mecánicas y objetos') {
+    if (categoria === 'Armas de fuego') {
+      return 'Principal tipo de arma:';
+    }
+    return 'Principal mecanismo:';
+  }
+
+  if (tipo === 'Exposición a sustancias y energías') {
+    if (categoria === 'Envenenamiento') {
+      return 'Principal sustancia:';
+    }
+    if (categoria === 'Contacto con calor y sustancias calientes') {
+      return 'Principal exposición:';
+    }
+    return 'Principal mecanismo:';
+  }
+
+  if (tipo === 'Armas de fuego y punzocortantes') {
+    if (categoria === 'Armas de fuego') {
+      return 'Principal tipo de arma:';
+    }
+    return 'Principal lugar de ocurrencia:';
+  }
+
+  if (tipo === 'Fuerza/contundente, maltrato y negligencia') {
+    if (categoria === 'Negligencia y otros tipos de maltrato') {
+      return 'Principal tipo de maltrato:';
+    }
+    return 'Principal mecanismo de agresión:';
+  }
+
+  if (tipo === 'Violencia sexual') {
+    return 'Principal mecanismo:';
+  }
+
+  if (tipo === 'Otros mecanismos específicos') {
+    if (String(categoria ?? '').startsWith('Sustancias')) {
+      return 'Principal sustancia o mecanismo:';
+    }
+    return 'Principal exposición:';
+  }
+
+  if (tipo === 'Lesiones autoinfligidas') {
+    if (categoria === 'Intoxicación') {
+      return 'Principal sustancia:';
+    }
+    if (categoria === 'Por arma de fuego') {
+      return 'Principal tipo de arma:';
+    }
+    if (categoria === 'Por colisión') {
+      return 'Principal mecanismo de colisión:';
+    }
+    return 'Principal mecanismo:';
+  }
+
+  return 'Principal mecanismo:';
+}
+
 function MortalityProfileBars({ items = [], compact = false }) {
+  const itemsOrdenados = useMemo(
+    () =>
+      [...(Array.isArray(items) ? items : [])].sort(
+        (a, b) =>
+          (Number(b?.value) || 0) -
+          (Number(a?.value) || 0)
+      ),
+    [items]
+  );
+
   return (
     <div
       style={
@@ -1936,9 +2035,8 @@ function MortalityProfileBars({ items = [], compact = false }) {
           : styles.areaList
       }
     >
-      {items.map((item) => {
+      {itemsOrdenados.map((item) => {
         const porcentaje = Number(item?.value) || 0;
-        const conteo = Number(item?.conteo) || 0;
         const ancho = `${Math.max(
           0,
           Math.min(100, porcentaje)
@@ -1989,8 +2087,6 @@ function MortalityProfileBars({ items = [], compact = false }) {
                     : styles.areaValue
                 }
               >
-                {conteo.toLocaleString('es-MX')}
-                {' · '}
                 {new Intl.NumberFormat('es-MX', {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 1,
@@ -4376,7 +4472,7 @@ function DashboardApp({ onLogout }) {
                   >
                     <div style={styles.sidebarNarrativeBlock}>
                       <div style={styles.sidebarNarrativePrefix}>
-                        {bulletCIEMortalidad.titulo}
+                        {getMortalityBulletDisplayTitle(bulletCIEMortalidad, tipo, categoria)}
                       </div>
 
                       <div style={styles.sidebarNarrativeValue}>
@@ -5102,10 +5198,6 @@ function DashboardApp({ onLogout }) {
                     <h3 style={styles.profilePanelTitle}>
                       Escolaridad
                     </h3>
-                    <div style={styles.profilePanelNote}>
-                      Nivel de escolaridad registrado en SEED.
-                    </div>
-
                     {(perfilMortalidadActual.escolaridad ?? [])
                       .length === 0 ? (
                       <div style={styles.profileEmpty}>
@@ -5125,16 +5217,13 @@ function DashboardApp({ onLogout }) {
                   {/* --------------------------------------------------- */}
                   <div style={styles.profilePanel}>
                     <h3 style={styles.profilePanelTitle}>
-                      Ocupación habitual
+                      Ocupación
                     </h3>
-                    <div style={styles.profilePanelNote}>
-                      7 grandes grupos construidos a partir de la clave de ocupación habitual de SEED.
-                    </div>
 
                     {(perfilMortalidadActual.ocupacion ?? [])
                       .length === 0 ? (
                       <div style={styles.profileEmpty}>
-                        No hay información de ocupación habitual para la selección actual.
+                        No hay información de ocupación para la selección actual.
                       </div>
                     ) : (
                       <MortalityProfileBars
