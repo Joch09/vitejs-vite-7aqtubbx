@@ -2198,6 +2198,374 @@ function MortalityPyramid({ rows = [], maxValue = 1 }) {
   );
 }
 
+
+// =============================================================================
+// TABLA TERRITORIAL Y EXPORTACIÓN PDF
+// =============================================================================
+
+function cleanPdfText(value) {
+  return String(value ?? '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/•/g, '-')
+    .replace(/[^\x00-\xFF]/g, '?');
+}
+
+function escapePdfText(value) {
+  return cleanPdfText(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
+function wrapPdfText(value, maxChars = 78) {
+  const words = cleanPdfText(value)
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
+
+  if (words.length === 0) {
+    return [''];
+  }
+
+  const lines = [];
+  let current = '';
+
+  words.forEach((word) => {
+    const candidate = current ? `${current} ${word}` : word;
+
+    if (candidate.length <= maxChars) {
+      current = candidate;
+      return;
+    }
+
+    if (current) {
+      lines.push(current);
+    }
+
+    if (word.length <= maxChars) {
+      current = word;
+      return;
+    }
+
+    let rest = word;
+    while (rest.length > maxChars) {
+      lines.push(rest.slice(0, maxChars));
+      rest = rest.slice(maxChars);
+    }
+    current = rest;
+  });
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
+function latin1Bytes(value) {
+  const clean = cleanPdfText(value);
+  const bytes = new Uint8Array(clean.length);
+
+  for (let index = 0; index < clean.length; index += 1) {
+    bytes[index] = clean.charCodeAt(index) & 0xff;
+  }
+
+  return bytes;
+}
+
+function concatUint8Arrays(chunks) {
+  const total = chunks.reduce(
+    (sum, chunk) => sum + chunk.length,
+    0
+  );
+  const result = new Uint8Array(total);
+  let offset = 0;
+
+  chunks.forEach((chunk) => {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  });
+
+  return result;
+}
+
+function buildTablePdf({
+  title,
+  measureLabel,
+  periodLabel,
+  periodDetail,
+  eventLabel,
+  typeLabel,
+  categoryLabel,
+  scopeLabel,
+  geographyLabel,
+  countLabel,
+  rateLabel,
+  rows,
+  source,
+}) {
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const marginX = 42;
+  const tableWidth = pageWidth - marginX * 2;
+  const territoryWidth = 320;
+  const countWidth = 86;
+  const rateWidth = tableWidth - territoryWidth - countWidth;
+  const rowHeight = 17;
+  const maxRowsPerPage = 34;
+  const totalPages = Math.max(
+    1,
+    Math.ceil((rows?.length ?? 0) / maxRowsPerPage)
+  );
+
+  const pages = [];
+
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+    const start = pageIndex * maxRowsPerPage;
+    const pageRows = (rows ?? []).slice(
+      start,
+      start + maxRowsPerPage
+    );
+    const commands = [];
+
+    const text = (value, x, y, size = 9, bold = false) => {
+      commands.push(
+        `BT /${bold ? 'F2' : 'F1'} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escapePdfText(value)}) Tj ET`
+      );
+    };
+
+    const line = (x1, y1, x2, y2, width = 0.5) => {
+      commands.push(
+        `${width} w ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S`
+      );
+    };
+
+    const fillRect = (x, y, width, height, r, g, b) => {
+      commands.push(
+        `${r} ${g} ${b} rg ${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re f 0 0 0 rg`
+      );
+    };
+
+    let y = pageHeight - 48;
+
+    if (pageIndex === 0) {
+      text('Vigilancia epidemiológica de accidentes y lesiones', marginX, y, 9, true);
+      y -= 24;
+
+      wrapPdfText(title, 62).slice(0, 2).forEach((lineText) => {
+        text(lineText, marginX, y, 15, true);
+        y -= 18;
+      });
+
+      y -= 3;
+      text(`${measureLabel} · ${scopeLabel} · ${periodLabel}`, marginX, y, 9, true);
+      y -= 14;
+      text(periodDetail, marginX, y, 8, false);
+      y -= 17;
+
+      const selectionText = [
+        `Evento: ${eventLabel}`,
+        `Tipo: ${typeLabel}`,
+        `Categoría: ${categoryLabel}`,
+      ].join(' · ');
+
+      wrapPdfText(selectionText, 92).slice(0, 2).forEach((lineText) => {
+        text(lineText, marginX, y, 8, false);
+        y -= 12;
+      });
+
+      y -= 5;
+      text(
+        geographyLabel === 'Entidad federativa'
+          ? 'Distribución por entidad federativa'
+          : 'Distribución por municipio',
+        marginX,
+        y,
+        9,
+        true
+      );
+      y -= 22;
+    } else {
+      text(title, marginX, y, 11, true);
+      y -= 15;
+      text(`${measureLabel} · ${scopeLabel} · ${periodLabel} · Continuación`, marginX, y, 8, false);
+      y -= 23;
+    }
+
+    const tableTop = y;
+    const headerBottom = tableTop - 22;
+
+    fillRect(marginX, headerBottom, tableWidth, 22, 0.93, 0.95, 0.94);
+    text(geographyLabel, marginX + 8, headerBottom + 7, 8, true);
+    text(countLabel, marginX + territoryWidth + 8, headerBottom + 7, 8, true);
+    text(rateLabel, marginX + territoryWidth + countWidth + 8, headerBottom + 7, 8, true);
+
+    line(marginX, headerBottom, marginX + tableWidth, headerBottom, 0.6);
+    line(marginX, tableTop, marginX + tableWidth, tableTop, 0.6);
+    line(marginX + territoryWidth, headerBottom, marginX + territoryWidth, tableTop, 0.3);
+    line(
+      marginX + territoryWidth + countWidth,
+      headerBottom,
+      marginX + territoryWidth + countWidth,
+      tableTop,
+      0.3
+    );
+
+    let rowY = headerBottom;
+
+    pageRows.forEach((row, rowIndex) => {
+      const bottom = rowY - rowHeight;
+
+      if (rowIndex % 2 === 1) {
+        fillRect(marginX, bottom, tableWidth, rowHeight, 0.98, 0.98, 0.98);
+      }
+
+      text(row.territorio, marginX + 8, bottom + 5.5, 8, false);
+      text(
+        Number(row.conteo ?? 0).toLocaleString('es-MX'),
+        marginX + territoryWidth + 8,
+        bottom + 5.5,
+        8,
+        false
+      );
+      text(
+        row.tasa === null || row.tasa === undefined
+          ? '-'
+          : Number(row.tasa).toFixed(2),
+        marginX + territoryWidth + countWidth + 8,
+        bottom + 5.5,
+        8,
+        false
+      );
+
+      line(marginX, bottom, marginX + tableWidth, bottom, 0.2);
+      rowY = bottom;
+    });
+
+    line(marginX, rowY, marginX, tableTop, 0.3);
+    line(marginX + tableWidth, rowY, marginX + tableWidth, tableTop, 0.3);
+    line(marginX + territoryWidth, rowY, marginX + territoryWidth, headerBottom, 0.2);
+    line(
+      marginX + territoryWidth + countWidth,
+      rowY,
+      marginX + territoryWidth + countWidth,
+      headerBottom,
+      0.2
+    );
+
+    wrapPdfText(source, 105).slice(0, 2).forEach((lineText, index) => {
+      text(lineText, marginX, 31 - index * 9, 6.5, false);
+    });
+
+    text(
+      `Página ${pageIndex + 1} de ${totalPages}`,
+      pageWidth - 110,
+      22,
+      7,
+      false
+    );
+
+    pages.push(commands.join('\n'));
+  }
+
+  const objects = [];
+  const pageObjectNumbers = [];
+
+  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+
+  pages.forEach((stream, index) => {
+    const pageObject = 5 + index * 2;
+    const contentObject = pageObject + 1;
+    pageObjectNumbers.push(pageObject);
+
+    const streamLength = latin1Bytes(stream).length;
+
+    objects[pageObject] = [
+      '<< /Type /Page',
+      '/Parent 2 0 R',
+      `/MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}]`,
+      '/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >>',
+      `/Contents ${contentObject} 0 R`,
+      '>>',
+    ].join(' ');
+
+    objects[contentObject] = `<< /Length ${streamLength} >>\nstream\n${stream}\nendstream`;
+  });
+
+  objects[2] = `<< /Type /Pages /Kids [${pageObjectNumbers
+    .map((number) => `${number} 0 R`)
+    .join(' ')}] /Count ${pageObjectNumbers.length} >>`;
+
+  const maxObject = objects.length - 1;
+  const chunks = [latin1Bytes('%PDF-1.4\n%âãÏÓ\n')];
+  const offsets = new Array(maxObject + 1).fill(0);
+  let currentOffset = chunks[0].length;
+
+  for (let objectNumber = 1; objectNumber <= maxObject; objectNumber += 1) {
+    const objectBody = `${objectNumber} 0 obj\n${objects[objectNumber]}\nendobj\n`;
+    const bytes = latin1Bytes(objectBody);
+    offsets[objectNumber] = currentOffset;
+    chunks.push(bytes);
+    currentOffset += bytes.length;
+  }
+
+  const xrefOffset = currentOffset;
+  const xrefLines = [
+    'xref',
+    `0 ${maxObject + 1}`,
+    '0000000000 65535 f ',
+  ];
+
+  for (let objectNumber = 1; objectNumber <= maxObject; objectNumber += 1) {
+    xrefLines.push(
+      `${String(offsets[objectNumber]).padStart(10, '0')} 00000 n `
+    );
+  }
+
+  const trailer = [
+    ...xrefLines,
+    'trailer',
+    `<< /Size ${maxObject + 1} /Root 1 0 R >>`,
+    'startxref',
+    String(xrefOffset),
+    '%%EOF',
+    '',
+  ].join('\n');
+
+  chunks.push(latin1Bytes(trailer));
+
+  return concatUint8Arrays(chunks);
+}
+
+function downloadPdfFile(bytes, filename) {
+  const blob = new Blob([bytes], {
+    type: 'application/pdf',
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function sanitizeFilename(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]+/g, '')
+    .replace(/^_+|_+$/g, '');
+}
+
 function DashboardApp({ onLogout }) {
   const {
     manifest,
@@ -2233,6 +2601,11 @@ function DashboardApp({ onLogout }) {
     useState('2026-06');
   const [semanaTemporal, setSemanaTemporal] =
     useState('26');
+
+  const [ordenTabla, setOrdenTabla] = useState({
+    campo: 'territorio',
+    direccion: 'asc',
+  });
 
   // Mapa único homologado: siempre utiliza la capa municipal.
   // NACIONAL muestra todos los municipios; al seleccionar una entidad,
@@ -3493,6 +3866,284 @@ function DashboardApp({ onLogout }) {
     periodoIdConsulta,
   ]);
 
+
+  // ===========================================================================
+  // TABLA TERRITORIAL - MISMA CONSULTA DEL MAPA/KPI
+  // ===========================================================================
+
+  const tituloTabla = useMemo(() => {
+    if (categoria !== 'TODAS') {
+      return categoria;
+    }
+
+    if (tipo !== 'TODOS') {
+      return tipo;
+    }
+
+    if (evento !== 'TODOS') {
+      return evento;
+    }
+
+    return 'Accidentes y lesiones';
+  }, [evento, tipo, categoria]);
+
+  const filasTablaBase = useMemo(() => {
+    if (!fecha) {
+      return [];
+    }
+
+    if (entidad === 'NACIONAL') {
+      const tasas = new Map(
+        (valoresMapa ?? []).map((item) => [
+          normalizeText(item?.entity),
+          item?.value,
+        ])
+      );
+      const conteos = new Map(
+        (conteosMapa ?? []).map((item) => [
+          normalizeText(item?.entity),
+          item?.value,
+        ])
+      );
+
+      return (entidades ?? [])
+        .filter((nombre) => nombre && nombre !== 'NACIONAL')
+        .map((nombre) => {
+          const key = normalizeText(nombre);
+          const tasaRaw = tasas.get(key);
+          const conteoRaw = conteos.get(key);
+          const tasaNumber = Number(tasaRaw);
+          const conteoNumber = Number(conteoRaw);
+
+          return {
+            id: key,
+            territorio: nombre,
+            conteo: Number.isFinite(conteoNumber)
+              ? conteoNumber
+              : 0,
+            tasa:
+              tasaRaw === null ||
+              tasaRaw === undefined ||
+              !Number.isFinite(tasaNumber)
+                ? null
+                : tasaNumber,
+          };
+        });
+    }
+
+    if (
+      !entidadCodigoMunicipal ||
+      !Array.isArray(municipiosGeo?.features)
+    ) {
+      return [];
+    }
+
+    const registros = new Map(
+      (valoresMunicipales ?? []).map((item) => [
+        String(item?.cvegeo ?? ''),
+        item,
+      ])
+    );
+
+    return municipiosGeo.features
+      .filter(
+        (feature) =>
+          String(feature?.properties?.cve_ent ?? '').padStart(2, '0') ===
+          entidadCodigoMunicipal
+      )
+      .map((feature) => {
+        const cvegeo = String(feature?.properties?.cvegeo ?? '');
+        const record = registros.get(cvegeo);
+        const tasaRaw = record?.value;
+        const tasaNumber = Number(tasaRaw);
+        const conteoNumber = Number(record?.count ?? 0);
+
+        return {
+          id: cvegeo,
+          territorio:
+            feature?.properties?.municipio ?? cvegeo,
+          conteo: Number.isFinite(conteoNumber)
+            ? conteoNumber
+            : 0,
+          tasa:
+            tasaRaw === null ||
+            tasaRaw === undefined ||
+            !Number.isFinite(tasaNumber)
+              ? null
+              : tasaNumber,
+        };
+      });
+  }, [
+    fecha,
+    entidad,
+    entidades,
+    valoresMapa,
+    conteosMapa,
+    entidadCodigoMunicipal,
+    municipiosGeo,
+    valoresMunicipales,
+  ]);
+
+  const filasTabla = useMemo(() => {
+    const rows = [...filasTablaBase];
+    const { campo, direccion } = ordenTabla;
+    const factor = direccion === 'desc' ? -1 : 1;
+
+    rows.sort((a, b) => {
+      if (campo === 'territorio') {
+        return (
+          String(a.territorio).localeCompare(
+            String(b.territorio),
+            'es',
+            { sensitivity: 'base' }
+          ) * factor
+        );
+      }
+
+      const aValue =
+        campo === 'conteo' ? Number(a.conteo ?? 0) : a.tasa;
+      const bValue =
+        campo === 'conteo' ? Number(b.conteo ?? 0) : b.tasa;
+
+      const aMissing =
+        aValue === null ||
+        aValue === undefined ||
+        !Number.isFinite(Number(aValue));
+      const bMissing =
+        bValue === null ||
+        bValue === undefined ||
+        !Number.isFinite(Number(bValue));
+
+      if (aMissing && bMissing) {
+        return String(a.territorio).localeCompare(
+          String(b.territorio),
+          'es',
+          { sensitivity: 'base' }
+        );
+      }
+
+      if (aMissing) return 1;
+      if (bMissing) return -1;
+
+      const numeric =
+        (Number(aValue) - Number(bValue)) * factor;
+
+      if (numeric !== 0) {
+        return numeric;
+      }
+
+      return String(a.territorio).localeCompare(
+        String(b.territorio),
+        'es',
+        { sensitivity: 'base' }
+      );
+    });
+
+    return rows;
+  }, [filasTablaBase, ordenTabla]);
+
+  const medidaTablaLabel =
+    medida === 'mortalidad'
+      ? 'Mortalidad'
+      : 'Incidencia';
+
+  const conteoTablaLabel =
+    medida === 'mortalidad'
+      ? 'Defunciones'
+      : 'Casos';
+
+  const tasaTablaLabel =
+    medida === 'mortalidad'
+      ? 'Tasa de mortalidad'
+      : 'Tasa de incidencia';
+
+  const geografiaTablaLabel =
+    entidad === 'NACIONAL'
+      ? 'Entidad federativa'
+      : 'Municipio';
+
+  const distribucionTablaLabel =
+    entidad === 'NACIONAL'
+      ? 'Distribución por entidad federativa'
+      : 'Distribución por municipio';
+
+  function cambiarOrdenTabla(campo) {
+    setOrdenTabla((actual) => {
+      if (actual.campo === campo) {
+        return {
+          campo,
+          direccion:
+            actual.direccion === 'asc'
+              ? 'desc'
+              : 'asc',
+        };
+      }
+
+      return {
+        campo,
+        direccion:
+          campo === 'territorio'
+            ? 'asc'
+            : 'desc',
+      };
+    });
+  }
+
+  function indicadorOrdenTabla(campo) {
+    if (ordenTabla.campo !== campo) {
+      return '↕';
+    }
+
+    return ordenTabla.direccion === 'asc'
+      ? '↑'
+      : '↓';
+  }
+
+  function descargarTablaPdf() {
+    if (filasTabla.length === 0) {
+      return;
+    }
+
+    const source =
+      medida === 'mortalidad'
+        ? 'Fuente: Secretaría de Salud. Subsistema Epidemiológico y Estadístico de Defunciones (SEED). Información preliminar.'
+        : 'Fuente: Secretaría de Salud. Dirección General de Información en Salud (DGIS). Cubos dinámicos de Accidentes y Lesiones. Información preliminar.';
+
+    const pdf = buildTablePdf({
+      title: tituloTabla,
+      measureLabel: medidaTablaLabel,
+      periodLabel: periodoEtiquetaConsulta,
+      periodDetail: periodoDetalleConsulta,
+      eventLabel: evento,
+      typeLabel: tipo,
+      categoryLabel: categoria,
+      scopeLabel:
+        entidad === 'NACIONAL'
+          ? 'Nacional'
+          : entidad,
+      geographyLabel: geografiaTablaLabel,
+      countLabel: conteoTablaLabel,
+      rateLabel: tasaTablaLabel,
+      rows: filasTabla,
+      source,
+    });
+
+    const filenameParts = [
+      'tabla',
+      sanitizeFilename(tituloTabla) || 'resultados',
+      medida,
+      sanitizeFilename(periodoIdConsulta) || 'periodo',
+      entidad === 'NACIONAL'
+        ? 'nacional'
+        : sanitizeFilename(entidad),
+    ];
+
+    downloadPdfFile(
+      pdf,
+      `${filenameParts.filter(Boolean).join('_')}.pdf`
+    );
+  }
+
   const errorMunicipalActivo =
     municipalError ??
     (
@@ -3517,6 +4168,21 @@ function DashboardApp({ onLogout }) {
     (
       medida === 'mortalidad' &&
       municipalDeathsLoading
+    );
+
+  const tablaCargando =
+    loadingInitial ||
+    (
+      entidad === 'NACIONAL'
+        ? loadingCategoryMap
+        : (
+            loadingMunicipalActivo ||
+            (
+              categoria !== 'TODAS' &&
+              !consultaMunicipal.mapData &&
+              !errorMunicipalActivo
+            )
+          )
     );
 
   // ===========================================================================
@@ -5732,6 +6398,155 @@ function DashboardApp({ onLogout }) {
           </div>
           )}
         </section>
+
+        {/* ============================================================= */}
+        {/* TABLA TERRITORIAL DE RESULTADOS */}
+        {/* ============================================================= */}
+
+        <section style={styles.resultsSection}>
+          <div style={styles.resultsHeader}>
+            <div style={styles.resultsHeaderText}>
+              <div style={styles.resultsEyebrow}>
+                Tabla de resultados
+              </div>
+
+              <h2 style={styles.resultsTitle}>
+                {tituloTabla}
+              </h2>
+
+              <div style={styles.resultsSubtitle}>
+                {medidaTablaLabel} · {entidad === 'NACIONAL' ? 'Nacional' : entidad} · {periodoEtiquetaConsulta}
+              </div>
+
+              <div style={styles.resultsPeriodDetail}>
+                {periodoDetalleConsulta}
+              </div>
+
+              <div style={styles.resultsScope}>
+                {distribucionTablaLabel}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={descargarTablaPdf}
+              disabled={tablaCargando || filasTabla.length === 0}
+              style={{
+                ...styles.resultsPdfButton,
+                ...(tablaCargando || filasTabla.length === 0
+                  ? styles.resultsPdfButtonDisabled
+                  : {}),
+              }}
+            >
+              Descargar PDF
+            </button>
+          </div>
+
+          <div style={styles.resultsSelectionLine}>
+            <span><strong>Evento:</strong> {evento}</span>
+            <span><strong>Tipo:</strong> {tipo}</span>
+            <span><strong>Categoría:</strong> {categoria}</span>
+          </div>
+
+          {tablaCargando ? (
+            <div style={styles.resultsStatus}>
+              Cargando tabla...
+            </div>
+          ) : (
+            entidad !== 'NACIONAL' && errorMunicipalActivo
+          ) ? (
+            <div style={styles.resultsStatusError}>
+              No fue posible cargar la información municipal para la selección actual.
+            </div>
+          ) : filasTabla.length === 0 ? (
+            <div style={styles.resultsStatus}>
+              No hay información territorial para la selección actual.
+            </div>
+          ) : (
+            <>
+              <div style={styles.resultsCountLine}>
+                {filasTabla.length.toLocaleString('es-MX')}{' '}
+                {entidad === 'NACIONAL'
+                  ? 'entidades federativas'
+                  : 'municipios'}
+              </div>
+
+              <div style={styles.resultsTableWrap}>
+                <table style={styles.resultsTable}>
+                  <thead>
+                    <tr>
+                      <th style={styles.resultsThTerritory}>
+                        <button
+                          type="button"
+                          onClick={() => cambiarOrdenTabla('territorio')}
+                          style={styles.resultsSortButton}
+                        >
+                          {geografiaTablaLabel}{' '}
+                          <span style={styles.resultsSortIcon}>
+                            {indicadorOrdenTabla('territorio')}
+                          </span>
+                        </button>
+                      </th>
+
+                      <th style={styles.resultsThNumber}>
+                        <button
+                          type="button"
+                          onClick={() => cambiarOrdenTabla('conteo')}
+                          style={styles.resultsSortButtonNumber}
+                        >
+                          {conteoTablaLabel}{' '}
+                          <span style={styles.resultsSortIcon}>
+                            {indicadorOrdenTabla('conteo')}
+                          </span>
+                        </button>
+                      </th>
+
+                      <th style={styles.resultsThNumber}>
+                        <button
+                          type="button"
+                          onClick={() => cambiarOrdenTabla('tasa')}
+                          style={styles.resultsSortButtonNumber}
+                        >
+                          {tasaTablaLabel}{' '}
+                          <span style={styles.resultsSortIcon}>
+                            {indicadorOrdenTabla('tasa')}
+                          </span>
+                        </button>
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filasTabla.map((row) => (
+                      <tr key={row.id} style={styles.resultsTr}>
+                        <td style={styles.resultsTdTerritory}>
+                          {row.territorio}
+                        </td>
+
+                        <td style={styles.resultsTdNumber}>
+                          {Number(row.conteo ?? 0).toLocaleString('es-MX')}
+                        </td>
+
+                        <td style={styles.resultsTdNumber}>
+                          {row.tasa === null || row.tasa === undefined
+                            ? '—'
+                            : Number(row.tasa).toLocaleString('es-MX', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={styles.resultsFootnote}>
+                La tabla reproduce la selección activa del tablero. Trimestres acumulados; mes, semana epidemiológica y día corresponden exclusivamente al periodo seleccionado.
+              </div>
+            </>
+          )}
+        </section>
       </main>
 
       <footer style={styles.sources}>
@@ -7336,6 +8151,229 @@ const styles = {
     fontSize: '8.5px',
     color: '#667085',
     lineHeight: 1.3,
+    fontStyle: 'italic',
+  },
+
+  resultsSection: {
+    marginTop: '22px',
+    border: '1px solid #d7d7d7',
+    borderRadius: '14px',
+    background: '#ffffff',
+    overflow: 'hidden',
+  },
+
+  resultsHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '24px',
+    padding: '18px 20px 14px',
+    borderBottom: '1px solid #ececec',
+  },
+
+  resultsHeaderText: {
+    minWidth: 0,
+    flex: '1 1 auto',
+  },
+
+  resultsEyebrow: {
+    marginBottom: '4px',
+    color: '#7b1e3a',
+    fontSize: '9px',
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+
+  resultsTitle: {
+    margin: 0,
+    color: '#003b35',
+    fontSize: '20px',
+    lineHeight: 1.2,
+    fontWeight: 800,
+  },
+
+  resultsSubtitle: {
+    marginTop: '5px',
+    color: '#344054',
+    fontSize: '10.5px',
+    lineHeight: 1.35,
+    fontWeight: 700,
+  },
+
+  resultsPeriodDetail: {
+    marginTop: '2px',
+    color: '#667085',
+    fontSize: '9px',
+    lineHeight: 1.35,
+  },
+
+  resultsScope: {
+    marginTop: '8px',
+    color: '#003b35',
+    fontSize: '11px',
+    lineHeight: 1.3,
+    fontWeight: 800,
+  },
+
+  resultsPdfButton: {
+    minWidth: '126px',
+    minHeight: '38px',
+    padding: '8px 14px',
+    border: '1px solid #003b35',
+    borderRadius: '8px',
+    background: '#003b35',
+    color: '#ffffff',
+    fontSize: '10px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+
+  resultsPdfButtonDisabled: {
+    opacity: 0.45,
+    cursor: 'not-allowed',
+  },
+
+  resultsSelectionLine: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px 18px',
+    padding: '10px 20px',
+    background: '#fafafa',
+    borderBottom: '1px solid #eeeeee',
+    color: '#475467',
+    fontSize: '9px',
+    lineHeight: 1.35,
+  },
+
+  resultsCountLine: {
+    padding: '9px 20px 6px',
+    color: '#667085',
+    fontSize: '9px',
+    fontWeight: 700,
+    textAlign: 'right',
+  },
+
+  resultsTableWrap: {
+    margin: '0 20px',
+    maxHeight: '520px',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    border: '1px solid #e1e4e8',
+    borderRadius: '9px',
+  },
+
+  resultsTable: {
+    width: '100%',
+    borderCollapse: 'separate',
+    borderSpacing: 0,
+    tableLayout: 'fixed',
+    fontSize: '10px',
+    color: '#1f2937',
+  },
+
+  resultsThTerritory: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 2,
+    width: '58%',
+    padding: 0,
+    background: '#edf3f1',
+    borderBottom: '1px solid #cfd8d5',
+    textAlign: 'left',
+  },
+
+  resultsThNumber: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 2,
+    width: '21%',
+    padding: 0,
+    background: '#edf3f1',
+    borderBottom: '1px solid #cfd8d5',
+    textAlign: 'right',
+  },
+
+  resultsSortButton: {
+    width: '100%',
+    padding: '10px 12px',
+    border: 0,
+    background: 'transparent',
+    color: '#003b35',
+    fontSize: '10px',
+    fontWeight: 800,
+    textAlign: 'left',
+    cursor: 'pointer',
+  },
+
+  resultsSortButtonNumber: {
+    width: '100%',
+    padding: '10px 12px',
+    border: 0,
+    background: 'transparent',
+    color: '#003b35',
+    fontSize: '10px',
+    fontWeight: 800,
+    textAlign: 'right',
+    cursor: 'pointer',
+  },
+
+  resultsSortIcon: {
+    color: '#7b1e3a',
+    fontWeight: 900,
+  },
+
+  resultsTr: {
+    background: '#ffffff',
+  },
+
+  resultsTdTerritory: {
+    padding: '8px 12px',
+    borderBottom: '1px solid #eeeeee',
+    color: '#1f2937',
+    fontWeight: 600,
+    textAlign: 'left',
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+  },
+
+  resultsTdNumber: {
+    padding: '8px 12px',
+    borderBottom: '1px solid #eeeeee',
+    color: '#1f2937',
+    fontVariantNumeric: 'tabular-nums',
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
+  },
+
+  resultsStatus: {
+    minHeight: '130px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    color: '#667085',
+    fontSize: '11px',
+    textAlign: 'center',
+  },
+
+  resultsStatusError: {
+    minHeight: '130px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    color: '#b42318',
+    fontSize: '11px',
+    textAlign: 'center',
+  },
+
+  resultsFootnote: {
+    padding: '9px 20px 14px',
+    color: '#667085',
+    fontSize: '8.5px',
+    lineHeight: 1.35,
     fontStyle: 'italic',
   },
 
