@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.17.5.3: nota metodológica en cursiva para incidencia y mortalidad.
+// V9.18.0: perfil descriptivo dinámico para mortalidad con SEED + detalle CIE.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -367,6 +367,9 @@ const TEMPORAL_WEEKS_2026 = [
 //
 const MEXICO_GEOJSON_URL =
   'https://raw.githubusercontent.com/angelnmara/geojson/master/mexicoHigh.json';
+
+const MORTALITY_PROFILES_URL =
+  '/data/mortalidad/00_profiles.json';
 
 const MAP_WIDTH = 900;
 const MAP_HEIGHT = 520;
@@ -1921,6 +1924,132 @@ function MunicipalChoropleth({
   );
 }
 
+function MortalityProfileBars({ items = [] }) {
+  return (
+    <div style={styles.areaList}>
+      {items.map((item) => {
+        const porcentaje = Number(item?.value) || 0;
+        const conteo = Number(item?.conteo) || 0;
+        const ancho = `${Math.max(
+          0,
+          Math.min(100, porcentaje)
+        )}%`;
+
+        return (
+          <div
+            key={item?.etiqueta ?? item?.id}
+            style={styles.areaRow}
+          >
+            <div style={styles.areaTop}>
+              <span style={styles.areaLabel}>
+                {item?.etiqueta ?? '—'}
+              </span>
+
+              <strong style={styles.areaValue}>
+                {conteo.toLocaleString('es-MX')}
+                {' · '}
+                {new Intl.NumberFormat('es-MX', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 1,
+                }).format(porcentaje)}%
+              </strong>
+            </div>
+
+            <div style={styles.areaTrack}>
+              <div
+                style={{
+                  ...styles.areaBar,
+                  width: ancho,
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MortalityPyramid({ rows = [], maxValue = 1 }) {
+  return (
+    <div style={styles.pyramidWrap}>
+      <div style={styles.pyramidHeader}>
+        <div style={styles.pyramidSideHeaderLeft}>
+          Hombres
+        </div>
+
+        <div style={styles.pyramidAgeHeader}>
+          Edad
+        </div>
+
+        <div style={styles.pyramidSideHeaderRight}>
+          Mujeres
+        </div>
+      </div>
+
+      {rows.map((fila) => {
+        const hombres = Number(fila?.hombres) || 0;
+        const mujeres = Number(fila?.mujeres) || 0;
+        const anchoHombres = `${Math.max(
+          0,
+          Math.min(
+            100,
+            (hombres / Math.max(maxValue, 1)) * 100
+          )
+        )}%`;
+        const anchoMujeres = `${Math.max(
+          0,
+          Math.min(
+            100,
+            (mujeres / Math.max(maxValue, 1)) * 100
+          )
+        )}%`;
+
+        return (
+          <div
+            key={fila?.grupo}
+            style={styles.pyramidRow}
+          >
+            <div style={styles.pyramidLeft}>
+              <span style={styles.pyramidValueLeft}>
+                {hombres.toLocaleString('es-MX')}
+              </span>
+
+              <div style={styles.pyramidTrackLeft}>
+                <div
+                  style={{
+                    ...styles.pyramidBarLeft,
+                    width: anchoHombres,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={styles.pyramidAge}>
+              {fila?.grupo ?? '—'}
+            </div>
+
+            <div style={styles.pyramidRight}>
+              <div style={styles.pyramidTrackRight}>
+                <div
+                  style={{
+                    ...styles.pyramidBarRight,
+                    width: anchoMujeres,
+                  }}
+                />
+              </div>
+
+              <span style={styles.pyramidValueRight}>
+                {mujeres.toLocaleString('es-MX')}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function DashboardApp({ onLogout }) {
   const {
     manifest,
@@ -1995,6 +2124,19 @@ function DashboardApp({ onLogout }) {
   const [
     profileData,
     setProfileData,
+  ] = useState(null);
+
+  const [
+    mortalityProfiles,
+    setMortalityProfiles,
+  ] = useState(null);
+  const [
+    loadingMortalityProfiles,
+    setLoadingMortalityProfiles,
+  ] = useState(false);
+  const [
+    mortalityProfilesError,
+    setMortalityProfilesError,
   ] = useState(null);
 
   const [geoData, setGeoData] =
@@ -2231,6 +2373,71 @@ function DashboardApp({ onLogout }) {
   ]);
 
   // ===========================================================================
+  // PERFIL DESCRIPTIVO DE MORTALIDAD - SEED
+  // ===========================================================================
+  // Se carga únicamente cuando la persona selecciona Mortalidad. El producto
+  // usa FECHAREGISTRO para conservar exactamente el universo temporal ya
+  // validado para el tablero y la misma taxonomía CIE del mapa de mortalidad.
+
+  useEffect(() => {
+    let active = true;
+
+    if (
+      medida !== 'mortalidad' ||
+      mortalityProfiles
+    ) {
+      return () => {
+        active = false;
+      };
+    }
+
+    async function cargarPerfilesMortalidad() {
+      try {
+        setLoadingMortalityProfiles(true);
+        setMortalityProfilesError(null);
+
+        const response = await fetch(
+          MORTALITY_PROFILES_URL
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Perfil mortalidad HTTP ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        if (!active) {
+          return;
+        }
+
+        setMortalityProfiles(data);
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+
+        setMortalityProfiles(null);
+        setMortalityProfilesError(err);
+      } finally {
+        if (active) {
+          setLoadingMortalityProfiles(false);
+        }
+      }
+    }
+
+    cargarPerfilesMortalidad();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    medida,
+    mortalityProfiles,
+  ]);
+
+  // ===========================================================================
   // CATÁLOGOS BASE
   // ===========================================================================
 
@@ -2381,6 +2588,192 @@ function DashboardApp({ onLogout }) {
     periodoConsulta,
     trimestreSeleccionado,
     semanaSeleccionada,
+  ]);
+
+  const entidadPerfilMortalidad = useMemo(() => {
+    const disponibles =
+      mortalityProfiles?.metadata?.entities;
+
+    if (!Array.isArray(disponibles)) {
+      return entidad;
+    }
+
+    const objetivo = normalizeText(entidad);
+    const candidatos = new Set([objetivo]);
+
+    const aliasesDirectos =
+      ENTITY_ALIASES[objetivo] ?? [];
+
+    aliasesDirectos.forEach((alias) =>
+      candidatos.add(normalizeText(alias))
+    );
+
+    Object.entries(ENTITY_ALIASES).forEach(
+      ([canonico, aliases]) => {
+        const normalizados = [
+          canonico,
+          ...(aliases ?? []),
+        ].map(normalizeText);
+
+        if (normalizados.includes(objetivo)) {
+          normalizados.forEach((item) =>
+            candidatos.add(item)
+          );
+        }
+      }
+    );
+
+    return (
+      disponibles.find((item) =>
+        candidatos.has(normalizeText(item))
+      ) ?? entidad
+    );
+  }, [
+    mortalityProfiles,
+    entidad,
+  ]);
+
+  const perfilMortalidadActual = useMemo(() => {
+    if (
+      medida !== 'mortalidad' ||
+      !mortalityProfiles?.data ||
+      !periodoIdConsulta
+    ) {
+      return null;
+    }
+
+    const key = [
+      periodoIdConsulta,
+      entidadPerfilMortalidad,
+      evento,
+      tipo,
+      categoria,
+    ].join('|');
+
+    return (
+      mortalityProfiles.data[key] ??
+      null
+    );
+  }, [
+    medida,
+    mortalityProfiles,
+    periodoIdConsulta,
+    entidadPerfilMortalidad,
+    evento,
+    tipo,
+    categoria,
+  ]);
+
+  const maxEdadSexoMortalidad = useMemo(() => {
+    const rows =
+      perfilMortalidadActual?.edad_sexo ?? [];
+
+    const valores = rows.flatMap((fila) => [
+      Number(fila?.hombres) || 0,
+      Number(fila?.mujeres) || 0,
+    ]);
+
+    return valores.length > 0
+      ? Math.max(...valores, 1)
+      : 1;
+  }, [perfilMortalidadActual]);
+
+  const detalleCIEMortalidad = useMemo(() => {
+    if (!perfilMortalidadActual) {
+      return null;
+    }
+
+    let items = [];
+    let total = 0;
+    let titulo = '';
+    let nota = '';
+    let etiquetaPrincipal =
+      'Principal grupo identificado';
+
+    if (tipo === 'Accidentes de transporte') {
+      items =
+        perfilMortalidadActual.cie_transporte ?? [];
+      total = Number(
+        perfilMortalidadActual.cie_transporte_n
+      ) || 0;
+      titulo =
+        'Detalle CIE del mecanismo: transporte';
+      nota =
+        'Tipo de usuario o vehículo de la persona fallecida, derivado de la causa básica CIE.';
+      etiquetaPrincipal =
+        'Principal tipo identificado';
+    } else {
+      const aplicaEnvenenamiento =
+        tipo === 'Exposición a sustancias y energías' &&
+        (
+          categoria === 'TODAS' ||
+          categoria === 'Envenenamiento'
+        );
+
+      const aplicaIntoxicacionAutoinfligida =
+        tipo === 'Lesiones autoinfligidas' &&
+        (
+          categoria === 'TODAS' ||
+          categoria === 'Intoxicación'
+        );
+
+      if (
+        aplicaEnvenenamiento ||
+        aplicaIntoxicacionAutoinfligida
+      ) {
+        items =
+          perfilMortalidadActual.cie_sustancias ?? [];
+        total = Number(
+          perfilMortalidadActual.cie_sustancias_n
+        ) || 0;
+        titulo =
+          'Detalle CIE del mecanismo: sustancias';
+        nota = aplicaIntoxicacionAutoinfligida
+          ? 'Distribución de sustancias entre las defunciones autoinfligidas por intoxicación.'
+          : 'Distribución de sustancias entre las defunciones clasificadas como envenenamiento.';
+        etiquetaPrincipal =
+          'Principal sustancia identificada';
+      }
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return null;
+    }
+
+    const principalIdentificado =
+      items.find((item) => {
+        const label = normalizeText(
+          item?.etiqueta
+        );
+
+        return (
+          label &&
+          !label.startsWith('OTROS') &&
+          !label.includes('NO ESPECIFIC') &&
+          !label.includes('SE IGNORA')
+        );
+      });
+
+    const principal =
+      principalIdentificado ?? items[0];
+
+    if (!principalIdentificado) {
+      etiquetaPrincipal =
+        'Grupo con mayor frecuencia';
+    }
+
+    return {
+      titulo,
+      nota,
+      total,
+      items,
+      principal,
+      etiquetaPrincipal,
+    };
+  }, [
+    perfilMortalidadActual,
+    tipo,
+    categoria,
   ]);
 
   // ===========================================================================
@@ -4572,9 +4965,235 @@ function DashboardApp({ onLogout }) {
 
             <div style={styles.selectionPill}>
               {entidad} · {categoria}
+              {medida === 'mortalidad' &&
+                perfilMortalidadActual && (
+                  <>
+                    {' · '}
+                    {Number(
+                      perfilMortalidadActual.n ?? 0
+                    ).toLocaleString('es-MX')}
+                    {' defunciones'}
+                  </>
+                )}
             </div>
           </div>
 
+          {medida === 'mortalidad' ? (
+            <div style={styles.mortalityProfileGrid}>
+              {loadingMortalityProfiles ? (
+                <div style={styles.profilePanelWide}>
+                  <div style={styles.profileEmpty}>
+                    Cargando perfil descriptivo de mortalidad...
+                  </div>
+                </div>
+              ) : mortalityProfilesError ? (
+                <div style={styles.profilePanelWide}>
+                  <div style={styles.profileEmpty}>
+                    No fue posible cargar el perfil descriptivo de mortalidad.
+                  </div>
+                </div>
+              ) : !perfilMortalidadActual ? (
+                <div style={styles.profilePanelWide}>
+                  <div style={styles.profileEmpty}>
+                    No hay defunciones para la selección y periodo actuales.
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* --------------------------------------------------- */}
+                  {/* EDAD Y SEXO - MORTALIDAD */}
+                  {/* --------------------------------------------------- */}
+                  <div
+                    style={{
+                      ...styles.profilePanel,
+                      ...styles.mortalityProfilePyramid,
+                    }}
+                  >
+                    <div style={styles.profilePanelHeader}>
+                      <div>
+                        <h3 style={styles.profilePanelTitle}>
+                          Grupo de edad y sexo
+                        </h3>
+
+                        <div style={styles.profilePanelNote}>
+                          {periodoConsulta === 'trimestre'
+                            ? 'Defunciones acumuladas.'
+                            : `Defunciones de ${periodoEtiquetaConsulta}.`}
+                        </div>
+                      </div>
+
+                      {(perfilMortalidadActual.edad_sexo ?? [])
+                        .length > 0 && (
+                        <div style={styles.profileLegend}>
+                          <span style={styles.profileLegendItem}>
+                            <span
+                              style={{
+                                ...styles.profileLegendDot,
+                                background: '#001D19',
+                              }}
+                            />
+                            Hombres
+                          </span>
+
+                          <span style={styles.profileLegendItem}>
+                            <span
+                              style={{
+                                ...styles.profileLegendDot,
+                                background: '#5B162B',
+                              }}
+                            />
+                            Mujeres
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {(perfilMortalidadActual.edad_sexo ?? [])
+                      .length === 0 ? (
+                      <div style={styles.profileEmpty}>
+                        No hay información de edad y sexo para la selección actual.
+                      </div>
+                    ) : (
+                      <MortalityPyramid
+                        rows={
+                          perfilMortalidadActual.edad_sexo
+                        }
+                        maxValue={
+                          maxEdadSexoMortalidad
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {/* --------------------------------------------------- */}
+                  {/* SITIO DE DEFUNCIÓN */}
+                  {/* --------------------------------------------------- */}
+                  <div style={styles.profilePanel}>
+                    <h3 style={styles.profilePanelTitle}>
+                      Sitio de defunción
+                    </h3>
+                    <div style={styles.profilePanelNote}>
+                      Distribución de las defunciones según el sitio registrado.
+                    </div>
+
+                    {(perfilMortalidadActual.sitio_defuncion ?? [])
+                      .length === 0 ? (
+                      <div style={styles.profileEmpty}>
+                        No hay información de sitio de defunción para la selección actual.
+                      </div>
+                    ) : (
+                      <MortalityProfileBars
+                        items={
+                          perfilMortalidadActual.sitio_defuncion
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {/* --------------------------------------------------- */}
+                  {/* ESCOLARIDAD */}
+                  {/* --------------------------------------------------- */}
+                  <div style={styles.profilePanel}>
+                    <h3 style={styles.profilePanelTitle}>
+                      Escolaridad
+                    </h3>
+                    <div style={styles.profilePanelNote}>
+                      Nivel de escolaridad registrado en SEED.
+                    </div>
+
+                    {(perfilMortalidadActual.escolaridad ?? [])
+                      .length === 0 ? (
+                      <div style={styles.profileEmpty}>
+                        No hay información de escolaridad para la selección actual.
+                      </div>
+                    ) : (
+                      <MortalityProfileBars
+                        items={
+                          perfilMortalidadActual.escolaridad
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {/* --------------------------------------------------- */}
+                  {/* OCUPACIÓN HABITUAL */}
+                  {/* --------------------------------------------------- */}
+                  <div style={styles.profilePanelWide}>
+                    <h3 style={styles.profilePanelTitle}>
+                      Ocupación habitual
+                    </h3>
+                    <div style={styles.profilePanelNote}>
+                      Grupos construidos a partir de la clave de ocupación habitual de SEED.
+                    </div>
+
+                    {(perfilMortalidadActual.ocupacion ?? [])
+                      .length === 0 ? (
+                      <div style={styles.profileEmpty}>
+                        No hay información de ocupación habitual para la selección actual.
+                      </div>
+                    ) : (
+                      <MortalityProfileBars
+                        items={
+                          perfilMortalidadActual.ocupacion
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {/* --------------------------------------------------- */}
+                  {/* DETALLE CIE DINÁMICO */}
+                  {/* --------------------------------------------------- */}
+                  {detalleCIEMortalidad && (
+                    <div style={styles.mortalityCiePanel}>
+                      <div style={styles.mortalityCieHeader}>
+                        <div>
+                          <h3 style={styles.profilePanelTitle}>
+                            {detalleCIEMortalidad.titulo}
+                          </h3>
+                          <div style={styles.profilePanelNote}>
+                            {detalleCIEMortalidad.nota}
+                            {' '}n ={' '}
+                            {Number(
+                              detalleCIEMortalidad.total
+                            ).toLocaleString('es-MX')}.
+                          </div>
+                        </div>
+
+                        {detalleCIEMortalidad.principal && (
+                          <div style={styles.mortalityCieHighlight}>
+                            <span style={styles.mortalityCieHighlightLabel}>
+                              {detalleCIEMortalidad.etiquetaPrincipal}
+                            </span>
+                            <strong style={styles.mortalityCieHighlightValue}>
+                              {detalleCIEMortalidad.principal.etiqueta}
+                            </strong>
+                            <span style={styles.mortalityCieHighlightPercent}>
+                              {Number(
+                                detalleCIEMortalidad.principal.conteo ?? 0
+                              ).toLocaleString('es-MX')}
+                              {' · '}
+                              {new Intl.NumberFormat('es-MX', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 1,
+                              }).format(
+                                Number(
+                                  detalleCIEMortalidad.principal.value
+                                ) || 0
+                              )}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <MortalityProfileBars
+                        items={detalleCIEMortalidad.items}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
           <div style={styles.profileGrid}>
             {/* --------------------------------------------------------- */}
             {/* EDAD Y SEXO */}
@@ -5066,6 +5685,7 @@ function DashboardApp({ onLogout }) {
               )}
             </div>
           </div>
+          )}
         </section>
       </main>
 
@@ -5989,6 +6609,71 @@ const styles = {
     gridTemplateColumns: '0.92fr 1.08fr',
     gap: '10px',
     alignItems: 'start',
+  },
+
+
+  mortalityProfileGrid: {
+    display: 'grid',
+    gridTemplateColumns: '0.92fr 1.08fr',
+    gap: '10px',
+    alignItems: 'start',
+  },
+
+  mortalityProfilePyramid: {
+    gridColumn: '1',
+    gridRow: '1 / span 2',
+    alignSelf: 'start',
+  },
+
+  mortalityCiePanel: {
+    gridColumn: '1 / -1',
+    background: '#ffffff',
+    border: '1px solid #c9b0b8',
+    borderRadius: '12px',
+    padding: '13px 14px',
+    boxSizing: 'border-box',
+  },
+
+  mortalityCieHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '14px',
+    marginBottom: '10px',
+  },
+
+  mortalityCieHighlight: {
+    flex: '0 0 min(360px, 40%)',
+    minWidth: '250px',
+    borderRadius: '10px',
+    padding: '9px 11px',
+    background: '#f6ecef',
+    border: '1px solid #e2cbd2',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+
+  mortalityCieHighlightLabel: {
+    fontSize: '8px',
+    fontWeight: 800,
+    color: '#7b1e3a',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+  },
+
+  mortalityCieHighlightValue: {
+    fontSize: '12px',
+    lineHeight: 1.25,
+    color: '#003b35',
+  },
+
+  mortalityCieHighlightPercent: {
+    marginTop: '2px',
+    fontSize: '10px',
+    fontWeight: 800,
+    color: '#7b1e3a',
+    fontVariantNumeric: 'tabular-nums',
   },
 
   profilePanel: {
