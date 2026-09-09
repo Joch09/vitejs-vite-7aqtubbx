@@ -26,6 +26,160 @@ import {
 } from './data/dashboardData';
 
 // =============================================================================
+// ACCESO BÁSICO AL TABLERO - PRUEBA
+// =============================================================================
+// Usuario compartido de consulta. La contraseña no se almacena en texto plano:
+// únicamente se conserva su hash SHA-256 para validar el acceso en el navegador.
+const ACCESS_USER = 'imssb2026';
+const ACCESS_PASSWORD_SHA256 =
+  'a0f929eb633b9e3b89d5808c0847869086208b7800ea2b4d0c15fb28b6fe673e';
+const ACCESS_SESSION_KEY = 'accidentes_lesiones_access';
+
+async function sha256(value) {
+  const encoded = new TextEncoder().encode(value);
+  const digest = await window.crypto.subtle.digest('SHA-256', encoded);
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function LoginScreen({ onLogin }) {
+  const [usuario, setUsuario] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [error, setError] = useState('');
+  const [validando, setValidando] = useState(false);
+
+  async function ingresar(event) {
+    event.preventDefault();
+    setError('');
+    setValidando(true);
+
+    try {
+      const passwordHash = await sha256(contrasena);
+      const usuarioCorrecto = usuario.trim() === ACCESS_USER;
+      const contrasenaCorrecta = passwordHash === ACCESS_PASSWORD_SHA256;
+
+      if (!usuarioCorrecto || !contrasenaCorrecta) {
+        setError('Usuario o contraseña incorrectos.');
+        setContrasena('');
+        return;
+      }
+
+      window.sessionStorage.setItem(ACCESS_SESSION_KEY, '1');
+      onLogin();
+    } catch (err) {
+      console.error('No fue posible validar el acceso:', err);
+      setError('No fue posible validar el acceso. Intenta nuevamente.');
+    } finally {
+      setValidando(false);
+    }
+  }
+
+  return (
+    <div style={styles.loginPage}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap');
+        html, body, #root {
+          width: 100%;
+          min-width: 320px;
+          min-height: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          min-height: 100vh;
+          background: #f1f1f1;
+        }
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+        html, body, #root, #root *, button, input {
+          font-family: 'Noto Sans', Arial, Helvetica, sans-serif;
+        }
+      `}</style>
+
+      <header style={styles.loginInstitutionalHeader}>
+        <img
+          src={logoImssBienestar}
+          alt="IMSS Bienestar Servicios Públicos de Salud"
+          style={styles.loginLogoImss}
+        />
+
+        <div style={styles.loginBrandRight}>
+          <img
+            src={logoCoordinacion}
+            alt="Coordinación de Epidemiología"
+            style={styles.loginLogoCoordinacion}
+          />
+          <div style={styles.loginVerticalDivider} />
+          <img
+            src={logoVigilancia}
+            alt="Vigilancia Epidemiológica"
+            style={styles.loginLogoVigilancia}
+          />
+        </div>
+      </header>
+
+      <main style={styles.loginMain}>
+        <form style={styles.loginCard} onSubmit={ingresar}>
+          <div style={styles.loginEyebrow}>ACCESO RESTRINGIDO</div>
+          <h1 style={styles.loginTitle}>
+            Vigilancia epidemiológica de accidentes y lesiones
+          </h1>
+          <p style={styles.loginSubtitle}>
+            Ingrese las credenciales autorizadas para consultar el tablero.
+          </p>
+
+          <label style={styles.loginLabel} htmlFor="usuario-tablero">
+            Usuario
+          </label>
+          <input
+            id="usuario-tablero"
+            type="text"
+            autoComplete="username"
+            value={usuario}
+            onChange={(event) => setUsuario(event.target.value)}
+            style={styles.loginInput}
+            disabled={validando}
+            required
+          />
+
+          <label style={styles.loginLabel} htmlFor="contrasena-tablero">
+            Contraseña
+          </label>
+          <input
+            id="contrasena-tablero"
+            type="password"
+            inputMode="numeric"
+            autoComplete="current-password"
+            value={contrasena}
+            onChange={(event) => setContrasena(event.target.value)}
+            style={styles.loginInput}
+            disabled={validando}
+            required
+          />
+
+          {error && <div style={styles.loginError}>{error}</div>}
+
+          <button
+            type="submit"
+            style={styles.loginButton}
+            disabled={validando}
+          >
+            {validando ? 'Validando...' : 'Ingresar'}
+          </button>
+
+          <div style={styles.loginFootnote}>
+            Uso exclusivo para personal autorizado.
+          </div>
+        </form>
+      </main>
+    </div>
+  );
+}
+
+// =============================================================================
 // PERIODOS TEMPORALES - PRODUCCIÓN V9
 // =============================================================================
 //
@@ -1767,7 +1921,7 @@ function MunicipalChoropleth({
   );
 }
 
-function App() {
+function DashboardApp({ onLogout }) {
   const {
     manifest,
     coreMap,
@@ -3694,13 +3848,23 @@ function App() {
           Vigilancia epidemiológica de accidentes y lesiones
         </h1>
 
-        <div style={styles.titleDate}>
-          {periodoConsulta === 'trimestre'
-            ? 'Datos acumulados · '
-            : 'Datos del periodo · '}
-          <strong>
-            {periodoEtiquetaConsulta || '—'}
-          </strong>
+        <div style={styles.titleActions}>
+          <div style={styles.titleDate}>
+            {periodoConsulta === 'trimestre'
+              ? 'Datos acumulados · '
+              : 'Datos del periodo · '}
+            <strong>
+              {periodoEtiquetaConsulta || '—'}
+            </strong>
+          </div>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            style={styles.logoutButton}
+          >
+            Cerrar sesión
+          </button>
         </div>
       </div>
 
@@ -4925,11 +5089,198 @@ function App() {
   );
 }
 
+function App() {
+  const [autorizado, setAutorizado] = useState(() => {
+    return window.sessionStorage.getItem(ACCESS_SESSION_KEY) === '1';
+  });
+
+  function cerrarSesion() {
+    window.sessionStorage.removeItem(ACCESS_SESSION_KEY);
+    setAutorizado(false);
+  }
+
+  if (!autorizado) {
+    return <LoginScreen onLogin={() => setAutorizado(true)} />;
+  }
+
+  return <DashboardApp onLogout={cerrarSesion} />;
+}
+
 // =============================================================================
 // ESTILOS - PROPUESTA VISUAL INSTITUCIONAL
 // =============================================================================
 
 const styles = {
+  loginPage: {
+    width: '100%',
+    minWidth: '320px',
+    minHeight: '100vh',
+    background: '#f1f1f1',
+    color: '#003b35',
+    fontFamily: '"Noto Sans", Arial, Helvetica, sans-serif',
+  },
+
+  loginInstitutionalHeader: {
+    minHeight: '96px',
+    background: '#003b35',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '32px',
+    padding: '11px clamp(24px, 3.2vw, 64px)',
+  },
+
+  loginLogoImss: {
+    display: 'block',
+    width: 'clamp(230px, 21vw, 350px)',
+    maxHeight: '72px',
+    height: 'auto',
+    objectFit: 'contain',
+  },
+
+  loginBrandRight: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: '22px',
+    minWidth: 0,
+    flex: 1,
+  },
+
+  loginLogoCoordinacion: {
+    display: 'block',
+    width: 'clamp(225px, 23vw, 390px)',
+    maxHeight: '56px',
+    height: 'auto',
+    objectFit: 'contain',
+  },
+
+  loginVerticalDivider: {
+    width: '1px',
+    height: '58px',
+    background: 'rgba(255,255,255,0.32)',
+  },
+
+  loginLogoVigilancia: {
+    display: 'block',
+    width: 'clamp(135px, 12vw, 205px)',
+    maxHeight: '66px',
+    height: 'auto',
+    objectFit: 'contain',
+  },
+
+  loginMain: {
+    minHeight: 'calc(100vh - 96px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '38px 20px 56px',
+  },
+
+  loginCard: {
+    width: '100%',
+    maxWidth: '430px',
+    background: '#ffffff',
+    border: '1px solid #d7d7d7',
+    borderRadius: '18px',
+    padding: '30px 32px 28px',
+    boxShadow: '0 12px 30px rgba(0, 59, 53, 0.08)',
+  },
+
+  loginEyebrow: {
+    marginBottom: '8px',
+    fontSize: '10px',
+    fontWeight: 800,
+    letterSpacing: '0.08em',
+    color: '#7b1e3a',
+  },
+
+  loginTitle: {
+    margin: 0,
+    fontSize: '23px',
+    lineHeight: 1.2,
+    fontWeight: 800,
+    color: '#003b35',
+  },
+
+  loginSubtitle: {
+    margin: '10px 0 24px',
+    fontSize: '12px',
+    lineHeight: 1.5,
+    color: '#667085',
+  },
+
+  loginLabel: {
+    display: 'block',
+    margin: '0 0 6px',
+    fontSize: '12px',
+    fontWeight: 800,
+    color: '#5f6978',
+  },
+
+  loginInput: {
+    width: '100%',
+    minHeight: '44px',
+    marginBottom: '15px',
+    padding: '9px 12px',
+    border: '1px solid #8d8d8d',
+    borderRadius: '8px',
+    background: '#ffffff',
+    color: '#003b35',
+    fontSize: '14px',
+    fontWeight: 700,
+    outline: 'none',
+  },
+
+  loginError: {
+    margin: '-2px 0 14px',
+    padding: '9px 10px',
+    borderRadius: '7px',
+    background: '#fff2f1',
+    color: '#b42318',
+    fontSize: '11px',
+    fontWeight: 700,
+  },
+
+  loginButton: {
+    width: '100%',
+    minHeight: '44px',
+    marginTop: '3px',
+    border: '1px solid #003b35',
+    borderRadius: '8px',
+    background: '#003b35',
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+
+  loginFootnote: {
+    marginTop: '16px',
+    textAlign: 'center',
+    fontSize: '9px',
+    color: '#8b929d',
+  },
+
+  titleActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+
+  logoutButton: {
+    minHeight: '30px',
+    padding: '5px 10px',
+    border: '1px solid #8d8d8d',
+    borderRadius: '7px',
+    background: '#ffffff',
+    color: '#003b35',
+    fontSize: '9px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+
   page: {
     width: '100%',
     maxWidth: 'none',
