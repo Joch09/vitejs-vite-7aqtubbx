@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.18.0: perfil descriptivo dinámico para mortalidad con SEED + detalle CIE.
+// V9.18.1: perfil descriptivo de mortalidad + bullet CIE específico por categoría.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2678,102 +2678,23 @@ function DashboardApp({ onLogout }) {
       : 1;
   }, [perfilMortalidadActual]);
 
-  const detalleCIEMortalidad = useMemo(() => {
-    if (!perfilMortalidadActual) {
+  const bulletCIEMortalidad = useMemo(() => {
+    if (
+      medida !== 'mortalidad' ||
+      categoria === 'TODAS' ||
+      !perfilMortalidadActual
+    ) {
       return null;
     }
 
-    let items = [];
-    let total = 0;
-    let titulo = '';
-    let nota = '';
-    let etiquetaPrincipal =
-      'Principal grupo identificado';
-
-    if (tipo === 'Accidentes de transporte') {
-      items =
-        perfilMortalidadActual.cie_transporte ?? [];
-      total = Number(
-        perfilMortalidadActual.cie_transporte_n
-      ) || 0;
-      titulo =
-        'Detalle CIE del mecanismo: transporte';
-      nota =
-        'Tipo de usuario o vehículo de la persona fallecida, derivado de la causa básica CIE.';
-      etiquetaPrincipal =
-        'Principal tipo identificado';
-    } else {
-      const aplicaEnvenenamiento =
-        tipo === 'Exposición a sustancias y energías' &&
-        (
-          categoria === 'TODAS' ||
-          categoria === 'Envenenamiento'
-        );
-
-      const aplicaIntoxicacionAutoinfligida =
-        tipo === 'Lesiones autoinfligidas' &&
-        (
-          categoria === 'TODAS' ||
-          categoria === 'Intoxicación'
-        );
-
-      if (
-        aplicaEnvenenamiento ||
-        aplicaIntoxicacionAutoinfligida
-      ) {
-        items =
-          perfilMortalidadActual.cie_sustancias ?? [];
-        total = Number(
-          perfilMortalidadActual.cie_sustancias_n
-        ) || 0;
-        titulo =
-          'Detalle CIE del mecanismo: sustancias';
-        nota = aplicaIntoxicacionAutoinfligida
-          ? 'Distribución de sustancias entre las defunciones autoinfligidas por intoxicación.'
-          : 'Distribución de sustancias entre las defunciones clasificadas como envenenamiento.';
-        etiquetaPrincipal =
-          'Principal sustancia identificada';
-      }
-    }
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return null;
-    }
-
-    const principalIdentificado =
-      items.find((item) => {
-        const label = normalizeText(
-          item?.etiqueta
-        );
-
-        return (
-          label &&
-          !label.startsWith('OTROS') &&
-          !label.includes('NO ESPECIFIC') &&
-          !label.includes('SE IGNORA')
-        );
-      });
-
-    const principal =
-      principalIdentificado ?? items[0];
-
-    if (!principalIdentificado) {
-      etiquetaPrincipal =
-        'Grupo con mayor frecuencia';
-    }
-
-    return {
-      titulo,
-      nota,
-      total,
-      items,
-      principal,
-      etiquetaPrincipal,
-    };
+    return (
+      perfilMortalidadActual?.bullet_cie ??
+      null
+    );
   }, [
-    perfilMortalidadActual,
-    tipo,
+    medida,
     categoria,
+    perfilMortalidadActual,
   ]);
 
   // ===========================================================================
@@ -4364,7 +4285,59 @@ function DashboardApp({ onLogout }) {
 
             <div style={styles.filterDivider} />
 
-            {tipo === 'TODOS' ? (
+            {medida === 'mortalidad' ? (
+              tipo === 'TODOS' ? (
+                <div style={styles.sidebarEmpty}>
+                  Selecciona un tipo y una categoría para consultar el detalle CIE de mortalidad.
+                </div>
+              ) : categoria === 'TODAS' ? (
+                <div style={styles.sidebarEmpty}>
+                  Selecciona una categoría para consultar el detalle CIE de mortalidad.
+                </div>
+              ) : loadingMortalityProfiles ? (
+                <div style={styles.sidebarEmpty}>
+                  Cargando detalle de mortalidad...
+                </div>
+              ) : mortalityProfilesError ? (
+                <div style={styles.sidebarError}>
+                  No fue posible cargar el detalle CIE de mortalidad.
+                </div>
+              ) : !perfilMortalidadActual ? (
+                <div style={styles.sidebarEmpty}>
+                  No hay defunciones para la selección actual.
+                </div>
+              ) : bulletCIEMortalidad ? (
+                <div style={styles.sidebarBulletGrid}>
+                  <div
+                    style={{
+                      ...styles.sidebarBulletCard,
+                      ...styles.sidebarBulletCardWide,
+                    }}
+                  >
+                    <div style={styles.sidebarNarrativeBlock}>
+                      <div style={styles.sidebarNarrativePrefix}>
+                        {bulletCIEMortalidad.titulo}
+                      </div>
+
+                      <div style={styles.sidebarNarrativeValue}>
+                        {formatBulletValue(
+                          bulletCIEMortalidad.value
+                        )}
+                      </div>
+
+                      <div style={styles.sidebarNarrativeText}>
+                        {bulletCIEMortalidad.etiqueta}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={styles.sidebarEmpty}>
+                  La causa básica CIE no aporta una desagregación adicional útil para esta categoría.
+                </div>
+              )
+            ) : (
+              tipo === 'TODOS' ? (
               <div style={styles.sidebarEmpty}>
                 Selecciona un tipo para consultar sus indicadores.
               </div>
@@ -4542,6 +4515,7 @@ function DashboardApp({ onLogout }) {
                   )
                 )}
               </div>
+            )
             )}
           </aside>
 
@@ -5066,31 +5040,6 @@ function DashboardApp({ onLogout }) {
                   </div>
 
                   {/* --------------------------------------------------- */}
-                  {/* SITIO DE DEFUNCIÓN */}
-                  {/* --------------------------------------------------- */}
-                  <div style={styles.profilePanel}>
-                    <h3 style={styles.profilePanelTitle}>
-                      Sitio de defunción
-                    </h3>
-                    <div style={styles.profilePanelNote}>
-                      Distribución de las defunciones según el sitio registrado.
-                    </div>
-
-                    {(perfilMortalidadActual.sitio_defuncion ?? [])
-                      .length === 0 ? (
-                      <div style={styles.profileEmpty}>
-                        No hay información de sitio de defunción para la selección actual.
-                      </div>
-                    ) : (
-                      <MortalityProfileBars
-                        items={
-                          perfilMortalidadActual.sitio_defuncion
-                        }
-                      />
-                    )}
-                  </div>
-
-                  {/* --------------------------------------------------- */}
                   {/* ESCOLARIDAD */}
                   {/* --------------------------------------------------- */}
                   <div style={styles.profilePanel}>
@@ -5118,7 +5067,7 @@ function DashboardApp({ onLogout }) {
                   {/* --------------------------------------------------- */}
                   {/* OCUPACIÓN HABITUAL */}
                   {/* --------------------------------------------------- */}
-                  <div style={styles.profilePanelWide}>
+                  <div style={styles.profilePanel}>
                     <h3 style={styles.profilePanelTitle}>
                       Ocupación habitual
                     </h3>
@@ -5140,56 +5089,6 @@ function DashboardApp({ onLogout }) {
                     )}
                   </div>
 
-                  {/* --------------------------------------------------- */}
-                  {/* DETALLE CIE DINÁMICO */}
-                  {/* --------------------------------------------------- */}
-                  {detalleCIEMortalidad && (
-                    <div style={styles.mortalityCiePanel}>
-                      <div style={styles.mortalityCieHeader}>
-                        <div>
-                          <h3 style={styles.profilePanelTitle}>
-                            {detalleCIEMortalidad.titulo}
-                          </h3>
-                          <div style={styles.profilePanelNote}>
-                            {detalleCIEMortalidad.nota}
-                            {' '}n ={' '}
-                            {Number(
-                              detalleCIEMortalidad.total
-                            ).toLocaleString('es-MX')}.
-                          </div>
-                        </div>
-
-                        {detalleCIEMortalidad.principal && (
-                          <div style={styles.mortalityCieHighlight}>
-                            <span style={styles.mortalityCieHighlightLabel}>
-                              {detalleCIEMortalidad.etiquetaPrincipal}
-                            </span>
-                            <strong style={styles.mortalityCieHighlightValue}>
-                              {detalleCIEMortalidad.principal.etiqueta}
-                            </strong>
-                            <span style={styles.mortalityCieHighlightPercent}>
-                              {Number(
-                                detalleCIEMortalidad.principal.conteo ?? 0
-                              ).toLocaleString('es-MX')}
-                              {' · '}
-                              {new Intl.NumberFormat('es-MX', {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 1,
-                              }).format(
-                                Number(
-                                  detalleCIEMortalidad.principal.value
-                                ) || 0
-                              )}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <MortalityProfileBars
-                        items={detalleCIEMortalidad.items}
-                      />
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -6623,57 +6522,6 @@ const styles = {
     gridColumn: '1',
     gridRow: '1 / span 2',
     alignSelf: 'start',
-  },
-
-  mortalityCiePanel: {
-    gridColumn: '1 / -1',
-    background: '#ffffff',
-    border: '1px solid #c9b0b8',
-    borderRadius: '12px',
-    padding: '13px 14px',
-    boxSizing: 'border-box',
-  },
-
-  mortalityCieHeader: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: '14px',
-    marginBottom: '10px',
-  },
-
-  mortalityCieHighlight: {
-    flex: '0 0 min(360px, 40%)',
-    minWidth: '250px',
-    borderRadius: '10px',
-    padding: '9px 11px',
-    background: '#f6ecef',
-    border: '1px solid #e2cbd2',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-
-  mortalityCieHighlightLabel: {
-    fontSize: '8px',
-    fontWeight: 800,
-    color: '#7b1e3a',
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
-  },
-
-  mortalityCieHighlightValue: {
-    fontSize: '12px',
-    lineHeight: 1.25,
-    color: '#003b35',
-  },
-
-  mortalityCieHighlightPercent: {
-    marginTop: '2px',
-    fontSize: '10px',
-    fontWeight: 800,
-    color: '#7b1e3a',
-    fontVariantNumeric: 'tabular-nums',
   },
 
   profilePanel: {
