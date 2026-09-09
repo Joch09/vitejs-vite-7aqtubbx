@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.18.1: perfil descriptivo de mortalidad + bullet CIE específico por categoría.
+// V9.18.3: perfil de mortalidad + bullet CIE + ocupación agrupada y compacta.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -1924,9 +1924,18 @@ function MunicipalChoropleth({
   );
 }
 
-function MortalityProfileBars({ items = [] }) {
+function MortalityProfileBars({ items = [], compact = false }) {
   return (
-    <div style={styles.areaList}>
+    <div
+      style={
+        compact
+          ? {
+              ...styles.areaList,
+              ...styles.mortalityOccupationList,
+            }
+          : styles.areaList
+      }
+    >
       {items.map((item) => {
         const porcentaje = Number(item?.value) || 0;
         const conteo = Number(item?.conteo) || 0;
@@ -1938,14 +1947,48 @@ function MortalityProfileBars({ items = [] }) {
         return (
           <div
             key={item?.etiqueta ?? item?.id}
-            style={styles.areaRow}
+            style={
+              compact
+                ? {
+                    ...styles.areaRow,
+                    ...styles.mortalityOccupationRow,
+                  }
+                : styles.areaRow
+            }
           >
-            <div style={styles.areaTop}>
-              <span style={styles.areaLabel}>
+            <div
+              style={
+                compact
+                  ? {
+                      ...styles.areaTop,
+                      ...styles.mortalityOccupationTop,
+                    }
+                  : styles.areaTop
+              }
+            >
+              <span
+                style={
+                  compact
+                    ? {
+                        ...styles.areaLabel,
+                        ...styles.mortalityOccupationLabel,
+                      }
+                    : styles.areaLabel
+                }
+              >
                 {item?.etiqueta ?? '—'}
               </span>
 
-              <strong style={styles.areaValue}>
+              <strong
+                style={
+                  compact
+                    ? {
+                        ...styles.areaValue,
+                        ...styles.mortalityOccupationValue,
+                      }
+                    : styles.areaValue
+                }
+              >
                 {conteo.toLocaleString('es-MX')}
                 {' · '}
                 {new Intl.NumberFormat('es-MX', {
@@ -1955,7 +1998,16 @@ function MortalityProfileBars({ items = [] }) {
               </strong>
             </div>
 
-            <div style={styles.areaTrack}>
+            <div
+              style={
+                compact
+                  ? {
+                      ...styles.areaTrack,
+                      ...styles.mortalityOccupationTrack,
+                    }
+                  : styles.areaTrack
+              }
+            >
               <div
                 style={{
                   ...styles.areaBar,
@@ -2687,10 +2739,20 @@ function DashboardApp({ onLogout }) {
       return null;
     }
 
-    return (
+    const bullet =
       perfilMortalidadActual?.bullet_cie ??
-      null
-    );
+      null;
+
+    if (
+      !bullet ||
+      !String(bullet?.titulo ?? '').trim() ||
+      !String(bullet?.etiqueta ?? '').trim() ||
+      !Number.isFinite(Number(bullet?.value))
+    ) {
+      return null;
+    }
+
+    return bullet;
   }, [
     medida,
     categoria,
@@ -4331,11 +4393,7 @@ function DashboardApp({ onLogout }) {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div style={styles.sidebarEmpty}>
-                  La causa básica CIE no aporta una desagregación adicional útil para esta categoría.
-                </div>
-              )
+              ) : null
             ) : (
               tipo === 'TODOS' ? (
               <div style={styles.sidebarEmpty}>
@@ -5072,7 +5130,7 @@ function DashboardApp({ onLogout }) {
                       Ocupación habitual
                     </h3>
                     <div style={styles.profilePanelNote}>
-                      Grupos construidos a partir de la clave de ocupación habitual de SEED.
+                      7 grandes grupos construidos a partir de la clave de ocupación habitual de SEED.
                     </div>
 
                     {(perfilMortalidadActual.ocupacion ?? [])
@@ -5085,6 +5143,7 @@ function DashboardApp({ onLogout }) {
                         items={
                           perfilMortalidadActual.ocupacion
                         }
+                        compact
                       />
                     )}
                   </div>
@@ -6729,6 +6788,32 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '7px',
+  },
+
+  mortalityOccupationList: {
+    gap: '4px',
+  },
+
+  mortalityOccupationRow: {
+    minHeight: 0,
+  },
+
+  mortalityOccupationTop: {
+    gap: '8px',
+    marginBottom: '2px',
+  },
+
+  mortalityOccupationLabel: {
+    fontSize: '9.5px',
+    lineHeight: 1.12,
+  },
+
+  mortalityOccupationValue: {
+    fontSize: '8.5px',
+  },
+
+  mortalityOccupationTrack: {
+    height: '5px',
   },
 
   areaRow: {
