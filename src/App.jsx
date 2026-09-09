@@ -4353,9 +4353,7 @@ function DashboardApp({ onLogout }) {
                   Selecciona un tipo y una categoría para consultar el detalle CIE de mortalidad.
                 </div>
               ) : categoria === 'TODAS' ? (
-                <div style={styles.sidebarEmpty}>
-                  Selecciona una categoría para consultar el detalle CIE de mortalidad.
-                </div>
+                null
               ) : loadingMortalityProfiles ? (
                 <div style={styles.sidebarEmpty}>
                   Cargando detalle de mortalidad...
