@@ -26,13 +26,13 @@ import {
 } from './data/dashboardData';
 
 // =============================================================================
-// ACCESO BÁSICO AL TABLERO - PRUEBA
+// ACCESO BÁSICO AL TABLERO
 // =============================================================================
 // Usuario compartido de consulta. La contraseña no se almacena en texto plano:
 // únicamente se conserva su hash SHA-256 para validar el acceso en el navegador.
-const ACCESS_USER = 'imssb2026';
+const ACCESS_USER = 'IMSSBNC001';
 const ACCESS_PASSWORD_SHA256 =
-  'a0f929eb633b9e3b89d5808c0847869086208b7800ea2b4d0c15fb28b6fe673e';
+  '7557e4ea06dcade4f47aa1ec2ad67cacd4f9577f80f2f95983fefe2c76cbbe3e';
 const ACCESS_SESSION_KEY = 'accidentes_lesiones_access';
 
 async function sha256(value) {
