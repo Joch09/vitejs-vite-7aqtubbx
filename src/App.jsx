@@ -4054,8 +4054,8 @@ function DashboardApp({ onLogout }) {
 
   const tasaTablaLabel =
     medida === 'mortalidad'
-      ? 'Tasa de mortalidad'
-      : 'Tasa de incidencia';
+      ? 'Tasa de mortalidad por 10,000 habitantes'
+      : 'Tasa de incidencia por 10,000 habitantes';
 
   const geografiaTablaLabel =
     entidad === 'NACIONAL'
