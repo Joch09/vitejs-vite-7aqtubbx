@@ -2317,6 +2317,7 @@ function buildTablePdf({
   const countWidth = 86;
   const rateWidth = tableWidth - territoryWidth - countWidth;
   const rowHeight = 17;
+  const headerHeight = 30;
   const maxRowsPerPage = 34;
   const totalPages = Math.max(
     1,
@@ -2398,12 +2399,52 @@ function buildTablePdf({
     }
 
     const tableTop = y;
-    const headerBottom = tableTop - 22;
+    const headerBottom = tableTop - headerHeight;
 
-    fillRect(marginX, headerBottom, tableWidth, 22, 0.93, 0.95, 0.94);
-    text(geographyLabel, marginX + 8, headerBottom + 7, 8, true);
-    text(countLabel, marginX + territoryWidth + 8, headerBottom + 7, 8, true);
-    text(rateLabel, marginX + territoryWidth + countWidth + 8, headerBottom + 7, 8, true);
+    fillRect(
+      marginX,
+      headerBottom,
+      tableWidth,
+      headerHeight,
+      0.93,
+      0.95,
+      0.94
+    );
+
+    text(
+      geographyLabel,
+      marginX + 8,
+      headerBottom + 11,
+      8,
+      true
+    );
+
+    text(
+      countLabel,
+      marginX + territoryWidth + 8,
+      headerBottom + 11,
+      8,
+      true
+    );
+
+    const rateHeaderParts = String(rateLabel ?? '').split(' por ');
+    const rateHeaderLines =
+      rateHeaderParts.length > 1
+        ? [
+            rateHeaderParts[0],
+            `por ${rateHeaderParts.slice(1).join(' por ')}`,
+          ]
+        : wrapPdfText(rateLabel, 24).slice(0, 2);
+
+    rateHeaderLines.forEach((lineText, index) => {
+      text(
+        lineText,
+        marginX + territoryWidth + countWidth + 8,
+        headerBottom + 16 - index * 9,
+        7.5,
+        true
+      );
+    });
 
     line(marginX, headerBottom, marginX + tableWidth, headerBottom, 0.6);
     line(marginX, tableTop, marginX + tableWidth, tableTop, 0.6);
