@@ -28,11 +28,18 @@ import {
 // =============================================================================
 // ACCESO BÁSICO AL TABLERO
 // =============================================================================
-// Usuario compartido de consulta. La contraseña no se almacena en texto plano:
-// únicamente se conserva su hash SHA-256 para validar el acceso en el navegador.
-const ACCESS_USER = 'IMSSBNC001';
-const ACCESS_PASSWORD_SHA256 =
-  '7557e4ea06dcade4f47aa1ec2ad67cacd4f9577f80f2f95983fefe2c76cbbe3e';
+// Accesos de revisión. Las contraseñas no se almacenan en texto plano:
+// únicamente se conservan sus hashes SHA-256 para validar en el navegador.
+const ACCESS_ACCOUNTS = [
+  {
+    user: 'IMSSBNC001',
+    passwordSha256: '7557e4ea06dcade4f47aa1ec2ad67cacd4f9577f80f2f95983fefe2c76cbbe3e',
+  },
+  {
+    user: 'frida.sanchez',
+    passwordSha256: 'bd0370be2bd69aae188c3ff3961ae71c7345108c361a14aa70001a501f7f327f',
+  },
+];
 const ACCESS_SESSION_KEY = 'accidentes_lesiones_access';
 
 async function sha256(value) {
@@ -57,16 +64,20 @@ function LoginScreen({ onLogin }) {
 
     try {
       const passwordHash = await sha256(contrasena);
-      const usuarioCorrecto = usuario.trim() === ACCESS_USER;
-      const contrasenaCorrecta = passwordHash === ACCESS_PASSWORD_SHA256;
+      const usuarioNormalizado = usuario.trim();
+      const accesoCorrecto = ACCESS_ACCOUNTS.some(
+        (account) =>
+          account.user === usuarioNormalizado &&
+          account.passwordSha256 === passwordHash
+      );
 
-      if (!usuarioCorrecto || !contrasenaCorrecta) {
+      if (!accesoCorrecto) {
         setError('Usuario o contraseña incorrectos.');
         setContrasena('');
         return;
       }
 
-      window.sessionStorage.setItem(ACCESS_SESSION_KEY, '1');
+      window.sessionStorage.setItem(ACCESS_SESSION_KEY, usuarioNormalizado);
       onLogin();
     } catch (err) {
       console.error('No fue posible validar el acceso:', err);
@@ -151,7 +162,6 @@ function LoginScreen({ onLogin }) {
           <input
             id="contrasena-tablero"
             type="password"
-            inputMode="numeric"
             autoComplete="current-password"
             value={contrasena}
             onChange={(event) => setContrasena(event.target.value)}
@@ -6612,7 +6622,8 @@ function DashboardApp({ onLogout }) {
 
 function App() {
   const [autorizado, setAutorizado] = useState(() => {
-    return window.sessionStorage.getItem(ACCESS_SESSION_KEY) === '1';
+    const usuarioEnSesion = window.sessionStorage.getItem(ACCESS_SESSION_KEY);
+    return ACCESS_ACCOUNTS.some((account) => account.user === usuarioEnSesion);
   });
 
   function cerrarSesion() {
