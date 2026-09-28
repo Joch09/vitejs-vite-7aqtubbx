@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.19.9: alinea etiquetas y conectores del esquema corporal; consecuencia se mantiene en barras.
+// V9.19.10: aumenta tipografía y aproxima etiquetas a los conectores del esquema corporal.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -7810,32 +7810,32 @@ const styles = {
 
   anatomicalLabel: {
     position: 'absolute',
-    width: '25%',
+    width: '27%',
     transform: 'translateY(-50%)',
     zIndex: 3,
     lineHeight: 1.12,
   },
 
   anatomicalLabelLeft: {
-    left: '2%',
+    left: '1%',
     textAlign: 'right',
   },
 
   anatomicalLabelRight: {
-    right: '2%',
+    right: '1%',
     textAlign: 'left',
   },
 
   anatomicalLabelText: {
-    fontSize: '9.5px',
+    fontSize: '11.5px',
     fontWeight: 700,
     color: '#101828',
     overflowWrap: 'anywhere',
   },
 
   anatomicalLabelValue: {
-    marginTop: '2px',
-    fontSize: '10px',
+    marginTop: '1px',
+    fontSize: '11.5px',
     fontWeight: 800,
     color: '#7B1E3A',
     fontVariantNumeric: 'tabular-nums',
