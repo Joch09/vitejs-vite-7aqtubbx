@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.18.5: redacción institucional de bullets, perfiles sin subtítulos y barras ordenadas por porcentaje.
+// V9.19.8: esquema corporal para área anatómica y barras para consecuencia de mayor gravedad.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
 import logoVigilancia from './assets/logos/logo_vigilancia_epidemiologica.png';
+import munecoAreaAnatomica from './assets/muneco_area_anatomica.png';
 
 import { useDashboardData } from './hooks/useDashboardData';
 
@@ -2002,7 +2003,7 @@ function getMortalityBulletDisplayTitle(item, tipo, categoria) {
 
   if (tipo === 'Otros mecanismos específicos') {
     if (String(categoria ?? '').startsWith('Sustancias')) {
-      return 'Principal sustancia o mecanismo:';
+      return 'Principal sustancia:';
     }
     return 'Principal exposición:';
   }
@@ -2021,6 +2022,164 @@ function getMortalityBulletDisplayTitle(item, tipo, categoria) {
   }
 
   return 'Principal mecanismo:';
+}
+
+function formatProfilePercent(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return '—';
+  }
+
+  return `${new Intl.NumberFormat('es-MX', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(number)}%`;
+}
+
+function AnatomicalBodyProfile({ items = [] }) {
+  const itemsMap = useMemo(() => {
+    const map = new Map();
+
+    (Array.isArray(items) ? items : []).forEach((item) => {
+      const id = String(item?.id ?? '').trim();
+      const label = normalizeText(item?.etiqueta ?? '');
+
+      if (id) {
+        map.set(id, item);
+      }
+
+      if (label) {
+        map.set(label, item);
+      }
+    });
+
+    return map;
+  }, [items]);
+
+  const getItem = (id, label) =>
+    itemsMap.get(id) ??
+    itemsMap.get(normalizeText(label)) ??
+    null;
+
+  const slots = [
+    {
+      key: 'tronco',
+      item: getItem('area_tronco', 'Tronco'),
+      side: 'left',
+      top: '19%',
+      line: { x1: 43, y1: 31, x2: 27, y2: 31 },
+    },
+    {
+      key: 'multiples',
+      item: getItem('area_multiples', 'Múltiples sitios'),
+      side: 'left',
+      top: '43%',
+      line: { x1: 43, y1: 47, x2: 27, y2: 47 },
+    },
+    {
+      key: 'inferiores',
+      item: getItem('area_inferiores', 'Extremidades inferiores'),
+      side: 'left',
+      top: '72%',
+      line: { x1: 44, y1: 76, x2: 26, y2: 76 },
+    },
+    {
+      key: 'cabeza',
+      item: getItem('area_cabeza', 'Cabeza y cuello'),
+      side: 'right',
+      top: '8%',
+      line: { x1: 56, y1: 17, x2: 72, y2: 17 },
+    },
+    {
+      key: 'superiores',
+      item: getItem('area_superiores', 'Extremidades superiores'),
+      side: 'right',
+      top: '30%',
+      line: { x1: 57, y1: 36, x2: 72, y2: 36 },
+    },
+    {
+      key: 'pelvis',
+      item: getItem('area_pelvis', 'Pelvis/Genitales'),
+      side: 'right',
+      top: '52%',
+      line: { x1: 55, y1: 57, x2: 72, y2: 57 },
+    },
+    {
+      key: 'otros',
+      item: getItem('area_otros', 'Otros'),
+      side: 'right',
+      top: '76%',
+      line: null,
+    },
+  ];
+
+  return (
+    <div style={styles.anatomicalFigure}>
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        style={styles.anatomicalConnectors}
+      >
+        {slots.map((slot) =>
+          slot.line && slot.item ? (
+            <g key={`line-${slot.key}`}>
+              <line
+                x1={slot.line.x1}
+                y1={slot.line.y1}
+                x2={slot.line.x2}
+                y2={slot.line.y2}
+                stroke="#8b8b8b"
+                strokeWidth="0.8"
+                vectorEffect="non-scaling-stroke"
+              />
+              <circle
+                cx={slot.line.x1}
+                cy={slot.line.y1}
+                r="0.9"
+                fill="#8b8b8b"
+              />
+            </g>
+          ) : null
+        )}
+      </svg>
+
+      <div style={styles.anatomicalBodyWrap}>
+        <img
+          src={munecoAreaAnatomica}
+          alt="Esquema corporal"
+          style={styles.anatomicalBodyImage}
+        />
+      </div>
+
+      {slots.map((slot) => {
+        if (!slot.item) {
+          return null;
+        }
+
+        return (
+          <div
+            key={slot.key}
+            style={{
+              ...styles.anatomicalLabel,
+              ...(slot.side === 'left'
+                ? styles.anatomicalLabelLeft
+                : styles.anatomicalLabelRight),
+              top: slot.top,
+            }}
+          >
+            <div style={styles.anatomicalLabelText}>
+              {slot.item.etiqueta}
+            </div>
+            <div style={styles.anatomicalLabelValue}>
+              {formatProfilePercent(slot.item.value)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function MortalityProfileBars({ items = [], compact = false }) {
@@ -4793,14 +4952,6 @@ function DashboardApp({ onLogout }) {
     periodoIdConsulta,
   ]);
 
-  const treemapConsecuencia = useMemo(
-    () =>
-      buildTreemapLayout(
-        perfilConsecuencia
-      ),
-    [perfilConsecuencia]
-  );
-
   const distribucionesComplementarias = useMemo(() => {
     if (
       tipo === 'TODOS' ||
@@ -6144,57 +6295,9 @@ function DashboardApp({ onLogout }) {
                   No hay información de área anatómica para la selección actual.
                 </div>
               ) : (
-                <div style={styles.areaList}>
-                  {perfilAreaAnatomica.map(
-                    (item) => {
-                      const ancho =
-                        `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            item.value
-                          )
-                        )}%`;
-
-                      return (
-                        <div
-                          key={item.id}
-                          style={styles.areaRow}
-                        >
-                          <div style={styles.areaTop}>
-                            <span style={styles.areaLabel}>
-                              {item.etiqueta}
-                            </span>
-
-                            <strong style={styles.areaValue}>
-                              {new Intl.NumberFormat(
-                                'es-MX',
-                                {
-                                  minimumFractionDigits:
-                                    0,
-                                  maximumFractionDigits:
-                                    1,
-                                }
-                              ).format(
-                                item.value
-                              )}
-                              %
-                            </strong>
-                          </div>
-
-                          <div style={styles.areaTrack}>
-                            <div
-                              style={{
-                                ...styles.areaBar,
-                                width: ancho,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    }
-                  )}
-                </div>
+                <AnatomicalBodyProfile
+                  items={perfilAreaAnatomica}
+                />
               )}
             </div>
 
@@ -6220,133 +6323,40 @@ function DashboardApp({ onLogout }) {
                   No hay información de consecuencia para la selección actual.
                 </div>
               ) : (
-                <>
-                  <div style={styles.consequenceTreemap}>
-                    {treemapConsecuencia.map(
-                      (item) => {
-                        const modoCompacto =
-                          item.height < 12 ||
-                          item.width < 16;
+                <div style={styles.areaList}>
+                  {perfilConsecuencia.map((item) => {
+                    const ancho = `${Math.max(
+                      0,
+                      Math.min(100, Number(item.value) || 0)
+                    )}%`;
 
-                        const mostrarEtiqueta =
-                          true;
+                    return (
+                      <div
+                        key={item.id}
+                        style={styles.areaRow}
+                      >
+                        <div style={styles.areaTop}>
+                          <span style={styles.areaLabel}>
+                            {item.etiqueta}
+                          </span>
 
-                        const mostrarValor =
-                          true;
+                          <strong style={styles.areaValue}>
+                            {formatProfilePercent(item.value)}
+                          </strong>
+                        </div>
 
-                        const fuenteEtiqueta =
-                          item.height < 9
-                            ? '7px'
-                            : modoCompacto
-                            ? '8px'
-                            : item.width < 24 ||
-                              item.height < 20
-                            ? '9px'
-                            : '10.5px';
-
-                        const fuenteValor =
-                          item.height < 9
-                            ? '9px'
-                            : modoCompacto
-                            ? '10.5px'
-                            : item.width < 18 ||
-                              item.height < 18
-                            ? '12.5px'
-                            : '15px';
-
-                        const paddingTile =
-                          item.height < 9
-                            ? '3px 5px'
-                            : modoCompacto
-                            ? '4px 6px'
-                            : '7px';
-
-                        const porcentaje =
-                          new Intl.NumberFormat(
-                            'es-MX',
-                            {
-                              minimumFractionDigits:
-                                0,
-                              maximumFractionDigits:
-                                1,
-                            }
-                          ).format(
-                            item.value
-                          );
-
-                        return (
+                        <div style={styles.areaTrack}>
                           <div
-                            key={item.id}
-                            title={`${item.etiqueta}: ${porcentaje}%`}
                             style={{
-                              ...styles.consequenceTreemapTile,
-                              left: `${item.x}%`,
-                              top: `${item.y}%`,
-                              width: `${item.width}%`,
-                              height: `${item.height}%`,
-                              padding: paddingTile,
+                              ...styles.areaBar,
+                              width: ancho,
                             }}
-                          >
-                            {modoCompacto ? (
-                              <div
-                                style={
-                                  styles.consequenceTreemapCompact
-                                }
-                              >
-                                {mostrarValor && (
-                                  <strong
-                                    style={{
-                                      ...styles.consequenceTreemapCompactValue,
-                                      fontSize: fuenteValor,
-                                    }}
-                                  >
-                                    {porcentaje}%
-                                  </strong>
-                                )}
-
-                                {mostrarEtiqueta && (
-                                  <span
-                                    style={{
-                                      ...styles.consequenceTreemapCompactLabel,
-                                      fontSize: fuenteEtiqueta,
-                                    }}
-                                  >
-                                    {item.etiqueta}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <>
-                                {mostrarValor && (
-                                  <div
-                                    style={{
-                                      ...styles.consequenceTreemapValue,
-                                      fontSize: fuenteValor,
-                                    }}
-                                  >
-                                    {porcentaje}%
-                                  </div>
-                                )}
-
-                                {mostrarEtiqueta && (
-                                  <div
-                                    style={{
-                                      ...styles.consequenceTreemapLabel,
-                                      fontSize: fuenteEtiqueta,
-                                    }}
-                                  >
-                                    {item.etiqueta}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-
-                </>
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
@@ -7735,6 +7745,81 @@ const styles = {
     fontSize: '9px',
     fontWeight: 600,
     color: '#000000',
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  anatomicalFigure: {
+    position: 'relative',
+    width: '100%',
+    height: '330px',
+    marginTop: '4px',
+    overflow: 'hidden',
+    borderRadius: '10px',
+    background: '#ffffff',
+  },
+
+  anatomicalBodyWrap: {
+    position: 'absolute',
+    left: '50%',
+    top: '5%',
+    bottom: '4%',
+    width: '24%',
+    minWidth: '92px',
+    maxWidth: '138px',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+
+  anatomicalBodyImage: {
+    display: 'block',
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    objectPosition: 'center',
+  },
+
+  anatomicalConnectors: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+    zIndex: 2,
+  },
+
+  anatomicalLabel: {
+    position: 'absolute',
+    width: '27%',
+    transform: 'translateY(-50%)',
+    zIndex: 3,
+    lineHeight: 1.12,
+  },
+
+  anatomicalLabelLeft: {
+    left: '1%',
+    textAlign: 'right',
+  },
+
+  anatomicalLabelRight: {
+    right: '1%',
+    textAlign: 'left',
+  },
+
+  anatomicalLabelText: {
+    fontSize: '9.5px',
+    fontWeight: 700,
+    color: '#101828',
+    overflowWrap: 'anywhere',
+  },
+
+  anatomicalLabelValue: {
+    marginTop: '2px',
+    fontSize: '10px',
+    fontWeight: 800,
+    color: '#7B1E3A',
     fontVariantNumeric: 'tabular-nums',
   },
 
