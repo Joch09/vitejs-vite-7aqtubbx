@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-28_JSON_BASE_TAXONOMIA28_FIX1",
+  "version": "2026-09-28_JSON_BASE_TAXONOMIA28_FIX4_SIN_CONFIG",
   "proyecto": "Vigilancia epidemiológica de accidentes y lesiones",
   "periodo": {
     "inicio": "2026-01-01",
@@ -13,7 +13,8 @@
     "entidades_sin_denominador": ["GUANAJUATO", "YUCATAN"],
     "categorias": 28,
     "tipos": 9,
-    "eventos": 2
+    "eventos": 2,
+    "mortalidad_residual_categoria": "X91/X92 se conservan en tipo/evento/total y no se atribuyen a la categoría Sustancias."
   },
   "cierres": {
     "casos": 252809,

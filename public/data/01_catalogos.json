@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-28_JSON_PRODUCCION_TAXONOMIA28_D_V1",
+  "version": "2026-09-28_JSON_PRODUCCION_TAXONOMIA28_FIX2_MORTALIDAD_RESIDUAL",
   "eventos": ["Accidentes", "Lesiones"],
   "tipos": [
     {

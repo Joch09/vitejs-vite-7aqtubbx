@@ -1,9 +1,10 @@
 {
-  "version": "2026-08-30_PASO40_DEFUNCIONES_MUNICIPALES_DINAMICAS_OCURRENCIA_V1",
+  "version": "2026-09-28_PASO40_DEFUNCIONES_MUNICIPALES_DINAMICAS_OCURRENCIA_FIX4_FECHA_IDX",
   "estado": "APROBADO",
   "fuente": {
     "base_defunciones": "base_defunciones_tablero_2026_taxonomia28.rds",
     "taxonomia": "28 categorías cerradas en Paso 27",
+    "regla_mortalidad_categoria": "X91/X92 se conservan en total/evento/tipo y no se atribuyen a la categoría Sustancias.",
     "universo_institucional": "SEED transferida definido previamente por CLUES; este paso no reconstruye el universo",
     "geometria": "geometria_municipal_inegi_2026.rds"
   },
