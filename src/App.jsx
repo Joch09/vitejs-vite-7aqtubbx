@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.19.8: esquema corporal para área anatómica y barras para consecuencia de mayor gravedad.
+// V9.19.9: alinea etiquetas y conectores del esquema corporal; consecuencia se mantiene en barras.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2067,49 +2067,49 @@ function AnatomicalBodyProfile({ items = [] }) {
       key: 'tronco',
       item: getItem('area_tronco', 'Tronco'),
       side: 'left',
-      top: '19%',
-      line: { x1: 43, y1: 31, x2: 27, y2: 31 },
+      y: 33,
+      line: { x1: 43, x2: 29 },
     },
     {
       key: 'multiples',
       item: getItem('area_multiples', 'Múltiples sitios'),
       side: 'left',
-      top: '43%',
-      line: { x1: 43, y1: 47, x2: 27, y2: 47 },
+      y: 49,
+      line: { x1: 43, x2: 29 },
     },
     {
       key: 'inferiores',
       item: getItem('area_inferiores', 'Extremidades inferiores'),
       side: 'left',
-      top: '72%',
-      line: { x1: 44, y1: 76, x2: 26, y2: 76 },
+      y: 78,
+      line: { x1: 44, x2: 29 },
     },
     {
       key: 'cabeza',
       item: getItem('area_cabeza', 'Cabeza y cuello'),
       side: 'right',
-      top: '8%',
-      line: { x1: 56, y1: 17, x2: 72, y2: 17 },
+      y: 17,
+      line: { x1: 56, x2: 71 },
     },
     {
       key: 'superiores',
       item: getItem('area_superiores', 'Extremidades superiores'),
       side: 'right',
-      top: '30%',
-      line: { x1: 57, y1: 36, x2: 72, y2: 36 },
+      y: 38,
+      line: { x1: 57, x2: 71 },
     },
     {
       key: 'pelvis',
       item: getItem('area_pelvis', 'Pelvis/Genitales'),
       side: 'right',
-      top: '52%',
-      line: { x1: 55, y1: 57, x2: 72, y2: 57 },
+      y: 59,
+      line: { x1: 55, x2: 71 },
     },
     {
       key: 'otros',
       item: getItem('area_otros', 'Otros'),
       side: 'right',
-      top: '76%',
+      y: 78,
       line: null,
     },
   ];
@@ -2122,21 +2122,39 @@ function AnatomicalBodyProfile({ items = [] }) {
         aria-hidden="true"
         style={styles.anatomicalConnectors}
       >
+        <defs>
+          <marker
+            id="anatomical-arrow"
+            markerWidth="5"
+            markerHeight="5"
+            refX="4.4"
+            refY="2.5"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path
+              d="M0,0 L5,2.5 L0,5 Z"
+              fill="#8b8b8b"
+            />
+          </marker>
+        </defs>
+
         {slots.map((slot) =>
           slot.line && slot.item ? (
             <g key={`line-${slot.key}`}>
               <line
                 x1={slot.line.x1}
-                y1={slot.line.y1}
+                y1={slot.y}
                 x2={slot.line.x2}
-                y2={slot.line.y2}
+                y2={slot.y}
                 stroke="#8b8b8b"
                 strokeWidth="0.8"
                 vectorEffect="non-scaling-stroke"
+                markerEnd="url(#anatomical-arrow)"
               />
               <circle
                 cx={slot.line.x1}
-                cy={slot.line.y1}
+                cy={slot.y}
                 r="0.9"
                 fill="#8b8b8b"
               />
@@ -2166,7 +2184,7 @@ function AnatomicalBodyProfile({ items = [] }) {
               ...(slot.side === 'left'
                 ? styles.anatomicalLabelLeft
                 : styles.anatomicalLabelRight),
-              top: slot.top,
+              top: `${slot.y}%`,
             }}
           >
             <div style={styles.anatomicalLabelText}>
@@ -7792,19 +7810,19 @@ const styles = {
 
   anatomicalLabel: {
     position: 'absolute',
-    width: '27%',
+    width: '25%',
     transform: 'translateY(-50%)',
     zIndex: 3,
     lineHeight: 1.12,
   },
 
   anatomicalLabelLeft: {
-    left: '1%',
+    left: '2%',
     textAlign: 'right',
   },
 
   anatomicalLabelRight: {
-    right: '1%',
+    right: '2%',
     textAlign: 'left',
   },
 
