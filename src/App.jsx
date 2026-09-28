@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.19.10: aumenta tipografía y aproxima etiquetas a los conectores del esquema corporal.
+// V9.19.11: mejora tabla de resultados: columnas más equilibradas, textos centrados y tipografía mayor.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -8424,7 +8424,7 @@ const styles = {
     borderCollapse: 'separate',
     borderSpacing: 0,
     tableLayout: 'fixed',
-    fontSize: '10px',
+    fontSize: '11.5px',
     color: '#1f2937',
   },
 
@@ -8432,45 +8432,45 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 2,
-    width: '58%',
+    width: '40%',
     padding: 0,
     background: '#edf3f1',
     borderBottom: '1px solid #cfd8d5',
-    textAlign: 'left',
+    textAlign: 'center',
   },
 
   resultsThNumber: {
     position: 'sticky',
     top: 0,
     zIndex: 2,
-    width: '21%',
+    width: '30%',
     padding: 0,
     background: '#edf3f1',
     borderBottom: '1px solid #cfd8d5',
-    textAlign: 'right',
+    textAlign: 'center',
   },
 
   resultsSortButton: {
     width: '100%',
-    padding: '10px 12px',
+    padding: '11px 12px',
     border: 0,
     background: 'transparent',
     color: '#003b35',
-    fontSize: '10px',
+    fontSize: '11.5px',
     fontWeight: 800,
-    textAlign: 'left',
+    textAlign: 'center',
     cursor: 'pointer',
   },
 
   resultsSortButtonNumber: {
     width: '100%',
-    padding: '10px 12px',
+    padding: '11px 12px',
     border: 0,
     background: 'transparent',
     color: '#003b35',
-    fontSize: '10px',
+    fontSize: '11.5px',
     fontWeight: 800,
-    textAlign: 'right',
+    textAlign: 'center',
     cursor: 'pointer',
   },
 
@@ -8484,21 +8484,22 @@ const styles = {
   },
 
   resultsTdTerritory: {
-    padding: '8px 12px',
+    padding: '10px 12px',
     borderBottom: '1px solid #eeeeee',
     color: '#1f2937',
     fontWeight: 600,
-    textAlign: 'left',
+    textAlign: 'center',
     whiteSpace: 'normal',
     overflowWrap: 'anywhere',
   },
 
   resultsTdNumber: {
-    padding: '8px 12px',
+    padding: '10px 12px',
     borderBottom: '1px solid #eeeeee',
     color: '#1f2937',
+    fontWeight: 600,
     fontVariantNumeric: 'tabular-nums',
-    textAlign: 'right',
+    textAlign: 'center',
     whiteSpace: 'nowrap',
   },
 
