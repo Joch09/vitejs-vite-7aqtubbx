@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.19.11: mejora tabla de resultados: columnas más equilibradas, textos centrados y tipografía mayor.
+// V9.19.12: escolaridad en mortalidad se presenta como gráfico de pastel.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -2301,6 +2301,189 @@ function MortalityProfileBars({ items = [], compact = false }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+
+const MORTALITY_EDUCATION_COLORS = [
+  '#5B162B',
+  '#7B1E3A',
+  '#98445D',
+  '#B65F78',
+  '#CE8195',
+  '#DDA7B4',
+  '#C2B2B7',
+  '#E9D9DE',
+];
+
+function MortalityEducationPie({ items = [] }) {
+  const slices = useMemo(() => {
+    const normalizados = [...(Array.isArray(items) ? items : [])]
+      .map((item) => ({
+        ...item,
+        value: Math.max(0, Number(item?.value) || 0),
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    const total = normalizados.reduce(
+      (sum, item) => sum + item.value,
+      0
+    );
+
+    let acumulado = 0;
+
+    return normalizados.map((item, index) => {
+      const startAngle =
+        total > 0 ? (acumulado / total) * 360 : 0;
+
+      acumulado += item.value;
+
+      const endAngle =
+        total > 0 ? (acumulado / total) * 360 : 0;
+
+      return {
+        ...item,
+        color:
+          MORTALITY_EDUCATION_COLORS[
+            index % MORTALITY_EDUCATION_COLORS.length
+          ],
+        startAngle,
+        endAngle,
+      };
+    });
+  }, [items]);
+
+  const positivos = slices.filter(
+    (item) => item.value > 0
+  );
+
+  const polarPoint = (
+    cx,
+    cy,
+    radius,
+    angleDegrees
+  ) => {
+    const angle =
+      ((angleDegrees - 90) * Math.PI) / 180;
+
+    return {
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle),
+    };
+  };
+
+  const slicePath = (
+    cx,
+    cy,
+    radius,
+    startAngle,
+    endAngle
+  ) => {
+    const start = polarPoint(
+      cx,
+      cy,
+      radius,
+      startAngle
+    );
+
+    const end = polarPoint(
+      cx,
+      cy,
+      radius,
+      endAngle
+    );
+
+    const largeArc =
+      endAngle - startAngle > 180 ? 1 : 0;
+
+    return [
+      `M ${cx} ${cy}`,
+      `L ${start.x} ${start.y}`,
+      `A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`,
+      'Z',
+    ].join(' ');
+  };
+
+  const formatPercent = (value) =>
+    `${new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }).format(value)}%`;
+
+  return (
+    <div style={styles.mortalityEducationPieWrap}>
+      <div style={styles.mortalityEducationPieChart}>
+        <svg
+          viewBox="0 0 220 220"
+          role="img"
+          aria-label="Distribución porcentual de escolaridad"
+          style={styles.mortalityEducationPieSvg}
+        >
+          {positivos.length === 1 ? (
+            <circle
+              cx="110"
+              cy="110"
+              r="94"
+              fill={positivos[0].color}
+              stroke="#ffffff"
+              strokeWidth="2"
+            >
+              <title>
+                {`${positivos[0]?.etiqueta ?? '—'}: ${formatPercent(
+                  positivos[0].value
+                )}`}
+              </title>
+            </circle>
+          ) : (
+            positivos.map((item) => (
+              <path
+                key={item?.etiqueta ?? item?.id}
+                d={slicePath(
+                  110,
+                  110,
+                  94,
+                  item.startAngle,
+                  item.endAngle
+                )}
+                fill={item.color}
+                stroke="#ffffff"
+                strokeWidth="2"
+              >
+                <title>
+                  {`${item?.etiqueta ?? '—'}: ${formatPercent(
+                    item.value
+                  )}`}
+                </title>
+              </path>
+            ))
+          )}
+        </svg>
+      </div>
+
+      <div style={styles.mortalityEducationLegend}>
+        {slices.map((item) => (
+          <div
+            key={item?.etiqueta ?? item?.id}
+            style={styles.mortalityEducationLegendRow}
+          >
+            <span
+              style={{
+                ...styles.mortalityEducationLegendDot,
+                background: item.color,
+              }}
+            />
+
+            <span style={styles.mortalityEducationLegendLabel}>
+              {item?.etiqueta ?? '—'}
+            </span>
+
+            <strong style={styles.mortalityEducationLegendValue}>
+              {formatPercent(item.value)}
+            </strong>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -6090,7 +6273,7 @@ function DashboardApp({ onLogout }) {
                         No hay información de escolaridad para la selección actual.
                       </div>
                     ) : (
-                      <MortalityProfileBars
+                      <MortalityEducationPie
                         items={
                           perfilMortalidadActual.escolaridad
                         }
@@ -7839,6 +8022,70 @@ const styles = {
     fontWeight: 800,
     color: '#7B1E3A',
     fontVariantNumeric: 'tabular-nums',
+  },
+
+  mortalityEducationPieWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '16px',
+    flexWrap: 'wrap',
+    minHeight: '205px',
+    padding: '4px 0 1px',
+    boxSizing: 'border-box',
+  },
+
+  mortalityEducationPieChart: {
+    flex: '0 1 205px',
+    width: '100%',
+    maxWidth: '205px',
+    minWidth: '165px',
+  },
+
+  mortalityEducationPieSvg: {
+    display: 'block',
+    width: '100%',
+    height: 'auto',
+    overflow: 'visible',
+  },
+
+  mortalityEducationLegend: {
+    flex: '1 1 245px',
+    minWidth: '220px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+
+  mortalityEducationLegendRow: {
+    display: 'grid',
+    gridTemplateColumns: '10px minmax(0, 1fr) auto',
+    alignItems: 'center',
+    gap: '7px',
+    minHeight: '17px',
+  },
+
+  mortalityEducationLegendDot: {
+    width: '9px',
+    height: '9px',
+    borderRadius: '2px',
+    display: 'inline-block',
+  },
+
+  mortalityEducationLegendLabel: {
+    minWidth: 0,
+    fontSize: '9.5px',
+    fontWeight: 700,
+    lineHeight: 1.18,
+    color: '#003b35',
+  },
+
+  mortalityEducationLegendValue: {
+    fontSize: '9px',
+    fontWeight: 800,
+    color: '#7B1E3A',
+    fontVariantNumeric: 'tabular-nums',
+    whiteSpace: 'nowrap',
   },
 
   areaList: {
