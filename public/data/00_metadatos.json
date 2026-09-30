@@ -1,5 +1,5 @@
 {
-  "version": "2026-09-28_JSON_BASE_TAXONOMIA28_FIX4_SIN_CONFIG",
+  "version": "2026-09-30_PASO47_ESTATAL_NACIONAL_MORTALIDAD8577_V1",
   "proyecto": "Vigilancia epidemiológica de accidentes y lesiones",
   "periodo": {
     "inicio": "2026-01-01",
@@ -14,10 +14,15 @@
     "categorias": 28,
     "tipos": 9,
     "eventos": 2,
-    "mortalidad_residual_categoria": "X91/X92 se conservan en tipo/evento/total y no se atribuyen a la categoría Sustancias."
+    "universo_mortalidad": "1,314 defunciones por CLUES transferida + 7,263 adicionales CLUES 9998 depuradas = 8,577.",
+    "entidad_mortalidad": "CLUES transferida: entidad del catálogo CLUES IMB; adicionales: ENTIDADOCURRENCIAD dentro de las 25 entidades operativas.",
+    "mortalidad_residual_categoria": "X91/X92 (247 defunciones) se conservan en total/evento/tipo y no se atribuyen a la categoría Sustancias."
   },
   "cierres": {
     "casos": 252809,
-    "defunciones": 1314
+    "defunciones": 8577,
+    "defunciones_clues_transferida": 1314,
+    "defunciones_adicionales": 7263,
+    "residual_x91_x92": 247
   }
 }

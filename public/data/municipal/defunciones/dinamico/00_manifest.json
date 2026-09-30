@@ -1,39 +1,43 @@
 {
-  "version": "2026-09-28_PASO40_DEFUNCIONES_MUNICIPALES_DINAMICAS_OCURRENCIA_FIX4_FECHA_IDX",
-  "estado": "APROBADO",
+  "version": "2026-09-30_PASO48_MORTALIDAD8577_MUNICIPAL_OCURRENCIA_FIX5_SETORDER",
+  "estado": "STAGING_VALIDACION",
   "fuente": {
-    "base_defunciones": "base_defunciones_tablero_2026_taxonomia28.rds",
-    "taxonomia": "28 categorías cerradas en Paso 27",
-    "regla_mortalidad_categoria": "X91/X92 se conservan en total/evento/tipo y no se atribuyen a la categoría Sustancias.",
-    "universo_institucional": "SEED transferida definido previamente por CLUES; este paso no reconstruye el universo",
+    "base_defunciones": "base_defunciones_tablero_2026_taxonomia28_universo8577_FIX1.rds",
+    "universo": "8,577 defunciones",
+    "origen": "1,314 CLUES transferida + 7,263 adicionales depuradas",
+    "regla_categoria": "X91/X92 permanecen en total/evento/tipo y no bajan a categoría; se usa categoria_mortalidad_publicable.",
     "geometria": "geometria_municipal_inegi_2026.rds"
   },
   "periodo": {
+    "campo": "FECHAREGISTRO / fecha_tablero",
     "inicio": "2026-01-01",
     "fin": "2026-06-30",
     "dias": 181
   },
-  "universos": {
-    "defunciones_analiticas": 1314,
-    "defunciones_georreferenciables": 1314,
-    "defunciones_no_georreferenciables": 0,
-    "municipios_oficiales": 2478,
-    "municipios_con_defunciones": 253,
-    "tipos": 9,
-    "categorias": 28
-  },
   "geografia": {
     "modo": "OCURRENCIA",
-    "entidad": "ENTIDADDEFUNCION",
-    "municipio": "MUNICIPIODEFUNCION",
-    "cvegeo": "ENTIDADDEFUNCION(2) + MUNICIPIODEFUNCION(3)",
-    "nota": "La pertenencia institucional IMSS-Bienestar se definió previamente mediante CLUES en la rama SEED. Estas variables sólo ubican geográficamente la defunción."
+    "entidad": "ENTIDADOCURRENCIA",
+    "municipio": "MUNICIPIOOCURRENCIA",
+    "cvegeo": "ENTIDADOCURRENCIA(2) + MUNICIPIOOCURRENCIA(3)",
+    "nota": "Los registros sin entidad/municipio de ocurrencia válido o sin CVEGEO INEGI permanecen en estatal/nacional, pero no se dibujan en municipal."
+  },
+  "universos": {
+    "defunciones_analiticas": 8577,
+    "defunciones_georreferenciables": 8083,
+    "defunciones_no_georreferenciables": 494,
+    "residual_x91_x92_total": 247,
+    "residual_x91_x92_georreferenciable": 243,
+    "categorias_publicables_total": 8330,
+    "categorias_publicables_georreferenciables": 7840,
+    "municipios_oficiales": 2478,
+    "municipios_con_defunciones": 1066,
+    "tipos": 9,
+    "categorias": 28
   },
   "medida": {
     "nombre": "CONTEO DE DEFUNCIONES",
     "tasa_municipal": false,
-    "denominador_municipal": false,
-    "nota": "No se calcula tasa de mortalidad municipal porque no existe denominador poblacional institucional municipal comparable."
+    "denominador_municipal": false
   },
   "formato": {
     "core": "00_core.json",
