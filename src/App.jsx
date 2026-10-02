@@ -250,8 +250,9 @@ function formatPeriodRange(item) {
 const MEXICO_GEOJSON_URL =
   'https://raw.githubusercontent.com/angelnmara/geojson/master/mexicoHigh.json';
 
-const MORTALITY_PROFILES_URL =
-  '/data/mortalidad/00_profiles.json';
+function getMortalityProfilesUrl(year) {
+  return `/data/ocurrencia/${year}/mortalidad/00_profiles.json`;
+}
 
 const MAP_WIDTH = 900;
 const MAP_HEIGHT = 520;
@@ -3220,17 +3221,16 @@ function DashboardApp({ onLogout }) {
   ]);
 
   // ===========================================================================
-  // PERFIL DESCRIPTIVO DE MORTALIDAD - SEED
+  // PERFIL DESCRIPTIVO DE MORTALIDAD - MULTIANUAL
   // ===========================================================================
-  // Se carga únicamente cuando la persona selecciona Mortalidad. El producto
-  // usa FECHAREGISTRO para conservar exactamente el universo temporal ya
-  // validado para el tablero y la misma taxonomía CIE del mapa de mortalidad.
+  // Se carga únicamente cuando la persona selecciona Mortalidad. El archivo se
+  // resuelve con el año activo para consumir el producto canónico correspondiente
+  // de /data/ocurrencia/{ANIO}/mortalidad/00_profiles.json.
 
   useEffect(() => {
     let active = true;
 
     if (
-      anio !== '2026' ||
       medida !== 'mortalidad' ||
       mortalityProfiles
     ) {
@@ -3245,12 +3245,12 @@ function DashboardApp({ onLogout }) {
         setMortalityProfilesError(null);
 
         const response = await fetch(
-          MORTALITY_PROFILES_URL
+          getMortalityProfilesUrl(anio)
         );
 
         if (!response.ok) {
           throw new Error(
-            `Perfil mortalidad HTTP ${response.status}`
+            `Perfil mortalidad ${anio} HTTP ${response.status}`
           );
         }
 
@@ -5515,11 +5515,7 @@ function DashboardApp({ onLogout }) {
             <div style={styles.filterDivider} />
 
             {medida === 'mortalidad' ? (
-              anio !== '2026' ? (
-                <div style={styles.sidebarEmpty}>
-                  El detalle descriptivo de mortalidad está disponible para 2026.
-                </div>
-              ) : tipo === 'TODOS' ? (
+              tipo === 'TODOS' ? (
                 <div style={styles.sidebarEmpty}>
                   Selecciona un tipo y una categoría para consultar el detalle CIE de mortalidad.
                 </div>
@@ -6204,13 +6200,7 @@ function DashboardApp({ onLogout }) {
 
           {medida === 'mortalidad' ? (
             <div style={styles.mortalityProfileGrid}>
-              {anio !== '2026' ? (
-                <div style={styles.profilePanelWide}>
-                  <div style={styles.profileEmpty}>
-                    El perfil descriptivo de mortalidad está disponible para 2026.
-                  </div>
-                </div>
-              ) : loadingMortalityProfiles ? (
+              {loadingMortalityProfiles ? (
                 <div style={styles.profilePanelWide}>
                   <div style={styles.profileEmpty}>
                     Cargando perfil descriptivo de mortalidad...
