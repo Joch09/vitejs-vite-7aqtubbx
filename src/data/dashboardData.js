@@ -1,7 +1,7 @@
 // =============================================================================
 // dashboardData.js
 // Proyecto: Tablero accidentes y lesiones
-// V10.0 - prueba multianual: rama 2026 generada por automatización
+// V10.1 - selector multianual 2025/2026
 // =============================================================================
 //
 // Capa única de acceso a la rama de producción generada por los Pasos 44/45.
@@ -15,8 +15,14 @@
 // =============================================================================
 
 const DATA_ROOT = `${import.meta.env.BASE_URL}data`.replace(/\/+$/, '');
-const OCCURRENCE_ROOT = 'ocurrencia/2026';
+const OCCURRENCE_ROOT = 'ocurrencia';
+const DEFAULT_YEAR = '2026';
 const MUNICIPAL_GEOMETRY_ROOT = 'municipal';
+
+function normalizeYear(year) {
+  const value = String(year ?? DEFAULT_YEAR).trim();
+  return /^\\d{4}$/.test(value) ? value : DEFAULT_YEAR;
+}
 
 // -----------------------------------------------------------------------------
 // PERFILES
@@ -96,8 +102,8 @@ async function fetchJsonFresh(relativePath) {
   return response.json();
 }
 
-function occurrencePath(...parts) {
-  return joinUrl(OCCURRENCE_ROOT, ...parts);
+function occurrencePath(year, ...parts) {
+  return joinUrl(OCCURRENCE_ROOT, normalizeYear(year), ...parts);
 }
 
 function asArray(value) {
@@ -173,29 +179,29 @@ export function clearDataCache() {
 // CARGA BASE
 // -----------------------------------------------------------------------------
 
-export async function loadManifest() {
-  return fetchJson(occurrencePath('00_manifest.json'));
+export async function loadManifest(year = DEFAULT_YEAR) {
+  return fetchJson(occurrencePath(year, '00_manifest.json'));
 }
 
-export async function loadMetadata() {
-  return fetchJson(occurrencePath('02_descriptivos_manifest.json'));
+export async function loadMetadata(year = DEFAULT_YEAR) {
+  return fetchJson(occurrencePath(year, '02_descriptivos_manifest.json'));
 }
 
-export async function loadCatalogs() {
-  return fetchJson(occurrencePath('01_catalogos.json'));
+export async function loadCatalogs(year = DEFAULT_YEAR) {
+  return fetchJson(occurrencePath(year, '01_catalogos.json'));
 }
 
-export async function loadCoreMap() {
+export async function loadCoreMap(year = DEFAULT_YEAR) {
   const [catalogs, raw] = await Promise.all([
-    loadCatalogs(),
-    fetchJson(occurrencePath('estatal', '00_core.json')),
+    loadCatalogs(year),
+    fetchJson(occurrencePath(year, 'estatal', '00_core.json')),
   ]);
 
   return enrichMapData(raw, catalogs, 'nacional_estatal');
 }
 
-export async function resolveType(typeOrId) {
-  const manifest = await loadManifest();
+export async function resolveType(typeOrId, year = DEFAULT_YEAR) {
+  const manifest = await loadManifest(year);
   const wanted = String(typeOrId ?? '').trim().toLowerCase();
 
   const match = asArray(manifest?.tipos).find((item) => {
@@ -220,9 +226,9 @@ function typeFileName(type) {
 
 export async function loadTypeBundle(
   typeOrId,
-  { includeCategoryMap = false } = {}
+  { includeCategoryMap = false, year = DEFAULT_YEAR } = {}
 ) {
-  const type = await resolveType(typeOrId);
+  const type = await resolveType(typeOrId, year);
   const fileName = typeFileName(type);
   const profileFileName =
     PROFILE_FILE_OVERRIDES[fileName] ??
@@ -233,25 +239,26 @@ export async function loadTypeBundle(
   }
 
   const [catalogs, bulletsRaw, profilesRaw, categoryRaw] = await Promise.all([
-    loadCatalogs(),
+    loadCatalogs(year),
 
     // IMPORTANTE:
     // Los bullets se leen siempre frescos para que un reemplazo en
     // public/data/ocurrencia/bullets/ se refleje inmediatamente en el tablero.
-    fetchJsonFresh(occurrencePath('bullets', fileName)),
+    fetchJsonFresh(occurrencePath(year, 'bullets', fileName)),
 
     // Los perfiles también se leen siempre frescos. Esto evita que
     // StackBlitz/Vite conserve en memoria una versión anterior después de
     // reemplazar archivos en public/data/ocurrencia/perfiles/.
     fetchJsonFresh(
       occurrencePath(
+        year,
         'perfiles',
         profileFileName
       )
     ),
 
     includeCategoryMap
-      ? fetchJson(occurrencePath(type.estatal))
+      ? fetchJson(occurrencePath(year, type.estatal))
       : Promise.resolve(null),
   ]);
 
@@ -279,11 +286,11 @@ export async function loadTypeBundle(
   };
 }
 
-export async function loadCategoryMap(typeOrId) {
-  const type = await resolveType(typeOrId);
+export async function loadCategoryMap(typeOrId, year = DEFAULT_YEAR) {
+  const type = await resolveType(typeOrId, year);
   const [catalogs, raw] = await Promise.all([
-    loadCatalogs(),
-    fetchJson(occurrencePath(type.estatal)),
+    loadCatalogs(year),
+    fetchJson(occurrencePath(year, type.estatal)),
   ]);
 
   return enrichMapData(raw, catalogs, 'nacional_estatal');
@@ -498,14 +505,14 @@ export function getMapEntityValues({
 // MAPA MUNICIPAL
 // -----------------------------------------------------------------------------
 
-export async function loadMunicipalManifest() {
-  return loadManifest();
+export async function loadMunicipalManifest(year = DEFAULT_YEAR) {
+  return loadManifest(year);
 }
 
-export async function loadMunicipalCore() {
+export async function loadMunicipalCore(year = DEFAULT_YEAR) {
   const [catalogs, raw] = await Promise.all([
-    loadCatalogs(),
-    fetchJson(occurrencePath('municipal', '00_core.json')),
+    loadCatalogs(year),
+    fetchJson(occurrencePath(year, 'municipal', '00_core.json')),
   ]);
 
   return enrichMapData(raw, catalogs, 'municipal');
@@ -519,15 +526,15 @@ export async function loadMunicipalStatesGeometry() {
   return fetchJson(joinUrl(MUNICIPAL_GEOMETRY_ROOT, 'estados.geojson'));
 }
 
-export async function resolveMunicipalType(typeOrId) {
-  return resolveType(typeOrId);
+export async function resolveMunicipalType(typeOrId, year = DEFAULT_YEAR) {
+  return resolveType(typeOrId, year);
 }
 
-export async function loadMunicipalCategoryMap(typeOrId) {
-  const type = await resolveType(typeOrId);
+export async function loadMunicipalCategoryMap(typeOrId, year = DEFAULT_YEAR) {
+  const type = await resolveType(typeOrId, year);
   const [catalogs, raw] = await Promise.all([
-    loadCatalogs(),
-    fetchJson(occurrencePath(type.municipal)),
+    loadCatalogs(year),
+    fetchJson(occurrencePath(year, type.municipal)),
   ]);
 
   return enrichMapData(raw, catalogs, 'municipal');
@@ -535,20 +542,20 @@ export async function loadMunicipalCategoryMap(typeOrId) {
 
 // Compatibilidad con la V8.2: en la rama nueva casos, defunciones y tasas
 // comparten el mismo cubo municipal, así que estas funciones son alias.
-export async function loadMunicipalDeathsManifest() {
-  return loadMunicipalManifest();
+export async function loadMunicipalDeathsManifest(year = DEFAULT_YEAR) {
+  return loadMunicipalManifest(year);
 }
 
-export async function loadMunicipalDeathsCore() {
-  return loadMunicipalCore();
+export async function loadMunicipalDeathsCore(year = DEFAULT_YEAR) {
+  return loadMunicipalCore(year);
 }
 
-export async function resolveMunicipalDeathsType(typeOrId) {
-  return resolveType(typeOrId);
+export async function resolveMunicipalDeathsType(typeOrId, year = DEFAULT_YEAR) {
+  return resolveType(typeOrId, year);
 }
 
-export async function loadMunicipalDeathsCategoryMap(typeOrId) {
-  return loadMunicipalCategoryMap(typeOrId);
+export async function loadMunicipalDeathsCategoryMap(typeOrId, year = DEFAULT_YEAR) {
+  return loadMunicipalCategoryMap(typeOrId, year);
 }
 
 export function getMunicipalValues({
