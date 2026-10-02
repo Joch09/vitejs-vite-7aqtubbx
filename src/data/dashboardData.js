@@ -21,7 +21,7 @@ const MUNICIPAL_GEOMETRY_ROOT = 'municipal';
 
 function normalizeYear(year) {
   const value = String(year ?? DEFAULT_YEAR).trim();
-  return /^\\d{4}$/.test(value) ? value : DEFAULT_YEAR;
+  return /^\d{4}$/.test(value) ? value : DEFAULT_YEAR;
 }
 
 // -----------------------------------------------------------------------------
