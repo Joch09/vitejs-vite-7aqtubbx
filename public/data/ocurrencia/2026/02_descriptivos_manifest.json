@@ -1,0 +1,32 @@
+{
+  "schema": "accidentes_lesiones_descriptivos_ocurrencia_manifest_v2",
+  "version": "2026-10-01_PASO12_DESCRIPTIVOS_MULTIYEAR_STANDALONE_V1",
+  "anio": 2026,
+  "estado": "ACTIVO",
+  "arquitectura": "standalone_sin_scripts_historicos",
+  "fuente": {
+    "base": "base_casos_tablero_2026_taxonomia28_ocurrencia.rds",
+    "periodos": "10_dataset_integrado_tablero_2026.rds",
+    "fecha": "FechaOcurrencia",
+    "geografia": "cve_ent_ocurrencia"
+  },
+  "periodos": {
+    "total": 216,
+    "dia": 181,
+    "mes": 6,
+    "semana": 27,
+    "trimestre": 2
+  },
+  "taxonomia": {
+    "tipos": 9,
+    "categorias": 28
+  },
+  "bullets": {
+    "manifest": "bullets/00_manifest.json",
+    "tipos": 9
+  },
+  "perfiles": {
+    "manifest": "perfiles/00_manifest.json",
+    "tipos": 9
+  }
+}

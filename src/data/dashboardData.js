@@ -1,35 +1,29 @@
 // =============================================================================
 // dashboardData.js
 // Proyecto: Tablero accidentes y lesiones
-// V9.4.4 - restaura texto nominal de bullets + perfiles 06/07 versionados
+// V10.0 - prueba multianual: rama 2026 generada por automatización
 // =============================================================================
 //
 // Capa única de acceso a la rama de producción generada por los Pasos 44/45.
 // React NO calcula epidemiología: sólo recupera valores precomputados en R.
 //
 // Fuente frontend esperada:
-//   public/data/ocurrencia/
+//   public/data/ocurrencia/2026/
 //
 // Mantiene asArray() porque algunos arreglos compactos serializados por R
 // pueden llegar como objetos con claves numéricas.
 // =============================================================================
 
 const DATA_ROOT = `${import.meta.env.BASE_URL}data`.replace(/\/+$/, '');
-const OCCURRENCE_ROOT = 'ocurrencia';
+const OCCURRENCE_ROOT = 'ocurrencia/2026';
 const MUNICIPAL_GEOMETRY_ROOT = 'municipal';
 
 // -----------------------------------------------------------------------------
-// PERFILES VERSIONADOS 06 / 07
+// PERFILES
 // -----------------------------------------------------------------------------
-// Estos dos archivos fueron regenerados el 04-sep-2026 para incorporar
-// area_anatomica. Se usan nombres nuevos para evitar que cualquier capa de
-// StackBlitz/Vite/CDN entregue una copia previa con el mismo URL.
-const PROFILE_FILE_OVERRIDES = {
-  '06_maltrato_negligencia.json':
-    '06_maltrato_negligencia_v2.json',
-  '07_violencia_sexual.json':
-    '07_violencia_sexual_v2.json',
-};
+// La rama multianual ya contiene los perfiles 06/07 corregidos con sus nombres
+// canónicos, por lo que no se requieren overrides de archivos versionados.
+const PROFILE_FILE_OVERRIDES = {};
 
 const jsonCache = new Map();
 const indexCache = new WeakMap();
