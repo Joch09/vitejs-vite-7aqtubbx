@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// V9.19.12: escolaridad en mortalidad se presenta como gráfico de pastel.
+// V10.1.0: selector multianual 2025/2026 y periodos desde catálogo.
 
 import logoImssBienestar from './assets/logos/logo_imss_bienestar.png';
 import logoCoordinacion from './assets/logos/logo_coordinacion_epidemiologia.png';
@@ -197,174 +197,45 @@ function LoginScreen({ onLogin }) {
 // Los cuatro modos consultan directamente los productos regenerados por
 // FechaOcurrencia. Día, mes y semana son excluyentes; trimestre es acumulado.
 //
-// Calendario epidemiológico oficial DGE 2026:
-// - SE 53: 28-dic-2025 a 03-ene-2026.
-// - SE 1 inicia el 04-ene-2026.
-// - Las semanas epidemiológicas corren de domingo a sábado.
+// El calendario epidemiológico y las opciones de periodo se leen directamente
+// de 01_catalogos.json para el año activo. Esto permite incorporar nuevos años
+// sin volver a codificar meses, semanas o trimestres en React.
 //
 // Distribuciones complementarias conservadas en código, ocultas en UI.
 // Cambiar a true si se requiere reactivarlas posteriormente.
 const MOSTRAR_DISTRIBUCIONES_COMPLEMENTARIAS = false;
 
-const TEMPORAL_QUARTERS_2026 = [
-  {
-    value: 'T1',
-    label: '1.er trimestre',
-    detail: 'Acumulado: 01 ene – 31 mar',
-  },
-  {
-    value: 'T2',
-    label: '2.º trimestre',
-    detail: 'Acumulado: 01 ene – 30 jun',
-  },
-];
+const ANIOS_DISPONIBLES = ['2026', '2025'];
 
-const TEMPORAL_MONTHS_2026 = [
-  { value: '2026-01', label: 'Enero 2026' },
-  { value: '2026-02', label: 'Febrero 2026' },
-  { value: '2026-03', label: 'Marzo 2026' },
-  { value: '2026-04', label: 'Abril 2026' },
-  { value: '2026-05', label: 'Mayo 2026' },
-  { value: '2026-06', label: 'Junio 2026' },
-];
+function periodArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return Object.values(value);
+  return [];
+}
 
-const TEMPORAL_WEEKS_2026 = [
-  {
-    value: '53',
-    label: 'SE 53',
-    detail: '28 dic 2025 – 03 ene 2026',
-  },
-  {
-    value: '1',
-    label: 'SE 1',
-    detail: '04 – 10 ene',
-  },
-  {
-    value: '2',
-    label: 'SE 2',
-    detail: '11 – 17 ene',
-  },
-  {
-    value: '3',
-    label: 'SE 3',
-    detail: '18 – 24 ene',
-  },
-  {
-    value: '4',
-    label: 'SE 4',
-    detail: '25 – 31 ene',
-  },
-  {
-    value: '5',
-    label: 'SE 5',
-    detail: '01 – 07 feb',
-  },
-  {
-    value: '6',
-    label: 'SE 6',
-    detail: '08 – 14 feb',
-  },
-  {
-    value: '7',
-    label: 'SE 7',
-    detail: '15 – 21 feb',
-  },
-  {
-    value: '8',
-    label: 'SE 8',
-    detail: '22 – 28 feb',
-  },
-  {
-    value: '9',
-    label: 'SE 9',
-    detail: '01 – 07 mar',
-  },
-  {
-    value: '10',
-    label: 'SE 10',
-    detail: '08 – 14 mar',
-  },
-  {
-    value: '11',
-    label: 'SE 11',
-    detail: '15 – 21 mar',
-  },
-  {
-    value: '12',
-    label: 'SE 12',
-    detail: '22 – 28 mar',
-  },
-  {
-    value: '13',
-    label: 'SE 13',
-    detail: '29 mar – 04 abr',
-  },
-  {
-    value: '14',
-    label: 'SE 14',
-    detail: '05 – 11 abr',
-  },
-  {
-    value: '15',
-    label: 'SE 15',
-    detail: '12 – 18 abr',
-  },
-  {
-    value: '16',
-    label: 'SE 16',
-    detail: '19 – 25 abr',
-  },
-  {
-    value: '17',
-    label: 'SE 17',
-    detail: '26 abr – 02 may',
-  },
-  {
-    value: '18',
-    label: 'SE 18',
-    detail: '03 – 09 may',
-  },
-  {
-    value: '19',
-    label: 'SE 19',
-    detail: '10 – 16 may',
-  },
-  {
-    value: '20',
-    label: 'SE 20',
-    detail: '17 – 23 may',
-  },
-  {
-    value: '21',
-    label: 'SE 21',
-    detail: '24 – 30 may',
-  },
-  {
-    value: '22',
-    label: 'SE 22',
-    detail: '31 may – 06 jun',
-  },
-  {
-    value: '23',
-    label: 'SE 23',
-    detail: '07 – 13 jun',
-  },
-  {
-    value: '24',
-    label: 'SE 24',
-    detail: '14 – 20 jun',
-  },
-  {
-    value: '25',
-    label: 'SE 25',
-    detail: '21 – 27 jun',
-  },
-  {
-    value: '26',
-    label: 'SE 26',
-    detail: '28 jun – 04 jul',
-  },
-];
+function formatPeriodDate(value) {
+  const match = String(value ?? '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  if (!match) return String(value ?? '');
+
+  const date = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3])
+  );
+
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: 'short',
+  })
+    .format(date)
+    .replace('.', '');
+}
+
+function formatPeriodRange(item) {
+  const start = formatPeriodDate(item?.inicio);
+  const end = formatPeriodDate(item?.fin);
+  return start && end ? `${start} – ${end}` : '—';
+}
 
 // =============================================================================
 // GEOMETRÍA DEL MAPA
@@ -2978,12 +2849,15 @@ function sanitizeFilename(value) {
 }
 
 function DashboardApp({ onLogout }) {
+  const [anio, setAnio] =
+    useState(ANIOS_DISPONIBLES[0]);
+
   const {
     manifest,
     coreMap,
     loadingInitial,
     error: loadingError,
-  } = useDashboardData();
+  } = useDashboardData(anio);
 
   const [evento, setEvento] =
     useState('TODOS');
@@ -3007,11 +2881,11 @@ function DashboardApp({ onLogout }) {
   const [periodoConsulta, setPeriodoConsulta] =
     useState('trimestre');
   const [trimestreTemporal, setTrimestreTemporal] =
-    useState('T2');
+    useState('');
   const [mesTemporal, setMesTemporal] =
-    useState('2026-06');
+    useState('');
   const [semanaTemporal, setSemanaTemporal] =
-    useState('26');
+    useState('');
 
   const [ordenTabla, setOrdenTabla] = useState({
     campo: 'territorio',
@@ -3115,6 +2989,45 @@ function DashboardApp({ onLogout }) {
   ] = useState(null);
 
   // ===========================================================================
+  // CAMBIO DE AÑO
+  // ===========================================================================
+  // Limpia únicamente los datos dependientes del año. La geometría municipal se
+  // conserva porque es común a 2025 y 2026.
+  useEffect(() => {
+    setEvento('TODOS');
+    setTipo('TODOS');
+    setCategoria('TODAS');
+    setEntidad('NACIONAL');
+    setMedida('incidencia');
+
+    setFecha('');
+    setPeriodoConsulta('trimestre');
+    setTrimestreTemporal('');
+    setMesTemporal('');
+    setSemanaTemporal('');
+
+    setCategoryMap(null);
+    setCategoryError(null);
+    setBulletData(null);
+    setProfileData(null);
+    setBulletError(null);
+
+    setMunicipalManifest(null);
+    setMunicipalCore(null);
+    setMunicipalCategoryMap(null);
+    setMunicipalError(null);
+    setMunicipalCategoryError(null);
+
+    setMunicipalDeathsCore(null);
+    setMunicipalDeathsCategoryMap(null);
+    setMunicipalDeathsError(null);
+    setMunicipalDeathsCategoryError(null);
+
+    setMortalityProfiles(null);
+    setMortalityProfilesError(null);
+  }, [anio]);
+
+  // ===========================================================================
   // GEOMETRÍA DEL MAPA
   // ===========================================================================
 
@@ -3199,8 +3112,8 @@ function DashboardApp({ onLogout }) {
           municipiosData,
           estadosData,
         ] = await Promise.all([
-          loadMunicipalManifest(),
-          loadMunicipalCore(),
+          loadMunicipalManifest(anio),
+          loadMunicipalCore(anio),
           loadMunicipalGeometry(),
           loadMunicipalStatesGeometry(),
         ]);
@@ -3236,6 +3149,7 @@ function DashboardApp({ onLogout }) {
       active = false;
     };
   }, [
+    anio,
     nivelMapa,
     municipalCore,
     municipiosGeo,
@@ -3272,7 +3186,7 @@ function DashboardApp({ onLogout }) {
         setMunicipalDeathsError(null);
 
         const coreData =
-          await loadMunicipalDeathsCore();
+          await loadMunicipalDeathsCore(anio);
 
         if (!active) {
           return;
@@ -3299,6 +3213,7 @@ function DashboardApp({ onLogout }) {
       active = false;
     };
   }, [
+    anio,
     nivelMapa,
     medida,
     municipalDeathsCore,
@@ -3315,6 +3230,7 @@ function DashboardApp({ onLogout }) {
     let active = true;
 
     if (
+      anio !== '2026' ||
       medida !== 'mortalidad' ||
       mortalityProfiles
     ) {
@@ -3365,6 +3281,7 @@ function DashboardApp({ onLogout }) {
       active = false;
     };
   }, [
+    anio,
     medida,
     mortalityProfiles,
   ]);
@@ -3415,48 +3332,133 @@ function DashboardApp({ onLogout }) {
         );
   }, [coreMap]);
 
+  const periodosCatalogo = useMemo(() => {
+    return periodArray(coreMap?._catalogs?.periods);
+  }, [coreMap]);
+
+  const opcionesTrimestre = useMemo(
+    () =>
+      periodosCatalogo
+        .filter((item) => String(item?.tipo) === 'trimestre')
+        .map((item) => ({
+          value: String(item?.id ?? ''),
+          label: String(item?.label ?? item?.id ?? ''),
+          detail: `Acumulado: ${formatPeriodRange(item)}`,
+        })),
+    [periodosCatalogo]
+  );
+
+  const opcionesMes = useMemo(
+    () =>
+      periodosCatalogo
+        .filter((item) => String(item?.tipo) === 'mes')
+        .map((item) => ({
+          value: String(item?.id ?? ''),
+          label: String(item?.label ?? item?.id ?? ''),
+        })),
+    [periodosCatalogo]
+  );
+
+  const opcionesSemana = useMemo(
+    () =>
+      periodosCatalogo
+        .filter((item) => String(item?.tipo) === 'semana')
+        .map((item) => ({
+          value: String(item?.id ?? ''),
+          label: String(item?.label ?? item?.id ?? ''),
+          detail: formatPeriodRange(item),
+        })),
+    [periodosCatalogo]
+  );
+
   // ===========================================================================
-  // FECHA INICIAL = ÚLTIMA FECHA DISPONIBLE
+  // PERIODO INICIAL = ÚLTIMO DISPONIBLE DEL AÑO ACTIVO
   // ===========================================================================
 
   useEffect(() => {
     if (
       fechas.length > 0 &&
-      !fecha
+      !fechas.includes(fecha)
     ) {
-      setFecha(
-        fechas[
-          fechas.length - 1
-        ]
+      setFecha(fechas[fechas.length - 1]);
+    }
+
+    if (
+      opcionesTrimestre.length > 0 &&
+      !opcionesTrimestre.some(
+        (item) => item.value === trimestreTemporal
+      )
+    ) {
+      setTrimestreTemporal(
+        opcionesTrimestre[opcionesTrimestre.length - 1].value
       );
     }
-  }, [fechas, fecha]);
+
+    if (
+      opcionesMes.length > 0 &&
+      !opcionesMes.some(
+        (item) => item.value === mesTemporal
+      )
+    ) {
+      setMesTemporal(
+        opcionesMes[opcionesMes.length - 1].value
+      );
+    }
+
+    if (
+      opcionesSemana.length > 0 &&
+      !opcionesSemana.some(
+        (item) => item.value === semanaTemporal
+      )
+    ) {
+      setSemanaTemporal(
+        opcionesSemana[opcionesSemana.length - 1].value
+      );
+    }
+  }, [
+    fechas,
+    fecha,
+    opcionesTrimestre,
+    trimestreTemporal,
+    opcionesMes,
+    mesTemporal,
+    opcionesSemana,
+    semanaTemporal,
+  ]);
 
   const trimestreSeleccionado = useMemo(
     () =>
-      TEMPORAL_QUARTERS_2026.find(
-        (item) =>
-          item.value ===
-          trimestreTemporal
-      ) ?? TEMPORAL_QUARTERS_2026[1],
-    [trimestreTemporal]
+      opcionesTrimestre.find(
+        (item) => item.value === trimestreTemporal
+      ) ??
+      opcionesTrimestre[opcionesTrimestre.length - 1] ??
+      { value: '', label: '—', detail: '—' },
+    [opcionesTrimestre, trimestreTemporal]
+  );
+
+  const mesSeleccionado = useMemo(
+    () =>
+      opcionesMes.find(
+        (item) => item.value === mesTemporal
+      ) ??
+      opcionesMes[opcionesMes.length - 1] ??
+      { value: '', label: '—' },
+    [opcionesMes, mesTemporal]
   );
 
   const semanaSeleccionada = useMemo(
     () =>
-      TEMPORAL_WEEKS_2026.find(
-        (item) =>
-          item.value ===
-          semanaTemporal
-      ) ?? TEMPORAL_WEEKS_2026[
-        TEMPORAL_WEEKS_2026.length - 1
-      ],
-    [semanaTemporal]
+      opcionesSemana.find(
+        (item) => item.value === semanaTemporal
+      ) ??
+      opcionesSemana[opcionesSemana.length - 1] ??
+      { value: '', label: '—', detail: '—' },
+    [opcionesSemana, semanaTemporal]
   );
 
   const periodoIdConsulta = useMemo(() => {
     if (periodoConsulta === 'trimestre') {
-      return `2026-${trimestreTemporal}-ACUM`;
+      return trimestreTemporal;
     }
 
     if (periodoConsulta === 'mes') {
@@ -3464,7 +3466,7 @@ function DashboardApp({ onLogout }) {
     }
 
     if (periodoConsulta === 'semana') {
-      return `2026-SE${String(semanaTemporal).padStart(2, '0')}`;
+      return semanaTemporal;
     }
 
     return fecha;
@@ -3482,11 +3484,7 @@ function DashboardApp({ onLogout }) {
     }
 
     if (periodoConsulta === 'mes') {
-      return (
-        TEMPORAL_MONTHS_2026.find(
-          (item) => item.value === mesTemporal
-        )?.label ?? mesTemporal
-      );
+      return mesSeleccionado.label;
     }
 
     if (periodoConsulta === 'semana') {
@@ -3497,7 +3495,7 @@ function DashboardApp({ onLogout }) {
   }, [
     periodoConsulta,
     trimestreSeleccionado,
-    mesTemporal,
+    mesSeleccionado,
     semanaSeleccionada,
     fecha,
   ]);
@@ -3512,11 +3510,12 @@ function DashboardApp({ onLogout }) {
     }
 
     if (periodoConsulta === 'semana') {
-      return `${semanaSeleccionada.detail}. Semana epidemiológica oficial DGE 2026.`;
+      return `${semanaSeleccionada.detail}. Semana epidemiológica oficial DGE ${anio}.`;
     }
 
     return 'Periodo diario no acumulado.';
   }, [
+    anio,
     periodoConsulta,
     trimestreSeleccionado,
     semanaSeleccionada,
@@ -3715,7 +3714,8 @@ function DashboardApp({ onLogout }) {
 
         const data =
           await loadCategoryMap(
-            tipo
+            tipo,
+            anio
           );
 
         if (!active) {
@@ -3745,7 +3745,7 @@ function DashboardApp({ onLogout }) {
     return () => {
       active = false;
     };
-  }, [tipo]);
+  }, [tipo, anio]);
 
   // ===========================================================================
   // CATEGORÍAS MUNICIPALES DEL TIPO SELECCIONADO
@@ -3769,7 +3769,7 @@ function DashboardApp({ onLogout }) {
       try {
         setMunicipalCategoryError(null);
 
-        const data = await loadMunicipalCategoryMap(tipo);
+        const data = await loadMunicipalCategoryMap(tipo, anio);
 
         if (!active) {
           return;
@@ -3792,6 +3792,7 @@ function DashboardApp({ onLogout }) {
       active = false;
     };
   }, [
+    anio,
     tipo,
     nivelMapa,
     medida,
@@ -3821,7 +3822,7 @@ function DashboardApp({ onLogout }) {
         setMunicipalDeathsCategoryError(null);
 
         const data =
-          await loadMunicipalDeathsCategoryMap(tipo);
+          await loadMunicipalDeathsCategoryMap(tipo, anio);
 
         if (!active) {
           return;
@@ -3844,6 +3845,7 @@ function DashboardApp({ onLogout }) {
       active = false;
     };
   }, [
+    anio,
     tipo,
     nivelMapa,
     medida,
@@ -3876,7 +3878,7 @@ function DashboardApp({ onLogout }) {
         setProfileData(null);
 
         const bundle =
-          await loadTypeBundle(tipo);
+          await loadTypeBundle(tipo, { year: anio });
 
         if (!active) {
           return;
@@ -3909,7 +3911,7 @@ function DashboardApp({ onLogout }) {
     return () => {
       active = false;
     };
-  }, [tipo]);
+  }, [tipo, anio]);
 
   // ===========================================================================
   // CATEGORÍAS DEL TIPO
@@ -5513,7 +5515,11 @@ function DashboardApp({ onLogout }) {
             <div style={styles.filterDivider} />
 
             {medida === 'mortalidad' ? (
-              tipo === 'TODOS' ? (
+              anio !== '2026' ? (
+                <div style={styles.sidebarEmpty}>
+                  El detalle descriptivo de mortalidad está disponible para 2026.
+                </div>
+              ) : tipo === 'TODOS' ? (
                 <div style={styles.sidebarEmpty}>
                   Selecciona un tipo y una categoría para consultar el detalle CIE de mortalidad.
                 </div>
@@ -5788,6 +5794,29 @@ function DashboardApp({ onLogout }) {
 
           <aside style={styles.metricRail}>
             <div style={styles.metricLabel}>
+              Año
+            </div>
+
+            <select
+              value={anio}
+              onChange={(e) =>
+                setAnio(e.target.value)
+              }
+              style={styles.metricEntitySelect}
+            >
+              {ANIOS_DISPONIBLES.map((year) => (
+                <option
+                  key={year}
+                  value={year}
+                >
+                  {year}
+                </option>
+              ))}
+            </select>
+
+            <div style={styles.metricDivider} />
+
+            <div style={styles.metricLabel}>
               Entidad
             </div>
 
@@ -5970,7 +5999,7 @@ function DashboardApp({ onLogout }) {
                       styles.temporalSelect
                     }
                   >
-                    {TEMPORAL_QUARTERS_2026.map(
+                    {opcionesTrimestre.map(
                       (item) => (
                         <option
                           key={item.value}
@@ -6015,7 +6044,7 @@ function DashboardApp({ onLogout }) {
                       styles.temporalSelect
                     }
                   >
-                    {TEMPORAL_MONTHS_2026.map(
+                    {opcionesMes.map(
                       (item) => (
                         <option
                           key={item.value}
@@ -6052,7 +6081,7 @@ function DashboardApp({ onLogout }) {
                       styles.temporalSelect
                     }
                   >
-                    {TEMPORAL_WEEKS_2026.map(
+                    {opcionesSemana.map(
                       (item) => (
                         <option
                           key={item.value}
@@ -6074,7 +6103,7 @@ function DashboardApp({ onLogout }) {
                     }
                     <br />
                     Semana epidemiológica
-                    oficial DGE 2026.
+                    oficial DGE {anio}.
                   </div>
                 </>
               )}
@@ -6175,7 +6204,13 @@ function DashboardApp({ onLogout }) {
 
           {medida === 'mortalidad' ? (
             <div style={styles.mortalityProfileGrid}>
-              {loadingMortalityProfiles ? (
+              {anio !== '2026' ? (
+                <div style={styles.profilePanelWide}>
+                  <div style={styles.profileEmpty}>
+                    El perfil descriptivo de mortalidad está disponible para 2026.
+                  </div>
+                </div>
+              ) : loadingMortalityProfiles ? (
                 <div style={styles.profilePanelWide}>
                   <div style={styles.profileEmpty}>
                     Cargando perfil descriptivo de mortalidad...
@@ -6819,7 +6854,10 @@ function DashboardApp({ onLogout }) {
         <div style={styles.sourcesLine}>
           Secretaría de Salud. Dirección General de Información en Salud (DGIS).
           Cubos dinámicos de Accidentes y Lesiones (información preliminar).
-          Casos acumulados del 01 de enero al 30 de junio de 2026.
+          Casos del periodo disponible{' '}
+          {fechas.length > 0
+            ? `${fechas[0]} a ${fechas[fechas.length - 1]}`
+            : `del año ${anio}`}.
         </div>
 
         <div style={styles.sourcesLine}>
