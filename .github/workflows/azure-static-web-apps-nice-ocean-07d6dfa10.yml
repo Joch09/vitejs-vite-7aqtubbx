@@ -14,29 +14,112 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
-      - name: Build And Deploy
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar aplicación
+        run: npm run build
+
+      - name: Reducir paquete de despliegue
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Productos heredados que ya no consume la versión multianual.
+          rm -rf dist/data/mortalidad
+          rm -rf dist/data/municipal/dinamico
+          rm -rf dist/data/municipal/defunciones
+          rm -f dist/data/00_manifest.json
+          rm -f dist/data/01_catalogos.json
+          rm -f dist/data/00_metadatos.json
+
+          # Los perfiles de mortalidad conservan en producción sólo los campos
+          # que realmente utiliza React. Los conteos auxiliares permanecen en el
+          # repositorio fuente, pero no necesitan viajar en el paquete de Azure.
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const profileFiles = [
+            'dist/data/ocurrencia/2025/mortalidad/00_profiles.json',
+            'dist/data/ocurrencia/2026/mortalidad/00_profiles.json',
+          ];
+
+          for (const file of profileFiles) {
+            if (!fs.existsSync(file)) continue;
+
+            const before = fs.statSync(file).size;
+            const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
+
+            for (const profile of Object.values(payload?.data ?? {})) {
+              for (const field of ['escolaridad', 'ocupacion']) {
+                if (!Array.isArray(profile?.[field])) continue;
+
+                for (const item of profile[field]) {
+                  if (item && typeof item === 'object') {
+                    delete item.conteo;
+                  }
+                }
+              }
+
+              const bullet = profile?.bullet_cie;
+              if (bullet && typeof bullet === 'object') {
+                delete bullet.id;
+                delete bullet.conteo;
+                delete bullet.denominador;
+              }
+            }
+
+            fs.writeFileSync(file, JSON.stringify(payload));
+            const after = fs.statSync(file).size;
+            console.log(
+              `${file}: ${before.toLocaleString()} -> ${after.toLocaleString()} bytes`
+            );
+          }
+          NODE
+
+          bytes="$(du -sb dist | cut -f1)"
+          echo "Tamaño final de dist: ${bytes} bytes"
+
+          # El límite del plan actual de Azure Static Web Apps es 262,144,000.
+          # Dejamos margen para evitar volver a rozarlo.
+          if [ "$bytes" -ge 258000000 ]; then
+            echo "ERROR: dist sigue demasiado grande para un despliegue seguro."
+            exit 1
+          fi
+
+      - name: Publicar en Azure Static Web Apps
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NICE_OCEAN_07D6DFA10 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "dist" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+
+          # La aplicación ya fue compilada y aligerada en los pasos anteriores.
+          app_location: "dist"
+          api_location: ""
+          output_location: ""
+          skip_app_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
+
     steps:
       - name: Close Pull Request
         id: closepullrequest
