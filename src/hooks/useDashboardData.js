@@ -7,7 +7,7 @@ import {
 
 // =============================================================================
 // useDashboardData.js
-// V9 - rama de ocurrencia
+// V10.1 - rama multianual de ocurrencia
 // =============================================================================
 // Carga inicial mínima:
 //   - manifest de producción
@@ -17,7 +17,7 @@ import {
 // App.jsx para no penalizar el arranque del tablero.
 // =============================================================================
 
-export function useDashboardData() {
+export function useDashboardData(year = '2026') {
   const [manifest, setManifest] = useState(null);
   const [coreMap, setCoreMap] = useState(null);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -30,10 +30,12 @@ export function useDashboardData() {
       try {
         setLoadingInitial(true);
         setError(null);
+        setManifest(null);
+        setCoreMap(null);
 
         const [manifestData, coreMapData] = await Promise.all([
-          loadManifest(),
-          loadCoreMap(),
+          loadManifest(year),
+          loadCoreMap(year),
         ]);
 
         if (!active) return;
@@ -58,7 +60,7 @@ export function useDashboardData() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [year]);
 
   return {
     manifest,
