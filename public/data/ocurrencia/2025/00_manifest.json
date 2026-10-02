@@ -1,6 +1,6 @@
 {
   "schema": "accidentes_lesiones_ocurrencia_manifest_v1",
-  "version": "2025_AUTO_PASO11_JSON_MAPAS_MULTIYEAR_V1",
+  "version": "2025_AUTO_PASO11_JSON_MAPAS_MULTIYEAR_V3_TASAS_NACIONALES_FIX2",
   "anio": 2025,
   "estado": "CERRADO",
   "catalogos": "01_catalogos.json",
@@ -99,13 +99,8 @@
     }
   ],
   "pendiente": {
-    "bullets": false,
-    "perfiles": false,
+    "bullets": true,
+    "perfiles": true,
     "despliegue_frontend": true
-  },
-  "descriptivos": {
-    "manifest": "02_descriptivos_manifest.json",
-    "bullets": "bullets/00_manifest.json",
-    "perfiles": "perfiles/00_manifest.json"
   }
 }
