@@ -2190,11 +2190,55 @@ const MORTALITY_EDUCATION_COLORS = {
 };
 
 function getMortalityEducationColor(label) {
-  return (
-    MORTALITY_EDUCATION_COLORS[
-      normalizeText(label)
-    ] ?? '#98989A'
-  );
+  const key = normalizeText(label);
+
+  // Los datos usan algunas etiquetas más largas que las solicitadas
+  // en la paleta (por ejemplo, "Bachillerato o preparatoria" y
+  // "No especificado / se ignora / no aplica"). Se resuelven por
+  // equivalencia semántica para conservar siempre el color institucional.
+  if (key === 'SECUNDARIA') {
+    return MORTALITY_EDUCATION_COLORS.SECUNDARIA;
+  }
+
+  if (key === 'PRIMARIA') {
+    return MORTALITY_EDUCATION_COLORS.PRIMARIA;
+  }
+
+  if (
+    key.includes('BACHILLERATO') ||
+    key.includes('PREPARATORIA')
+  ) {
+    return MORTALITY_EDUCATION_COLORS.BACHILLERATO;
+  }
+
+  if (
+    key.includes('LICENCIATURA') ||
+    key.includes('PROFESIONAL')
+  ) {
+    return MORTALITY_EDUCATION_COLORS['LICENCIATURA O PROFESIONAL'];
+  }
+
+  if (key === 'NINGUNA') {
+    return MORTALITY_EDUCATION_COLORS.NINGUNA;
+  }
+
+  if (
+    key.includes('NO ESPECIFICADO') ||
+    key.includes('SE IGNORA') ||
+    key.includes('NO APLICA')
+  ) {
+    return MORTALITY_EDUCATION_COLORS['NO ESPECIFICADO'];
+  }
+
+  if (key === 'POSGRADO') {
+    return MORTALITY_EDUCATION_COLORS.POSGRADO;
+  }
+
+  if (key === 'PREESCOLAR') {
+    return MORTALITY_EDUCATION_COLORS.PREESCOLAR;
+  }
+
+  return '#98989A';
 }
 
 function MortalityEducationPie({ items = [] }) {
