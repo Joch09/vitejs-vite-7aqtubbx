@@ -2178,16 +2178,24 @@ function MortalityProfileBars({ items = [], compact = false }) {
 }
 
 
-const MORTALITY_EDUCATION_COLORS = [
-  '#5B162B',
-  '#7B1E3A',
-  '#98445D',
-  '#B65F78',
-  '#CE8195',
-  '#DDA7B4',
-  '#C2B2B7',
-  '#E9D9DE',
-];
+const MORTALITY_EDUCATION_COLORS = {
+  SECUNDARIA: '#611232',
+  PRIMARIA: '#98989A',
+  BACHILLERATO: '#E6D194',
+  'LICENCIATURA O PROFESIONAL': '#006657',
+  NINGUNA: '#A57F2C',
+  'NO ESPECIFICADO': '#9B2247',
+  POSGRADO: '#A2BAAD',
+  PREESCOLAR: '#778D76',
+};
+
+function getMortalityEducationColor(label) {
+  return (
+    MORTALITY_EDUCATION_COLORS[
+      normalizeText(label)
+    ] ?? '#98989A'
+  );
+}
 
 function MortalityEducationPie({ items = [] }) {
   const slices = useMemo(() => {
@@ -2216,10 +2224,9 @@ function MortalityEducationPie({ items = [] }) {
 
       return {
         ...item,
-        color:
-          MORTALITY_EDUCATION_COLORS[
-            index % MORTALITY_EDUCATION_COLORS.length
-          ],
+        color: getMortalityEducationColor(
+          item?.etiqueta
+        ),
         startAngle,
         endAngle,
       };
@@ -6566,7 +6573,12 @@ function DashboardApp({ onLogout }) {
                             {item.etiqueta}
                           </span>
 
-                          <strong style={styles.areaValue}>
+                          <strong
+                            style={{
+                              ...styles.areaValue,
+                              color: '#BC955C',
+                            }}
+                          >
                             {formatProfilePercent(item.value)}
                           </strong>
                         </div>
@@ -6575,6 +6587,7 @@ function DashboardApp({ onLogout }) {
                           <div
                             style={{
                               ...styles.areaBar,
+                              background: '#BC955C',
                               width: ancho,
                             }}
                           />
